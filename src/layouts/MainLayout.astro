@@ -1,0 +1,41 @@
+---
+// src/layouts/MainLayout.astro
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+// Dengan middleware, kita tidak perlu membuat client di sini.
+// Astro.locals sudah disediakan oleh middleware.
+const { session } = Astro.locals;
+
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+---
+<!doctype html>
+<html lang="id">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="description" content="BJS Racing Store - Distributor Spray Paint dan Onderdil Motor" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title}</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+		<title>{title}</title>
+	</head>
+	<body class="bg-slate-100 text-slate-800">
+		
+		<Header /> {/* <-- HEADER DITAMBAHKAN DI SINI */}
+		
+		<main>
+			<slot />
+		</main>
+
+		<Footer /> {/* <-- FOOTER DITAMBAHKAN DI SINI */}
+		
+	</body>
+</html>

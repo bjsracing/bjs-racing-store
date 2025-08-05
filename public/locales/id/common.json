@@ -1,0 +1,22 @@
+{
+  "nav": {
+    "home": "Home",
+    "spray_paint": "Spray Paint",
+    "federal_part": "Federal Part",
+    "login_register": "Login / Daftar",
+    "my_account": "Akun Saya",
+    "logout": "Logout"
+  },
+  "home_page": {
+    "welcome": "Selamat Datang di BJS RACING STORE!"
+  },
+  "product_page": {
+    "pilok_title": "Spray Paint Products",
+    "pilok_subtitle": "Semua produk cat semprot berkualitas dari merek ternama.",
+    "federal_part_title": "Federal Part Products",
+    "federal_part_subtitle": "Onderdil motor berkualitas dari merek FEDERAL PART."
+  },
+  "components": {
+    "add_to_cart": "+ Keranjang"
+  }
+}

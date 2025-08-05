@@ -1,0 +1,72 @@
+---
+// src/pages/products/[id].astro (Versi Stabil tanpa Simulator)
+export const prerender = false;
+
+import MainLayout from '../../layouts/MainLayout.astro';
+import { supabase } from '../../lib/supabaseClient';
+import ProductPurchase from '../../components/ProductPurchase.jsx';
+import ProductInfoTabs from '../../components/ProductInfoTabs.jsx';
+import ImageUploader from '../../components/ImageUploader.jsx';
+
+const { id } = Astro.params;
+const { session } = Astro.locals;
+
+let product = null;
+let isAdmin = false;
+
+if (id) {
+    const { data } = await supabase.from('products').select('*').eq('id', id).single();
+    product = data;
+}
+
+if (session) {
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
+    isAdmin = profile?.role === 'admin';
+}
+
+if (!product) {
+    return Astro.redirect('/404');
+}
+
+const formatRupiah = (number) => {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency', currency: 'IDR', minimumFractionDigits: 0
+    }).format(number || 0);
+};
+---
+
+<MainLayout title={product.nama}>
+    <div class="container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+            
+            <div class="relative aspect-square bg-white rounded-lg flex items-center justify-center p-4 shadow-sm border">
+                {product.image_url ? (
+                    <img src={product.image_url} alt={product.nama} class="w-full h-full object-contain" />
+                ) : (
+                    <svg class="w-24 h-24 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l-1.586-1.586a2 2 0 00-2.828 0L6 14m6-6l2-2m0 0l2 2m-2-2v6m0 0l2 2"></path></svg>
+                )}
+                {product.color_swatch_url && (
+                    <div class="absolute bottom-4 right-4 w-24 h-24 rounded-full shadow-lg overflow-hidden">
+                        <img src={product.color_swatch_url} alt={`Warna ${product.nama}`} class="w-full h-full object-cover rounded-full" />
+                    </div>
+                )}
+            </div>
+
+            <div>
+                <p class="text-sm font-semibold text-slate-500 uppercase tracking-wider">{product.merek}</p>
+                <h1 class="text-4xl font-bold mt-1">{product.nama}</h1>
+                {product.ukuran && ( <p class="text-lg text-slate-600 mt-2">Ukuran: <span class="font-semibold">{product.ukuran}</span></p> )}
+                <p class="text-lg text-slate-500 font-mono mt-1">{product.sku}</p>
+                <p class="mt-4 font-bold text-3xl text-orange-500">{formatRupiah(product.harga_jual)}</p>
+                
+                <ProductInfoTabs client:load product={product} />
+
+                <div class="mt-6 max-w-md">
+                    <ProductPurchase client:load product={product} />
+                </div>
+            </div>
+        </div>
+
+        {isAdmin && ( <ImageUploader client:load productId={product.id} /> )}
+    </div>
+</MainLayout>

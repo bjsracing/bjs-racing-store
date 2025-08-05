@@ -1,0 +1,57 @@
+---
+// src/components/Header.astro
+import type { Session } from '@supabase/supabase-js';
+import CartIcon from './CartIcon.jsx';
+import MobileMenuButton from './MobileMenuButton.jsx';
+import id from '../../public/locales/id/common.json'; // <-- Impor file JSON
+
+interface Props {
+    session: Session | null;
+}
+const { session } = Astro.props;
+
+// Gunakan teks dari file JSON
+const navLinks = [
+  { name: id.nav.home, path: "/" },
+  { name: "Produk Pilok", path: "/pilok" },
+    { name: "Katalog Pilok", path: "/katalog-warna" },
+  { name: "Garasi Virtual", path: "/simulator" },
+  { name: id.nav.federal_part, path: "/federal-part" },
+];
+---
+<header class="bg-white text-slate-800 shadow-sm sticky top-0 z-50">
+    <div class="container mx-auto px-4 flex justify-between items-center py-4">
+        <a href="/" class="text-xl font-bold text-slate-900">
+            BJS RACING <span class="text-orange-500">STORE</span>
+        </a>
+        <nav class="hidden md:flex items-center space-x-8">
+            {navLinks.map(link => (
+                <a href={link.path} class="font-semibold text-slate-900 hover:text-orange-600 transition-colors">
+                    {link.name}
+                </a>
+            ))}
+        </nav>
+        
+        <div class="hidden md:flex items-center gap-6">
+            <CartIcon client:visible />
+            {session ? (
+                <div class="flex items-center gap-3">
+                    <a href="/akun" class="text-sm font-semibold text-white hover:text-slate-200">{id.nav.my_account}</a>
+                    <form action="/api/auth/logout" method="post">
+                        <button type="submit" class="bg-white/20 hover:bg-white/30 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm">
+                            {id.nav.logout}
+                        </button>
+                    </form>
+                </div>
+            ) : (
+                <a href="/login" class="bg-white hover:bg-slate-200 text-orange-500 font-bold py-2 px-4 rounded-lg transition-colors text-sm">
+                    {id.nav.login_register}
+                </a>
+            )}
+        </div>
+        
+        <div class="md:hidden">
+            <button class="text-slate-800"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></button>
+        </div>
+    </div>
+</header>

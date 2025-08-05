@@ -1,14 +1,19 @@
-entrypoint = "index.js"
 modules = ["nodejs-22"]
 hidden = [".config", "package-lock.json"]
 
-[gitHubImport]
-requiredFiles = [".replit", "replit.nix", "package.json", "package-lock.json"]
+# Perintah untuk menjalankan server development Astro
+run = "npm run dev"
 
-[nix]
-channel = "stable-24_11"
+# Konfigurasi port agar Replit menampilkan preview
+[http]
+port = 4321
+host = "0.0.0.0"
+secure = false
 
-[deployment]
-run = ["node", "index.js"]
-deploymentTarget = "autoscale"
-ignorePorts = false
+[[ports]]
+localPort = 4321
+externalPort = 80
+
+[[ports]]
+localPort = 4322
+externalPort = 3000

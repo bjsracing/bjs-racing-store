@@ -1,0 +1,14 @@
+---
+// src/pages/index.astro
+import MainLayout from '../layouts/MainLayout.astro';
+// HAPUS: import { t } from "i18next";
+
+// TAMBAH: Impor file JSON secara langsung
+import id from '../../public/locales/id/common.json';
+---
+
+<MainLayout title="BJS RACING STORE - Home">
+	<h1 class="text-4xl font-bold text-center p-20">
+		{id.home_page.welcome} {/* GANTI t() dengan pemanggilan objek biasa */}
+	</h1>
+</MainLayout>

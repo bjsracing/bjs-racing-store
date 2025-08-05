@@ -1,0 +1,24 @@
+---
+// src/pages/katalog-warna.astro
+import MainLayout from '../layouts/MainLayout.astro';
+import ColorCatalog from '../components/ColorCatalog.jsx';
+import { FiCamera } from 'react-icons/fi'; // <-- Impor ikon baru
+---
+
+<MainLayout title="Katalog Warna - BJS RACING STORE">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold mb-1">Katalog Warna Digital</h1>
+        <p class="text-sm text-slate-500 mb-6">Jelajahi semua pilihan warna cat semprot kami secara visual.</p>
+        
+        {/* --- TAMBAHKAN BLOK TOMBOL DI SINI --- */}
+        <a href="/scan-warna" class="block w-full text-center bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 px-6 rounded-lg shadow-lg mb-8 transition-all duration-300 transform hover:scale-105">
+            <div class="flex items-center justify-center gap-3">
+                <FiCamera />
+                <span>Punya inspirasi warna? Pindai di sini!</span>
+            </div>
+        </a>
+        
+        <ColorCatalog client:load />
+
+    </div>
+</MainLayout>
