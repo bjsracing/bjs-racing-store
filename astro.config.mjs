@@ -3,23 +3,25 @@
 import { defineConfig } from 'astro/config';
 import tailwind from "@astrojs/tailwind";
 import react from "@astrojs/react";
-import vercel from "@astrojs/vercel/serverless"; // Menggunakan /serverless untuk Vercel
+import vercel from "@astrojs/vercel/serverless";
 
-// https://astro.build/config
 export default defineConfig({
-  output: "server", // <-- TAMBAHKAN BARIS INI
+  output: "server",
   integrations: [
     tailwind(),
     react(),
   ],
-
   vite: {
     server: {
-      allowedHosts: [
-        '.replit.dev'
-      ]
+      allowedHosts: ['.replit.dev']
     }
   },
-
-  adapter: vercel()
+  adapter: vercel({
+    imageService: true,
+    imagesConfig: {
+      // Tempel domain Anda di sini, di dalam tanda kutip
+      domains: ["ykotzsmncvyfveypeevb.supabase.co"],
+      sizes: [300, 600, 1080],
+    },
+  })
 });
