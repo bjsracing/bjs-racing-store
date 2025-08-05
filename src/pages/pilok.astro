@@ -4,7 +4,6 @@ import MainLayout from '../layouts/MainLayout.astro';
 import ProductCatalog from '../components/ProductCatalog.jsx';
 import id from '../../public/locales/id/common.json';
 
-// Konfigurasi untuk filter di halaman ini
 const filterConfig = {
     category: "Pilok",
     showMerekFilter: true,
@@ -19,6 +18,9 @@ const filterConfig = {
         <h1 class="text-2xl font-bold mb-1">{id.product_page.pilok_title}</h1>
         <p class="text-sm text-slate-500 mb-6">{id.product_page.pilok_subtitle}</p>
         
-        <ProductCatalog client:load filterConfig={filterConfig} />
+        {/* PERBAIKAN: Gunakan client:only="react" untuk rendering di sisi klien */}
+        <div client:only="react">
+            <ProductCatalog filterConfig={filterConfig} />
+        </div>
     </div>
 </MainLayout>

@@ -1,12 +1,12 @@
-// astro.config.mjs (Versi Final yang Benar)
+// astro.config.mjs
 
 import { defineConfig } from 'astro/config';
 import tailwind from "@astrojs/tailwind";
 import react from "@astrojs/react";
-import vercel from "@astrojs/vercel/serverless";
+import vercel from "@astrojs/vercel/static"; // <-- Ganti ke /static
 
 export default defineConfig({
-  output: "server",
+  // output: "server", // <-- Hapus atau jadikan komentar baris ini
   integrations: [
     tailwind(),
     react(),
@@ -16,12 +16,5 @@ export default defineConfig({
       allowedHosts: ['.replit.dev']
     }
   },
-  adapter: vercel({
-    imageService: true,
-    imagesConfig: {
-      // Tempel domain Anda di sini, di dalam tanda kutip
-      domains: ["ykotzsmncvyfveypeevb.supabase.co"],
-      sizes: [300, 600, 1080],
-    },
-  })
+  adapter: vercel() // Adapter Vercel untuk static
 });
