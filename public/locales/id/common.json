@@ -1,8 +1,11 @@
 {
   "nav": {
     "home": "Home",
-    "spray_paint": "Spray Paint",
+    "spray_paint": "Produk Pilok",
     "federal_part": "Federal Part",
+    "catalog": "Katalog Pilok",
+    "virtual_garage": "Garasi Virtual",
+    "scan_warna": "Scan Warna",
     "login_register": "Login / Daftar",
     "my_account": "Akun Saya",
     "logout": "Logout"
