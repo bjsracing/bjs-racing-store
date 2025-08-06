@@ -1,13 +1,12 @@
-// src/components/ProductCatalog.jsx
+// src/components/ProductCatalog.jsx (Versi Final yang bisa menangani 2 tampilan)
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "../lib/supabaseClient";
 import CatalogFilter from "./CatalogFilter.jsx";
 import ProductCard from "./ProductCard.jsx";
 import ColorSwatchCard from "./ColorSwatchCard.jsx";
 
 const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
-    const [products, setProducts] = useState([]);
     const [allProducts, setAllProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({
@@ -43,21 +42,8 @@ const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
         });
 
         if (error) console.error("Gagal memuat produk:", error.message);
-        else {
-            setAllProducts(data || []); // Simpan semua hasil untuk info tambahan
-            // Untuk tampilan kartu warna, kita filter agar unik
-            if (cardType === "colorSwatch") {
-                const uniqueProducts = new Map();
-                (data || []).forEach((p) => {
-                    if (!uniqueProducts.has(p.nama) && p.color_swatch_url) {
-                        uniqueProducts.set(p.nama, p);
-                    }
-                });
-                setProducts(Array.from(uniqueProducts.values()));
-            } else {
-                setProducts(data || []);
-            }
-        }
+        else setAllProducts(data || []);
+
         setLoading(false);
     }, [filterConfig, filters]);
 
@@ -65,16 +51,25 @@ const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
         fetchProducts();
     }, [fetchProducts]);
 
-    // Kelompokkan produk berdasarkan color_variant
+    // Kelompokkan produk untuk tampilan Katalog Warna
     const groupedProducts = useMemo(() => {
         if (cardType !== "colorSwatch") return null;
-        return products.reduce((acc, product) => {
+
+        const uniqueProducts = new Map();
+        allProducts.forEach((p) => {
+            if (!uniqueProducts.has(p.nama) && p.color_swatch_url) {
+                uniqueProducts.set(p.nama, p);
+            }
+        });
+        const uniqueProductList = Array.from(uniqueProducts.values());
+
+        return uniqueProductList.reduce((acc, product) => {
             const variant = product.color_variant || "Lainnya";
             if (!acc[variant]) acc[variant] = [];
             acc[variant].push(product);
             return acc;
         }, {});
-    }, [products, cardType]);
+    }, [allProducts, cardType]);
 
     return (
         <div>
@@ -91,13 +86,13 @@ const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
                 Object.keys(groupedProducts).length > 0 ? (
                     <div className="space-y-12">
                         {Object.entries(groupedProducts).map(
-                            ([variantName, items]) => (
+                            ([variantName, products]) => (
                                 <div key={variantName}>
                                     <h2 className="text-xl font-bold border-b-2 border-orange-400 pb-2 mb-6">
                                         {variantName}
                                     </h2>
                                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-x-4 gap-y-8">
-                                        {items.map((product) => (
+                                        {products.map((product) => (
                                             <ColorSwatchCard
                                                 key={product.id}
                                                 product={product}
@@ -117,9 +112,9 @@ const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
                     </p>
                 )
             ) : // Tampilan untuk Katalog Produk biasa
-            products.length > 0 ? (
+            allProducts.length > 0 ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                    {products.map((product) => (
+                    {allProducts.map((product) => (
                         <ProductCard key={product.id} product={product} />
                     ))}
                 </div>
@@ -131,4 +126,5 @@ const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
         </div>
     );
 };
+
 export default ProductCatalog;
