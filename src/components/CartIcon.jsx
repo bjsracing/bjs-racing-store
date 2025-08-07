@@ -1,21 +1,17 @@
 // src/components/CartIcon.jsx
 
 import React from "react";
-import { useCartStore } from "../lib/cartStore";
+import { useAppStore } from "../lib/store.js"; // <-- Gunakan useAppStore
 
 const CartIcon = () => {
-  // Ambil 'items' dari cart store
-  const items = useCartStore((state) => state.items);
-
-  // Hitung total kuantitas semua item di keranjang
+  const items = useAppStore((state) => state.items);
   const totalItems = items.reduce((total, item) => total + item.quantity, 0);
 
   return (
     <a
       href="/cart"
-      className="relative text-white hover:text-orange-400 transition-colors"
+      className="relative text-slate-800 hover:text-orange-500 transition-colors"
     >
-      {/* Ikon Keranjang Belanja */}
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="24"
@@ -32,9 +28,8 @@ const CartIcon = () => {
         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
       </svg>
 
-      {/* Badge Jumlah Item */}
       {totalItems > 0 && (
-        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
+        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
           {totalItems}
         </span>
       )}

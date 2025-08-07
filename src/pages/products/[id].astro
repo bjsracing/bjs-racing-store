@@ -62,7 +62,7 @@ const formatRupiah = (number) => {
                 <ProductInfoTabs client:load product={product} />
 
                 <div class="mt-6 max-w-md">
-                    <ProductPurchase client:load product={product} />
+                    <ProductPurchase client:only="react" product={product} />
                 </div>
             </div>
         </div>

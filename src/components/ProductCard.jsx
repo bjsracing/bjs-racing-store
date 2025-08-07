@@ -1,8 +1,8 @@
-// src/components/ProductCard.jsx (Versi Final yang Menggabungkan Desain Anda + Fitur Baru)
+// src/components/ProductCard.jsx (Versi Final dengan Semua Fitur & Desain Anda)
 
 import React from "react";
 import AddToCartButton from "./AddToCartButton.jsx";
-import { FiStar } from "react-icons/fi"; // Impor ikon bintang
+import { FiStar } from "react-icons/fi";
 
 const ProductCard = ({ product }) => {
     const formatRupiah = (number) => {
@@ -13,8 +13,8 @@ const ProductCard = ({ product }) => {
         }).format(number || 0);
     };
 
-    const isLowStock = product.stok <= product.stok_min;
-    // Logika baru untuk diskon
+    // Logika untuk fitur baru
+    const isLowStock = product.stok > 0 && product.stok <= product.stok_min;
     const hasDiscount =
         product.harga_coret && product.harga_coret > product.harga_jual;
     const discountPercentage = hasDiscount
@@ -24,13 +24,16 @@ const ProductCard = ({ product }) => {
                   100,
           )
         : 0;
+    const isBestSeller = product.total_terjual > 50; // Anda bisa sesuaikan ambang batas ini
 
     return (
-        // Menggunakan struktur utama Anda
-        <div className="bg-white rounded-xl shadow-lg shadow-slate-500 overflow-hidden group border border-slate-200 hover:border-orange-500 hover:border-2 transition-all duration-300 flex flex-col hover:shadow-lg">
-            <a href={`/products/${product.id}`} className="block">
-                <div className="relative aspect-square bg-white shadow-lg flex items-center justify-center p-4">
-                    {/* Gambar Utama (tidak berubah) */}
+        <div className="bg-white rounded-xl shadow-md overflow-hidden group border-2 border-slate-200 hover:border-orange-500 transition-all duration-300 flex flex-col h-full">
+            <a
+                href={`/products/${product.id}`}
+                className="block flex flex-col flex-grow"
+            >
+                <div className="relative aspect-square bg-white flex items-center justify-center p-2">
+                    {/* Gambar Utama */}
                     {product.image_url ? (
                         <img
                             src={product.image_url}
@@ -38,87 +41,84 @@ const ProductCard = ({ product }) => {
                             className="w-full h-full object-contain transition-transform group-hover:scale-105"
                         />
                     ) : (
-                        <svg
-                            className="w-16 h-16 text-slate-300"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="1"
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l-1.586-1.586a2 2 0 00-2.828 0L6 14m6-6l2-2m0 0l2 2m-2-2v6m0 0l2 2"
-                            ></path>
-                        </svg>
+                        <div className="w-full h-full bg-slate-100 rounded-md"></div>
                     )}
 
-                    {/* BADGE DISKON BARU (di pojok kanan atas) */}
-                    {hasDiscount && (
-                        <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-2 py-1">
-                            {discountPercentage}%
-                        </div>
-                    )}
+                    {/* BADGES BARU (Pojok Kiri Atas) */}
+                    <div className="absolute top-2 left-2 flex flex-col items-start gap-1">
+                        {hasDiscount && (
+                            <div className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded">
+                                DISKON {discountPercentage}%
+                            </div>
+                        )}
+                        {isBestSeller && (
+                            <div className="bg-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded">
+                                TERLARIS
+                            </div>
+                        )}
+                        {isLowStock && (
+                            <div className="bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-0.5 rounded">
+                                STOK TERAKHIR
+                            </div>
+                        )}
+                    </div>
 
-                    {/* Wrapper untuk Lingkaran Warna dan SKU (tidak berubah) */}
-                    <div className="absolute bottom-2 right-5 flex flex-col items-center">
-                        <div className="w-44 h-44 md:w-20 md:h-20 rounded-full shadow-lg shadow-slate-500 flex items-center justify-center overflow-hidden">
-                            {product.color_swatch_url ? (
+                    {/* LINGKARAN WARNA & SKU (di pojok kiri bawah) */}
+                    <div className="absolute bottom-2 left-4 flex flex-col items-center">
+                        {product.color_swatch_url && (
+                            <div className="w-20 h-20 rounded-full shadow-lg flex items-center justify-center overflow-hidden">
                                 <img
                                     src={product.color_swatch_url}
                                     alt={`Warna ${product.nama}`}
                                     className="w-full h-full object-cover"
                                 />
-                            ) : (
-                                <div className="w-full h-full bg-grey-500"></div>
-                            )}
-                        </div>
-                        <p className="text-lg font-bold text-slate-900 mt-2">
+                            </div>
+                        )}
+                        <p className="text-base font-bold text-slate-1000 bg-orange-100 px-1.5 rounded mt-2">
                             {product.sku || ""}
                         </p>
                     </div>
                 </div>
 
-                {/* Blok info produk */}
-                <div className="p-3 flex-grow bg-orange-100/50 flex flex-col">
-                    <p className="text-base text-slate-500 uppercase tracking-wider font-medium">
-                        {product.merek || "Tanpa Merek"}
-                    </p>
+                <div className="p-3 flex-grow flex flex-col bg-orange-100 mt-0.5">
                     <h3
-                        className="text-lg font-bold text-slate-800 truncate mt-1 group-hover:text-slate-900 transition-colors"
+                        className="text-base font-semibold text-slate-1000 line-clamp-2"
                         title={product.nama}
                     >
                         {product.nama}
                     </h3>
+                    <p className="text-sm text-blue-600 italic uppercase tracking-wider font-medium">
+                        {product.lini_produk}
+                    </p>
+                    <div className="flex-grow"></div>
+
                     <div className="mt-2">
-                        {/* HARGA CORET BARU */}
                         {hasDiscount && (
-                            <p className="text-xs text-slate-500 line-through">
+                            <p className="text-sm text-slate-600 line-through">
                                 {formatRupiah(product.harga_coret)}
                             </p>
                         )}
-                        <p className="font-bold text-2xl text-orange-600">
+                        <p className="font-bold text-xl text-orange-600">
                             {formatRupiah(product.harga_jual)}
                         </p>
                     </div>
 
-                    {/* INFO UKURAN & STOK (tidak berubah) */}
-                    <div className="flex justify-between text-xs mt-1">
-                        <p className="text-slate-500">
+                    <div className="flex justify-between text-sm text-slate-1000 mt-1">
+                        <span>
                             Ukuran:{" "}
-                            <span className="font-semibold text-slate-700">
+                            <span className="font-semibold">
                                 {product.ukuran}
                             </span>
-                        </p>
-                        <p
-                            className={`font-semibold ${isLowStock ? "text-red-500" : "text-slate-700"}`}
-                        >
-                            Stok: {product.stok}
-                        </p>
+                        </span>
+                        <span>
+                            Stok:{" "}
+                            <span className="font-semibold">
+                                {product.stok}
+                            </span>
+                        </span>
                     </div>
 
-                    {/* RATING & TERJUAL BARU */}
-                    <div className="flex items-center gap-2 text-xs text-slate-500 mt-auto pt-2 border-t mt-2">
+                    <div className="flex items-center gap-2 text-xs text-slate-800 mt-2 border-t pt-2">
                         <FiStar
                             className="text-yellow-400"
                             fill="currentColor"
@@ -131,8 +131,7 @@ const ProductCard = ({ product }) => {
                 </div>
             </a>
 
-            {/* Tombol Add to Cart (tidak berubah) */}
-            <div className="px-3 pb-3 mt-auto bg-orange-100/50">
+            <div className="px-3 pb-3 bg-orange-100">
                 <AddToCartButton product={product} />
             </div>
         </div>

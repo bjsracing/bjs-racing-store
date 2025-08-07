@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "../lib/supabaseClient";
-import { useCartStore } from "../lib/cartStore";
+import { useAppStore } from "../lib/store";
 import { FiShoppingCart } from "react-icons/fi";
 
 // --- TAMBAHKAN FUNGSI BARU DI SINI ---
@@ -60,7 +60,7 @@ const ColorSimulator = ({ initialProductId }) => {
   const [selectedSize, setSelectedSize] = useState(null);
   const [simulationImageUrl, setSimulationImageUrl] = useState("");
   const [loading, setLoading] = useState(true);
-  const { addToCart } = useCartStore();
+  const { addToCart } = useAppStore();
 
   useEffect(() => {
     const fetchInitialData = async () => {

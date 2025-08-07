@@ -2,6 +2,8 @@
 // src/components/Header.astro
 import CartIcon from './CartIcon.jsx';
 import AuthMenu from './AuthMenu.jsx';
+import MobileMenu from './MobileMenu.jsx';
+import MobileMenuButton from './MobileMenuButton.jsx';
 import id from '../../public/locales/id/common.json';
 
 const navLinks = [
@@ -13,6 +15,7 @@ const navLinks = [
   { name: id.nav.federal_part, path: "/federal-part" },
 ];
 ---
+{/* Gunakan tag <header> HTML biasa, bukan komponen <Header> */}
 <header class="bg-white text-slate-800 shadow-sm sticky top-0 z-50">
     <div class="container mx-auto px-4 flex justify-between items-center py-4">
         <a href="/" class="text-xl font-bold text-slate-900"> BJS RACING <span class="text-orange-500">STORE</span> </a>
@@ -22,7 +25,22 @@ const navLinks = [
             <AuthMenu client:load />
         </div>
         <div class="md:hidden">
-            <button class="text-slate-800"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></button>
+            <MobileMenuButton client:load />
         </div>
     </div>
 </header>
+
+{/* Komponen Menu Mobile (hanya akan tampil jika state-nya aktif) */}
+<MobileMenu client:load />
+
+<script>
+    // Sedikit script untuk handle header sticky
+    document.addEventListener('scroll', () => {
+        const header = document.querySelector('header');
+        if (window.scrollY > 10) {
+            header.classList.add('bg-white/80', 'backdrop-blur-md', 'shadow-sm');
+        } else {
+            header.classList.remove('bg-white/80', 'backdrop-blur-md', 'shadow-sm');
+        }
+    });
+</script>

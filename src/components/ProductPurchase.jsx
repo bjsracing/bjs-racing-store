@@ -1,12 +1,12 @@
 // src/components/ProductPurchase.jsx
 
 import React, { useState } from "react";
-import { useCartStore } from "../lib/cartStore";
+import { useAppStore } from "../lib/store";
 import { FiShoppingCart, FiPlus, FiMinus } from "react-icons/fi";
 
 const ProductPurchase = ({ product }) => {
   const [quantity, setQuantity] = useState(1);
-  const { addToCart } = useCartStore();
+  const { addToCart } = useAppStore();
 
   const handleQuantityChange = (e) => {
     let value = parseInt(e.target.value, 10);
