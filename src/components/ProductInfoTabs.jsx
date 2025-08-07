@@ -1,6 +1,7 @@
 // src/components/ProductInfoTabs.jsx
 
 import React, { useState } from "react";
+import RelatedProducts from "./RelatedProducts.jsx"; // <-- Impor baru
 
 const ProductInfoTabs = ({ product }) => {
   const [activeTab, setActiveTab] = useState("deskripsi");
@@ -8,11 +9,11 @@ const ProductInfoTabs = ({ product }) => {
   const tabs = [
     { id: "deskripsi", label: "Deskripsi Produk" },
     { id: "spesifikasi", label: "Spesifikasi" },
+    { id: "terkait", label: "Produk Terkait" }, // <-- Tab baru
   ];
 
   return (
     <div className="mt-8">
-      {/* Tombol Tab */}
       <div className="border-b border-slate-200">
         <nav className="-mb-px flex gap-6" aria-label="Tabs">
           {tabs.map((tab) => (
@@ -22,7 +23,7 @@ const ProductInfoTabs = ({ product }) => {
               className={`shrink-0 border-b-2 px-1 pb-4 text-sm font-medium ${
                 activeTab === tab.id
                   ? "border-orange-500 text-orange-600"
-                  : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700"
+                  : "border-transparent text-slate-500 hover:border-slate-300"
               }`}
             >
               {tab.label}
@@ -30,18 +31,12 @@ const ProductInfoTabs = ({ product }) => {
           ))}
         </nav>
       </div>
-
-      {/* Konten Tab */}
       <div className="py-6">
         {activeTab === "deskripsi" && (
           <div className="prose max-w-none text-slate-600">
-            <p>
-              {product.catatan || "Deskripsi untuk produk ini belum tersedia."}
-            </p>
+            <p>{product.catatan || "Deskripsi belum tersedia."}</p>
           </div>
         )}
-
-        {/* --- BLOK SPESIFIKASI YANG DIPERBARUI --- */}
         {activeTab === "spesifikasi" && (
           <div>
             {product.specifications &&
@@ -55,12 +50,11 @@ const ProductInfoTabs = ({ product }) => {
                 ))}
               </dl>
             ) : (
-              <p className="text-slate-600">
-                Spesifikasi untuk produk ini belum tersedia.
-              </p>
+              <p className="text-slate-600">Spesifikasi belum tersedia.</p>
             )}
           </div>
         )}
+        {activeTab === "terkait" && <RelatedProducts product={product} />}
       </div>
     </div>
   );

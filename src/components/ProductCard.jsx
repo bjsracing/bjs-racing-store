@@ -1,4 +1,4 @@
-// src/components/ProductCard.jsx (Versi Final dengan Semua Fitur & Desain Anda)
+// src/components/ProductCard.jsx (Versi Final dengan Layout Responsif)
 
 import React from "react";
 import AddToCartButton from "./AddToCartButton.jsx";
@@ -13,7 +13,6 @@ const ProductCard = ({ product }) => {
         }).format(number || 0);
     };
 
-    // Logika untuk fitur baru
     const isLowStock = product.stok > 0 && product.stok <= product.stok_min;
     const hasDiscount =
         product.harga_coret && product.harga_coret > product.harga_jual;
@@ -24,15 +23,15 @@ const ProductCard = ({ product }) => {
                   100,
           )
         : 0;
-    const isBestSeller = product.total_terjual > 50; // Anda bisa sesuaikan ambang batas ini
+    const isBestSeller = product.total_terjual > 50;
 
     return (
-        <div className="bg-white rounded-xl shadow-md overflow-hidden group border-2 border-slate-200 hover:border-orange-500 transition-all duration-300 flex flex-col h-full">
+        <div className="bg-white rounded-xl shadow-md overflow-hidden group border border-slate-200 hover:border-orange-500 transition-all duration-300 flex flex-col h-full">
             <a
                 href={`/products/${product.id}`}
                 className="block flex flex-col flex-grow"
             >
-                <div className="relative aspect-square bg-white flex items-center justify-center p-2">
+                <div className="relative aspect-square bg-white flex items-center justify-center">
                     {/* Gambar Utama */}
                     {product.image_url ? (
                         <img
@@ -44,29 +43,30 @@ const ProductCard = ({ product }) => {
                         <div className="w-full h-full bg-slate-100 rounded-md"></div>
                     )}
 
-                    {/* BADGES BARU (Pojok Kiri Atas) */}
+                    {/* --- BADGES BARU (Pojok Kiri Atas) --- */}
                     <div className="absolute top-2 left-2 flex flex-col items-start gap-1">
                         {hasDiscount && (
-                            <div className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded">
+                            <div className="bg-red-500 text-white text-2xs md:text-xs font-bold px-2 py-0.5 rounded">
                                 DISKON {discountPercentage}%
                             </div>
                         )}
                         {isBestSeller && (
-                            <div className="bg-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded">
+                            <div className="bg-orange-500 text-white text-2xs md:text-xs font-bold px-2 py-0.5 rounded">
                                 TERLARIS
                             </div>
                         )}
                         {isLowStock && (
-                            <div className="bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-0.5 rounded">
+                            <div className="bg-yellow-400 text-yellow-900 text-2xs md:text-xs font-bold px-2 py-0.5 rounded">
                                 STOK TERAKHIR
                             </div>
                         )}
                     </div>
 
-                    {/* LINGKARAN WARNA & SKU (di pojok kiri bawah) */}
-                    <div className="absolute bottom-2 left-4 flex flex-col items-center">
+                    {/* --- LINGKARAN WARNA & SKU (Sekarang Responsif) --- */}
+                    {/* Tampilan HP: di Kiri Atas */}
+                    <div className="absolute bottom-1 left-4 flex flex-col items-center md:hidden">
                         {product.color_swatch_url && (
-                            <div className="w-20 h-20 rounded-full shadow-lg flex items-center justify-center overflow-hidden">
+                            <div className="w-14 h-14 rounded-full shadow-lg flex items-center justify-center overflow-hidden">
                                 <img
                                     src={product.color_swatch_url}
                                     alt={`Warna ${product.nama}`}
@@ -74,64 +74,78 @@ const ProductCard = ({ product }) => {
                                 />
                             </div>
                         )}
-                        <p className="text-base font-bold text-slate-1000 bg-orange-100 px-1.5 rounded mt-2">
+                        <p className="text-sm font-bold text-slate-900 bg-white/70 px-1 rounded mt-1">
+                            {product.sku || ""}
+                        </p>
+                    </div>
+
+                    {/* Tampilan Desktop: di Kiri Bawah */}
+                    <div className="absolute bottom-1 left-4 hidden md:flex flex-col items-center">
+                        {product.color_swatch_url && (
+                            <div className="w-16 h-16 rounded-full shadow-lg flex items-center justify-center overflow-hidden">
+                                <img
+                                    src={product.color_swatch_url}
+                                    alt={`Warna ${product.nama}`}
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+                        )}
+                        <p className="text-base font-bold text-slate-900 bg-white/70 px-1 rounded mt-1">
                             {product.sku || ""}
                         </p>
                     </div>
                 </div>
 
-                <div className="p-3 flex-grow flex flex-col bg-orange-100 mt-0.5">
+                {/* Blok info produk */}
+                <div className="p-3 flex-grow flex flex-col bg-white">
                     <h3
-                        className="text-base font-semibold text-slate-1000 line-clamp-2"
+                        className="text-base font-bold text-slate-900 line-clamp-2 mt-1"
                         title={product.nama}
                     >
                         {product.nama}
                     </h3>
-                    <p className="text-sm text-blue-600 italic uppercase tracking-wider font-medium">
-                        {product.lini_produk}
+                    <p className="text-xs text-blue-600 uppercase tracking-wider font-bold">
+                        {product.lini_produk || ""}
                     </p>
                     <div className="flex-grow"></div>
-
-                    <div className="mt-2">
+                    <div className="mt-1">
                         {hasDiscount && (
-                            <p className="text-sm text-slate-600 line-through">
+                            <p className="text-xs text-slate-400 line-through">
                                 {formatRupiah(product.harga_coret)}
                             </p>
                         )}
-                        <p className="font-bold text-xl text-orange-600">
+                        <p className="font-bold text-lg text-orange-500">
                             {formatRupiah(product.harga_jual)}
                         </p>
                     </div>
-
-                    <div className="flex justify-between text-sm text-slate-1000 mt-1">
-                        <span>
-                            Ukuran:{" "}
-                            <span className="font-semibold">
-                                {product.ukuran}
+                    {/* --- RATING, TERJUAL, & STOK (VERSI PROFESIONAL) --- */}
+                    <div className="flex justify-between items-center text-xs text-slate-900 font-semibold mt-auto pt-2 border-t mt-2">
+                        {/* Kiri: Rating & Terjual */}
+                        <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
+                                <FiStar
+                                    className="text-yellow-400"
+                                    fill="currentColor"
+                                />
+                                <span className="font-semibold">
+                                    {product.rating?.toFixed(1) || "Baru"}
+                                </span>
+                            </div>
+                            <span className="border-l pl-2">
+                                {product.total_terjual || 0} Terjual
                             </span>
-                        </span>
-                        <span>
-                            Stok:{" "}
-                            <span className="font-semibold">
-                                {product.stok}
-                            </span>
-                        </span>
-                    </div>
+                        </div>
 
-                    <div className="flex items-center gap-2 text-xs text-slate-800 mt-2 border-t pt-2">
-                        <FiStar
-                            className="text-yellow-400"
-                            fill="currentColor"
-                        />
-                        <span>{product.rating?.toFixed(1) || "Baru"}</span>
-                        <span className="border-l pl-2">
-                            {product.total_terjual || 0} Terjual
-                        </span>
+                        {/* Kanan: Stok */}
+                        <p
+                            className={`font-semibold ${isLowStock ? "text-red-500" : "text-slate-900"}`}
+                        >
+                            Stok: {product.stok}
+                        </p>
                     </div>
                 </div>
             </a>
-
-            <div className="px-3 pb-3 bg-orange-100">
+            <div className="px-3 pb-3 bg-white">
                 <AddToCartButton product={product} />
             </div>
         </div>

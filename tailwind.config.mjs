@@ -7,8 +7,11 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        // Atur 'Inter' sebagai font utama
         sans: ['Inter', ...fontFamily.sans],
+      },
+      // --- TAMBAHKAN BLOK BARU DI SINI ---
+      fontSize: {
+        '2xs': '0.625rem', // Ini setara dengan 10px
       },
     },
   },
