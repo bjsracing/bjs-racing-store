@@ -20,7 +20,7 @@ export default defineConfig({
     tailwind(),
     react(),
     pwa({
-      mode: 'development',
+      mode: 'production',
       base: '/',
       scope: '/',
       includeAssets: ['favicon.svg', '/logo/logo-bjsracingstore.jpg'], // Path diperbaiki
