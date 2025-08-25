@@ -1,0 +1,274 @@
+[
+  {
+    "routine_name": "upsert_special_price",
+    "routine_definition": "\r\n    INSERT INTO public.daftar_harga_mitra (customer_id, product_id, harga_spesial)\r\n    VALUES (customer_uuid, product_uuid, new_price)\r\n    ON CONFLICT (customer_id, product_id) DO UPDATE\r\n    SET harga_spesial = new_price;\r\n"
+  },
+  {
+    "routine_name": "search_customers",
+    "routine_definition": "\n  SELECT * FROM public.customers\n  WHERE\n    nama_pelanggan ILIKE '%' || search_term || '%' OR\n    telepon ILIKE '%' || search_term || '%';\n"
+  },
+  {
+    "routine_name": "get_simulation_image_url",
+    "routine_definition": "\n    SELECT colored_image_url\n    FROM public.simulation_variants\n    WHERE\n        product_id = p_product_id AND simulation_object_id = p_object_id\n    LIMIT 1;\n"
+  },
+  {
+    "routine_name": "search_products",
+    "routine_definition": "\nBEGIN\n    RETURN QUERY\n    SELECT *\n    FROM\n        public.products\n    WHERE\n        (\n            search_term IS NULL OR search_term = '' OR\n            kode ILIKE '%' || search_term || '%' OR\n            nama ILIKE '%' || search_term || '%' OR\n            merek ILIKE '%' || search_term || '%' OR\n            kategori ILIKE '%' || search_term || '%'\n        )\n        AND (merek_filter = 'semua' OR merek ILIKE merek_filter)\n        AND (kategori_filter = 'semua' OR kategori ILIKE kategori_filter)\n        AND (status_filter = 'semua' OR status ILIKE status_filter)\n        AND (low_stock_only = false OR (stok <= stok_min))\n    ORDER BY\n        updated_at DESC NULLS LAST;\nEND;\n"
+  },
+  {
+    "routine_name": "generate_so_number",
+    "routine_definition": "\r\nDECLARE\r\n    new_so_number TEXT;\r\n    year_short TEXT;\r\n    next_val BIGINT;\r\nBEGIN\r\n    -- Mengambil 2 digit terakhir dari tahun saat ini\r\n    year_short := to_char(CURRENT_DATE, 'YY');\r\n    \r\n    -- Mengambil nomor urut berikutnya dari sequence\r\n    next_val := nextval('public.order_number_seq');\r\n    \r\n    -- Menggabungkan format nomor\r\n    new_so_number := 'BJS/SO/' || year_short || '/' || lpad(next_val::text, 5, '0');\r\n    \r\n    RETURN new_so_number;\r\nEND;\r\n"
+  },
+  {
+    "routine_name": "get_unique_request_categories",
+    "routine_definition": "\nBEGIN\n  RETURN QUERY\n  SELECT DISTINCT pc.kategori\n  FROM public.permintaan_pelanggan pc\n  WHERE pc.kategori IS NOT NULL AND pc.kategori <> '';\nEND;\n"
+  },
+  {
+    "routine_name": "get_dashboard_metrics",
+    "routine_definition": "\n    SELECT\n        COALESCE(SUM(total_akhir), 0) as sales_value,\n        COALESCE(SUM(total_laba), 0) as profit_value,\n        COUNT(*) as transactions_count\n    FROM\n        public.transactions\n    WHERE\n        created_at >= start_date::timestamp AND created_at <= end_date::timestamp;\n"
+  },
+  {
+    "routine_name": "search_sales_orders",
+    "routine_definition": "\nBEGIN\n    RETURN QUERY\n    SELECT *\n    FROM public.sales_order_list_view\n    WHERE\n        (\n            search_term IS NULL OR search_term = '' OR\n            so_number ILIKE '%' || search_term || '%' OR\n            invoice_number ILIKE '%' || search_term || '%' OR\n            nama_pelanggan ILIKE '%' || search_term || '%'\n        )\n        AND (status_filter = 'semua' OR final_status = status_filter)\n        AND (mitra_id_filter IS NULL OR customer_id = mitra_id_filter)\n        AND (start_date_filter IS NULL OR tanggal_pesanan >= start_date_filter)\n        AND (end_date_filter IS NULL OR tanggal_pesanan <= end_date_filter)\n    ORDER BY\n        created_at DESC;\nEND;\n"
+  },
+  {
+    "routine_name": "delete_special_price",
+    "routine_definition": "\r\n    DELETE FROM public.daftar_harga_mitra\r\n    WHERE id = special_price_id;\r\n"
+  },
+  {
+    "routine_name": "set_limit",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "show_limit",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "show_trgm",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "similarity",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "similarity_op",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "word_similarity",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "word_similarity_op",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "word_similarity_commutator_op",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "similarity_dist",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "word_similarity_dist_op",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "word_similarity_dist_commutator_op",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "gtrgm_in",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "gtrgm_out",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "gtrgm_consistent",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "gtrgm_distance",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "gtrgm_compress",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "gtrgm_decompress",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "gtrgm_penalty",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "gtrgm_picksplit",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "gtrgm_union",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "gtrgm_same",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "gin_extract_value_trgm",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "gin_extract_query_trgm",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "gin_trgm_consistent",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "gin_trgm_triconsistent",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "strict_word_similarity",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "strict_word_similarity_op",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "strict_word_similarity_commutator_op",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "strict_word_similarity_dist_op",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "strict_word_similarity_dist_commutator_op",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "gtrgm_options",
+    "routine_definition": null
+  },
+  {
+    "routine_name": "get_dashboard_charts_data",
+    "routine_definition": "\nWITH transactions_in_range AS (\n    SELECT created_at, total_akhir, items\n    FROM public.transactions\n    WHERE created_at >= start_date::timestamp AND created_at <= end_date::timestamp\n),\ndaily_summary AS (\n    SELECT\n        date_trunc('day', created_at)::date AS transaction_date,\n        sum(total_akhir) AS total\n    FROM transactions_in_range\n    GROUP BY transaction_date\n),\nall_items AS (\n    SELECT (item->>'kategori') as kategori,\n           ((item->>'harga_jual')::numeric * (item->>'quantity')::numeric) as total\n    FROM transactions_in_range, jsonb_array_elements(items) as item\n    WHERE item->>'harga_grosir_deal' IS NULL AND item->>'kategori' IS NOT NULL\n\n    UNION ALL\n\n    SELECT p.kategori,\n           ((item->>'harga_grosir_deal')::numeric * (item->>'kuantitas')::numeric) as total\n    FROM transactions_in_range, jsonb_array_elements(items) as item\n    JOIN public.products p ON p.id = (item->>'product_id')::uuid\n    WHERE item->>'harga_grosir_deal' IS NOT NULL AND p.kategori IS NOT NULL\n),\ncategory_summary AS (\n    SELECT kategori, sum(total) as total\n    FROM all_items\n    GROUP BY kategori\n)\nSELECT\n    (SELECT jsonb_object_agg(transaction_date, total) FROM daily_summary) as daily_sales,\n    (SELECT jsonb_object_agg(kategori, total) FROM category_summary) as category_sales;\n"
+  },
+  {
+    "routine_name": "get_distinct_merek",
+    "routine_definition": "\nBEGIN\n    RETURN QUERY\n    SELECT DISTINCT p.merek\n    FROM public.products p\n    WHERE p.merek IS NOT NULL AND p.merek <> ''\n    ORDER BY p.merek;\nEND;\n"
+  },
+  {
+    "routine_name": "search_purchase_orders",
+    "routine_definition": "\nBEGIN\n    RETURN QUERY\n    SELECT\n        po.id,\n        po.po_number,\n        po.order_date,\n        po.status,\n        s.nama_supplier,\n        po.created_at\n    FROM\n        public.purchase_orders AS po\n    LEFT JOIN\n        public.suppliers AS s ON po.supplier_id = s.id\n    WHERE\n        (\n            search_term IS NULL OR search_term = '' OR\n            po.po_number ILIKE '%' || search_term || '%' OR\n            s.nama_supplier ILIKE '%' || search_term || '%'\n        )\n        AND (status_filter = 'semua' OR po.status = status_filter)\n        AND (supplier_id_filter IS NULL OR po.supplier_id = supplier_id_filter)\n        AND (start_date_filter IS NULL OR po.order_date >= start_date_filter)\n        AND (end_date_filter IS NULL OR po.order_date <= end_date_filter)\n    ORDER BY\n        po.created_at DESC NULLS LAST;\nEND;\n"
+  },
+  {
+    "routine_name": "get_special_prices_for_customer",
+    "routine_definition": "\r\nBEGIN\r\n    RETURN QUERY\r\n    SELECT\r\n        dhm.id,\r\n        dhm.harga_spesial,\r\n        p.id AS product_id,\r\n        p.kode,\r\n        p.nama,\r\n        p.ukuran,\r\n        p.harga_grosir AS harga_grosir_default\r\n    FROM\r\n        public.daftar_harga_mitra AS dhm\r\n    JOIN\r\n        public.products AS p ON dhm.product_id = p.id\r\n    WHERE\r\n        dhm.customer_id = customer_uuid;\r\nEND;\r\n"
+  },
+  {
+    "routine_name": "handle_new_user",
+    "routine_definition": "\nBEGIN\n  INSERT INTO public.profiles (id, role)\n  VALUES (new.id, 'customer');\n  RETURN new;\nEND;\n"
+  },
+  {
+    "routine_name": "process_po_receipt_v2",
+    "routine_definition": "\nDECLARE\n    item_data record; -- Menggunakan 'record' untuk loop\n    v_po_number text;\nBEGIN\n    -- Ambil nomor PO untuk keterangan log\n    SELECT po_number INTO v_po_number FROM public.purchase_orders WHERE id = p_po_id;\n\n    -- Update tabel purchase_orders utama dengan Total Akhir dari Frontend\n    UPDATE public.purchase_orders\n    SET\n        status = 'Selesai',\n        invoice_image_url = p_invoice_image_url,\n        shipping_cost = p_shipping_cost,\n        discount_amount = p_discount_amount,\n        other_costs = p_other_costs,\n        payment_status = p_payment_status,\n        due_date = p_due_date,\n        total_amount = p_total_amount\n    WHERE id = p_po_id;\n\n    -- Loop melalui setiap item\n    FOR item_data IN SELECT * FROM jsonb_populate_recordset(null::po_item_receipt_type, p_items)\n    LOOP\n        -- Update item PO dengan kuantitas diterima dan harga final\n        UPDATE public.purchase_order_items \n        SET \n            quantity_received = item_data.quantity_received, \n            purchase_price = item_data.final_landed_cost \n        WHERE id = item_data.po_item_id;\n\n        -- Update produk: tambah stok, perbarui harga beli, dan harga jual jika ada\n        UPDATE public.products \n        SET \n            stok = stok + item_data.quantity_to_add_to_stock, \n            harga_beli = item_data.final_landed_cost, \n            harga_jual = COALESCE(item_data.new_selling_price, harga_jual), \n            updated_at = now() \n        WHERE id = item_data.product_id;\n\n        -- Masukkan log penambahan stok\n        INSERT INTO public.stock_logs (product_id, perubahan, keterangan) \n        VALUES (item_data.product_id, item_data.quantity_to_add_to_stock, 'Penerimaan dari PO #' || v_po_number);\n    END LOOP;\n    \n    -- BLOK INSERT KE EXPENSES SUDAH DIHAPUS DARI SINI\n\nEND;\n"
+  },
+  {
+    "routine_name": "backfill_total_terjual",
+    "routine_definition": "\nBEGIN\n    -- Buat tabel sementara untuk menampung semua item yang terjual\n    CREATE TEMP TABLE sales_aggregation AS\n    -- Ambil item dari transaksi POS\n    SELECT\n        (item->>'id')::uuid AS product_id,\n        (item->>'quantity')::integer AS quantity\n    FROM\n        public.transactions,\n        jsonb_array_elements(items) AS item\n    WHERE\n        item ? 'harga_jual' -- Ciri khas item POS\n\n    UNION ALL\n\n    -- Ambil item dari transaksi Grosir\n    SELECT\n        (item->>'product_id')::uuid AS product_id,\n        (item->>'kuantitas')::integer AS quantity\n    FROM\n        public.transactions,\n        jsonb_array_elements(items) AS item\n    WHERE\n        item ? 'harga_grosir_deal'; -- Ciri khas item Grosir\n\n    -- Update tabel products dengan data yang sudah dihitung\n    UPDATE public.products p\n    SET\n        total_terjual = aggregated.total_sold\n    FROM (\n        SELECT\n            product_id,\n            SUM(quantity) as total_sold\n        FROM\n            sales_aggregation\n        GROUP BY\n            product_id\n    ) AS aggregated\n    WHERE\n        p.id = aggregated.product_id;\n\n    -- Hapus tabel sementara setelah selesai\n    DROP TABLE sales_aggregation;\nEND;\n"
+  },
+  {
+    "routine_name": "get_distinct_kategori",
+    "routine_definition": "\nBEGIN\n    RETURN QUERY\n    SELECT DISTINCT p.kategori\n    FROM public.products p\n    WHERE p.kategori IS NOT NULL AND p.kategori <> ''\n    ORDER BY p.kategori;\nEND;\n"
+  },
+  {
+    "routine_name": "get_recent_purchase_orders",
+    "routine_definition": "\nBEGIN\n    RETURN QUERY\n    SELECT\n        po.id,\n        po.po_number,\n        po.order_date,\n        po.status,\n        s.nama_supplier,\n        po.created_at\n    FROM\n        public.purchase_orders AS po\n    LEFT JOIN\n        public.suppliers AS s ON po.supplier_id = s.id\n    ORDER BY\n        po.created_at DESC NULLS LAST\n    LIMIT 10; -- Hanya ambil 10 data terbaru\nEND;\n"
+  },
+  {
+    "routine_name": "get_related_products",
+    "routine_definition": "\n    SELECT *\n    FROM public.products\n    WHERE\n        status = 'Aktif'\n        AND merek = p_merek\n        AND lini_produk = p_lini_produk\n        AND id != p_product_id -- Jangan tampilkan produk yang sedang dilihat\n    ORDER BY\n        total_terjual DESC, nama ASC\n    LIMIT 10; -- Batasi 10 produk terkait\n"
+  },
+  {
+    "routine_name": "get_products_for_special_price_editor",
+    "routine_definition": "\r\nBEGIN\r\n    RETURN QUERY\r\n    SELECT\r\n        p.id,\r\n        p.kode,\r\n        p.nama,\r\n        p.merek,\r\n        p.harga_grosir,\r\n        dhm.harga_spesial\r\n    FROM\r\n        public.products p\r\n    LEFT JOIN\r\n        public.daftar_harga_mitra dhm ON p.id = dhm.product_id AND dhm.customer_id = p_customer_id\r\n    WHERE\r\n        p.status = 'Aktif'\r\n        AND (p_search_term IS NULL OR p_search_term = '' OR p.nama ILIKE '%' || p_search_term || '%' OR p.kode ILIKE '%' || p_search_term || '%')\r\n        AND (p_kategori_filter = 'semua' OR p.kategori = p_kategori_filter)\r\n        AND (p_merek_filter = 'semua' OR p.merek = p_merek_filter)\r\n    ORDER BY\r\n        p.nama;\r\nEND;\r\n"
+  },
+  {
+    "routine_name": "hex_to_rgb",
+    "routine_definition": "\nDECLARE\n    r int;\n    g int;\n    b int;\nBEGIN\n    r := ('x' || substring(hex, 2, 2))::bit(8)::int;\n    g := ('x' || substring(hex, 4, 2))::bit(8)::int;\n    b := ('x' || substring(hex, 6, 2))::bit(8)::int;\n    RETURN ARRAY[r::double precision, g::double precision, b::double precision];\nEND;\n"
+  },
+  {
+    "routine_name": "find_closest_colors",
+    "routine_definition": "\n    SELECT\n        p.id,\n        p.nama,\n        p.sku,\n        p.merek,\n        p.color_hex,\n        p.image_url,\n        p.color_swatch_url,\n        -- PERBAIKAN UTAMA: Hitung jarak dengan mengakses elemen array secara langsung\n        SQRT(\n            POWER( (public.hex_to_rgb(p.color_hex))[1] - (public.hex_to_rgb(input_hex))[1], 2) +\n            POWER( (public.hex_to_rgb(p.color_hex))[2] - (public.hex_to_rgb(input_hex))[2], 2) +\n            POWER( (public.hex_to_rgb(p.color_hex))[3] - (public.hex_to_rgb(input_hex))[3], 2)\n        ) as distance\n    FROM\n        public.products p\n    WHERE\n        p.kategori = 'Pilok' AND p.color_hex IS NOT NULL\n    ORDER BY\n        distance ASC -- Urutkan dari yang paling mirip\n    LIMIT 5;\n"
+  },
+  {
+    "routine_name": "get_transaction_summary",
+    "routine_definition": "\n    select\n        coalesce(sum(case when date(created_at) = current_date then total_akhir else 0 end), 0) as today,\n        coalesce(sum(case when status_pembayaran = 'Belum Lunas' then sisa_hutang else 0 end), 0) as unpaid,\n        count(case when date_trunc('month', created_at) = date_trunc('month', current_date) then 1 end) as \"thisMonth\"\n    from public.transactions;\n"
+  },
+  {
+    "routine_name": "get_products_for_special_price_editor",
+    "routine_definition": "\r\nBEGIN\r\n    RETURN QUERY\r\n    SELECT\r\n        p.id,\r\n        p.kode,\r\n        p.nama,\r\n        p.merek,\r\n        p.harga_grosir,\r\n        dhm.harga_spesial\r\n    FROM\r\n        public.products p\r\n    LEFT JOIN\r\n        public.daftar_harga_mitra dhm ON p.id = dhm.product_id AND dhm.customer_id = p_customer_id\r\n    WHERE\r\n        p.status = 'Aktif'\r\n        AND (p_search_term IS NULL OR p_search_term = '' OR p.nama ILIKE '%' || p_search_term || '%' OR p.kode ILIKE '%' || p_search_term || '%')\r\n        AND (p_kategori_filter = 'semua' OR p.kategori = p_kategori_filter)\r\n        AND (p_merek_filter = 'semua' OR p.merek = p_merek_filter)\r\n        AND (p_ukuran_filter = 'semua' OR p.ukuran = p_ukuran_filter); -- <-- TAMBAHAN BARU\r\nEND;\r\n"
+  },
+  {
+    "routine_name": "handle_updated_at",
+    "routine_definition": "\nBEGIN\n  NEW.updated_at = NOW();\n  RETURN NEW;\nEND;\n"
+  },
+  {
+    "routine_name": "process_po_receipt",
+    "routine_definition": "\nDECLARE\n    item_record jsonb;\n    v_product_id uuid;\n    v_quantity integer;\n    v_new_purchase_price numeric;\n    v_new_selling_price numeric;\n    v_total_amount numeric := 0;\n    v_supplier_name text;\n    v_po_number text;\nBEGIN\n    PERFORM set_config('request.bypass_rls', 'on', true);\n\n    FOR item_record IN SELECT * FROM jsonb_array_elements(p_items)\n    LOOP\n        v_product_id := (item_record->>'product_id')::uuid;\n        v_quantity := (item_record->>'quantity_ordered')::integer;\n        v_new_purchase_price := (item_record->>'new_purchase_price')::numeric;\n        v_new_selling_price := (item_record->>'new_selling_price')::numeric;\n\n        UPDATE public.purchase_order_items SET purchase_price = v_new_purchase_price, quantity_received = v_quantity WHERE purchase_order_id = p_po_id AND product_id = v_product_id;\n        UPDATE public.products SET stok = stok + v_quantity, harga_beli = v_new_purchase_price, harga_jual = COALESCE(v_new_selling_price, harga_jual) WHERE id = v_product_id;\n        INSERT INTO public.stock_logs(product_id, perubahan, keterangan) VALUES (v_product_id, v_quantity, 'Penerimaan barang dari PO');\n        v_total_amount := v_total_amount + (v_new_purchase_price * v_quantity);\n    END LOOP;\n\n    SELECT po.po_number, s.nama_supplier INTO v_po_number, v_supplier_name FROM public.purchase_orders po LEFT JOIN public.suppliers s ON po.supplier_id = s.id WHERE po.id = p_po_id;\n    UPDATE public.purchase_orders SET status = 'Selesai', total_amount = v_total_amount, invoice_image_url = p_invoice_image_url WHERE id = p_po_id;\n    \n    -- PERBAIKAN FINAL DI SINI: Menggunakan `kategori_pengeluaran`\n    INSERT INTO public.expenses(tanggal, kategori_pengeluaran, keterangan, jumlah) \n    VALUES (CURRENT_DATE, 'Pembelian Stok', 'Pembelian ke ' || COALESCE(v_supplier_name, 'Supplier Umum') || ' (PO: ' || v_po_number || ')', v_total_amount);\nEND;\n"
+  },
+  {
+    "routine_name": "search_products",
+    "routine_definition": " -- <-- Menggunakan struktur return yang benar\nBEGIN\n    RETURN QUERY\n    SELECT *\n    FROM public.products\n    WHERE\n        (\n            search_term IS NULL OR search_term = '' OR\n            kode ILIKE '%' || search_term || '%' OR\n            nama ILIKE '%' || search_term || '%' OR\n            merek ILIKE '%' || search_term || '%' OR\n            kategori ILIKE '%' || search_term || '%'\n        )\n        AND (merek_filter = 'semua' OR merek ILIKE merek_filter)\n        AND (kategori_filter = 'semua' OR kategori ILIKE kategori_filter)\n        AND (status_filter = 'semua' OR status ILIKE status_filter)\n        AND (supplier_filter = 'semua' OR supplier ILIKE supplier_filter)\n        -- Ini satu-satunya baris logika yang diubah dari kode asli Anda\n        AND (low_stock_only = false OR (stok <= stok_min))\n    ORDER BY\n        updated_at DESC NULLS LAST;\nEND;\n"
+  },
+  {
+    "routine_name": "get_best_selling_products",
+    "routine_definition": "\nBEGIN\n    RETURN QUERY\n    WITH all_items AS (\n        -- Ambil item dari transaksi POS (struktur lama)\n        SELECT\n            (item->>'id')::uuid AS product_id,\n            (item->>'quantity')::numeric AS quantity\n        FROM\n            public.transactions,\n            jsonb_array_elements(items) AS item\n        WHERE\n            created_at >= start_date::timestamp AND created_at <= end_date::timestamp\n            AND item->>'harga_grosir_deal' IS NULL -- Ciri khas item POS\n\n        UNION ALL\n\n        -- Ambil item dari transaksi Grosir (struktur baru)\n        SELECT\n            (item->>'product_id')::uuid AS product_id,\n            (item->>'kuantitas')::numeric AS quantity\n        FROM\n            public.transactions,\n            jsonb_array_elements(items) AS item\n        WHERE\n            created_at >= start_date::timestamp AND created_at <= end_date::timestamp\n            AND item->>'harga_grosir_deal' IS NOT NULL -- Ciri khas item Grosir\n    )\n    SELECT\n        p.id,\n        p.kode,\n        p.sku, -- <-- Mengambil kolom baru\n        p.nama,\n        p.merek,\n        p.kategori,\n        s.nama_supplier,\n        sum(ai.quantity) AS total_terjual,\n        p.stok AS stok_saat_ini,\n        p.stok_min AS stok_minimal\n    FROM\n        all_items ai\n    JOIN\n        public.products p ON ai.product_id = p.id\n    LEFT JOIN\n        public.suppliers s ON p.supplier_id = s.id\n    WHERE\n        (category_filter IS NULL OR p.kategori = category_filter)\n    GROUP BY\n        p.id, s.nama_supplier\n    ORDER BY\n        total_terjual DESC;\nEND;\n"
+  },
+  {
+    "routine_name": "search_products_for_po_v2",
+    "routine_definition": "\r\nBEGIN\r\n    RETURN QUERY\r\n    SELECT\r\n        p.id,\r\n        p.kode,\r\n        p.nama,\r\n        p.merek,\r\n        p.kategori,\r\n        p.stok,\r\n        p.supplier,\r\n        p.satuan_dasar,\r\n        p.satuan_pembelian,\r\n        p.nilai_konversi,\r\n        p.ukuran -- <-- Tambahan kolom di SELECT\r\n    FROM\r\n        public.products AS p\r\n    WHERE\r\n        p.status = 'Aktif'\r\n        -- Semua logika WHERE di bawah ini SAMA PERSIS dengan kode stabil Anda\r\n        AND (merek_filter = 'semua' OR p.merek ILIKE merek_filter)\r\n        AND (kategori_filter = 'semua' OR p.kategori ILIKE kategori_filter)\r\n        AND (supplier_filter = 'semua' OR p.supplier ILIKE supplier_filter)\r\n        AND (\r\n            search_term IS NULL OR search_term = '' OR\r\n            p.kode ILIKE '%' || search_term || '%' OR\r\n            p.nama ILIKE '%' || search_term || '%' OR\r\n            p.merek ILIKE '%' || search_term || '%' OR\r\n            p.kategori ILIKE '%' || search_term || '%'\r\n        );\r\nEND;\r\n"
+  },
+  {
+    "routine_name": "search_products_for_po",
+    "routine_definition": "\nBEGIN\n    RETURN QUERY\n    SELECT\n        p.id,\n        p.kode,\n        p.nama,\n        p.merek,\n        p.kategori,\n        p.stok,\n        p.supplier\n    FROM\n        products AS p\n    WHERE\n        p.status = 'Aktif'\n        AND (\n            search_term IS NULL OR search_term = '' OR\n            p.kode ILIKE '%' || search_term || '%' OR\n            p.nama ILIKE '%' || search_term || '%' OR\n            p.merek ILIKE '%' || search_term || '%' OR\n            p.kategori ILIKE '%' || search_term || '%' OR\n            p.supplier ILIKE '%' || search_term || '%'\n        )\n        AND (merek_filter = 'semua' OR p.merek = merek_filter)\n        AND (kategori_filter = 'semua' OR p.kategori = kategori_filter)\n        AND (supplier_filter = 'semua' OR p.supplier = supplier_filter);\nEND;\n"
+  },
+  {
+    "routine_name": "test_get_pos",
+    "routine_definition": "\nBEGIN\n    RETURN QUERY \n    SELECT po.id, po.po_number \n    FROM public.purchase_orders po \n    LIMIT 5;\nEND;\n"
+  },
+  {
+    "routine_name": "log_product_changes",
+    "routine_definition": "\nBEGIN\n    -- Jika ini adalah penambahan produk baru (INSERT)\n    IF (TG_OP = 'INSERT') THEN\n        INSERT INTO public.product_history_logs(product_id, change_type)\n        VALUES(NEW.id, 'PRODUK DIBUAT');\n        RETURN NEW;\n    END IF;\n\n    -- Jika ini adalah pengeditan produk (UPDATE)\n    IF (TG_OP = 'UPDATE') THEN\n        -- Cek dan catat perubahan NAMA PRODUK\n        IF OLD.nama IS DISTINCT FROM NEW.nama THEN\n            INSERT INTO public.product_history_logs(product_id, field_changed, old_value, new_value, change_type)\n            VALUES(NEW.id, 'nama', OLD.nama, NEW.nama, 'EDIT PRODUK');\n        END IF;\n\n        -- Cek dan catat perubahan HARGA JUAL\n        IF OLD.harga_jual IS DISTINCT FROM NEW.harga_jual THEN\n            INSERT INTO public.product_history_logs(product_id, field_changed, old_value, new_value, change_type)\n            VALUES(NEW.id, 'harga_jual', OLD.harga_jual::text, NEW.harga_jual::text, 'EDIT PRODUK');\n        END IF;\n\n        -- Cek dan catat perubahan HARGA BELI\n        IF OLD.harga_beli IS DISTINCT FROM NEW.harga_beli THEN\n            INSERT INTO public.product_history_logs(product_id, field_changed, old_value, new_value, change_type)\n            VALUES(NEW.id, 'harga_beli', OLD.harga_beli::text, NEW.harga_beli::text, 'EDIT PRODUK');\n        END IF;\n\n        -- Cek dan catat perubahan STOK MINIMAL\n        IF OLD.stok_min IS DISTINCT FROM NEW.stok_min THEN\n            INSERT INTO public.product_history_logs(product_id, field_changed, old_value, new_value, change_type)\n            VALUES(NEW.id, 'stok_min', OLD.stok_min::text, NEW.stok_min::text, 'EDIT PRODUK');\n        END IF;\n\n        -- ### TAMBAHAN BARU: Cek dan catat perubahan STOK ###\n        IF OLD.stok IS DISTINCT FROM NEW.stok THEN\n            INSERT INTO public.product_history_logs(product_id, field_changed, old_value, new_value, change_type)\n            VALUES(NEW.id, 'stok', OLD.stok::text, NEW.stok::text, 'EDIT STOK MANUAL');\n        END IF;\n        \n        RETURN NEW;\n    END IF;\n\n    RETURN NULL;\nEND;\n"
+  },
+  {
+    "routine_name": "search_and_sort_products",
+    "routine_definition": "\nBEGIN\n    RETURN QUERY\n    SELECT *\n    FROM public.products\n    WHERE\n        status = 'Aktif'\n        AND (p_kategori IS NULL OR kategori = p_kategori)\n        AND (p_merek IS NULL OR merek = p_merek)\n        AND (p_lini_produk IS NULL OR lini_produk = p_lini_produk)\n        AND (p_color_variant IS NULL OR color_variant = p_color_variant) -- <-- Filter baru\n        AND (p_ukuran IS NULL OR ukuran = p_ukuran)\n        AND (\n            p_search_term IS NULL OR p_search_term = '' OR\n            nama ILIKE '%' || p_search_term || '%' OR\n            sku ILIKE '%' || p_search_term || '%'\n        )\n    ORDER BY\n        CASE WHEN p_sort_by = 'terbaru' THEN created_at END DESC,\n        CASE WHEN p_sort_by = 'terlaris' THEN total_terjual END DESC NULLS LAST,\n        CASE WHEN p_sort_by = 'harga_asc' THEN harga_jual END ASC,\n        CASE WHEN p_sort_by = 'harga_desc' THEN harga_jual END DESC,\n        nama ASC;\nEND;\n"
+  },
+  {
+    "routine_name": "confirm_sales_order",
+    "routine_definition": "\r\nDECLARE\r\n    item RECORD;\r\nBEGIN\r\n    -- Update status pesanan menjadi 'Dikonfirmasi'\r\n    UPDATE public.sales_orders\r\n    SET status = 'Dikonfirmasi'\r\n    WHERE id = order_id AND status = 'Draft';\r\n\r\n    -- Jika tidak ada baris yang diupdate (karena status bukan 'Draft'), keluar.\r\n    IF NOT FOUND THEN\r\n        RAISE EXCEPTION 'Pesanan tidak ditemukan atau statusnya bukan Draft.';\r\n    END IF;\r\n\r\n    -- Loop melalui setiap item di pesanan untuk mengalokasikan stok\r\n    FOR item IN\r\n        SELECT product_id, kuantitas FROM public.sales_order_items WHERE sales_order_id = order_id\r\n    LOOP\r\n        UPDATE public.products\r\n        SET stok_dialokasikan = stok_dialokasikan + item.kuantitas\r\n        WHERE id = item.product_id;\r\n    END LOOP;\r\nEND;\r\n"
+  },
+  {
+    "routine_name": "generate_invoice_number",
+    "routine_definition": "\r\nDECLARE\r\n    new_inv_number TEXT;\r\n    year_short TEXT;\r\n    next_val BIGINT;\r\nBEGIN\r\n    -- Menggunakan sequence yang sama dengan SO agar nomor urutnya sinkron\r\n    next_val := nextval('public.order_number_seq');\r\n    year_short := to_char(CURRENT_DATE, 'YY');\r\n    new_inv_number := 'BJS/INV/' || year_short || '/' || lpad(next_val::text, 5, '0');\r\n    RETURN new_inv_number;\r\nEND;\r\n"
+  },
+  {
+    "routine_name": "process_grosir_invoice",
+    "routine_definition": "\nDECLARE\n    -- ... (deklarasi variabel tidak berubah) ...\n    new_invoice_id uuid;\n    total_subtotal numeric := 0;\n    total_diskon_item numeric := 0;\n    total_laba_invoice numeric := 0;\n    item record;\n    product_info record;\nBEGIN\n    -- ... (blok kalkulasi total tidak berubah) ...\n    FOR item IN SELECT * FROM jsonb_to_recordset(p_items) AS x(product_id uuid, kuantitas integer, harga_grosir_deal numeric, diskon_item_rp numeric) LOOP\n        total_subtotal := total_subtotal + (item.harga_grosir_deal * item.kuantitas);\n        total_diskon_item := total_diskon_item + (item.diskon_item_rp * item.kuantitas);\n    END LOOP;\n\n    -- ... (blok insert ke tabel invoices tidak berubah) ...\n    INSERT INTO public.invoices(sales_order_id, customer_id, invoice_number, termin_pembayaran, subtotal, total_diskon, total_akhir, status_pembayaran)\n    VALUES (p_sales_order_id, p_customer_id, p_invoice_number, p_termin_pembayaran, total_subtotal, total_diskon_item, total_subtotal - total_diskon_item, 'Belum Lunas')\n    RETURNING id INTO new_invoice_id;\n\n    -- ... (blok loop untuk menyimpan item tidak berubah) ...\n     FOR item IN SELECT * FROM jsonb_to_recordset(p_items) AS x(product_id uuid, kuantitas integer, harga_grosir_deal numeric, diskon_item_rp numeric) LOOP\n        INSERT INTO public.invoice_items(invoice_id, product_id, kuantitas, harga_grosir_deal, diskon_item_rp, subtotal)\n        VALUES (new_invoice_id, item.product_id, item.kuantitas, item.harga_grosir_deal, item.diskon_item_rp, (item.harga_grosir_deal * item.kuantitas));\n        SELECT harga_beli INTO product_info FROM public.products WHERE id = item.product_id;\n        total_laba_invoice := total_laba_invoice + ((item.harga_grosir_deal * item.kuantitas) - (product_info.harga_beli * item.kuantitas) - (item.diskon_item_rp * item.kuantitas));\n        UPDATE public.products SET stok = stok - item.kuantitas, stok_dialokasikan = stok_dialokasikan - item.kuantitas WHERE id = item.product_id;\n    END LOOP;\n\n    -- --- PERUBAHAN DI SINI ---\n    -- 4. Buat record di tabel transactions, sekarang dengan invoice_number\n    INSERT INTO public.transactions(customer_id, total, diskon, total_akhir, bayar, kembalian, total_laba, items, status_pembayaran, sisa_hutang, invoice_number)\n    VALUES(p_customer_id, total_subtotal, total_diskon_item, total_subtotal - total_diskon_item, 0, 0, total_laba_invoice, p_items, 'Belum Lunas', total_subtotal - total_diskon_item, p_invoice_number); -- <-- Tambahkan p_invoice_number\n\n    -- Baris untuk update sales_orders sudah kita hapus sebelumnya (ini sudah benar)\n\n    RETURN new_invoice_id;\nEND;\n"
+  },
+  {
+    "routine_name": "calculate_profit_loss",
+    "routine_definition": "\nDECLARE\n    v_total_pendapatan numeric;\n    v_total_hpp numeric;\n    v_laba_kotor numeric;\n    v_total_pengeluaran numeric;\n    v_laba_bersih numeric;\nBEGIN\n    -- 1. Hitung Total Pendapatan\n    SELECT COALESCE(SUM(total_akhir), 0)\n    INTO v_total_pendapatan\n    FROM public.transactions\n    WHERE created_at >= start_date::timestamp AND created_at <= end_date::timestamp;\n\n    -- 2. Hitung Total Pengeluaran\n    SELECT COALESCE(SUM(jumlah), 0)\n    INTO v_total_pengeluaran\n    FROM public.expenses\n    WHERE tanggal >= start_date::timestamp AND tanggal <= end_date::timestamp;\n\n    -- 3. Hitung Total HPP\n    WITH all_sold_items AS (\n        -- Ambil item dari transaksi POS\n        SELECT\n            (item->>'id')::uuid AS product_id,\n            (item->>'quantity')::numeric AS quantity,\n            (item->>'harga_beli')::numeric AS purchase_price\n        FROM \n            public.transactions t, -- <-- TAMBAHKAN ALIAS 't'\n            jsonb_array_elements(items) AS item\n        WHERE \n            t.created_at >= start_date::timestamp AND t.created_at <= end_date::timestamp -- <-- PERBAIKI: Gunakan t.created_at\n            AND item->>'harga_grosir_deal' IS NULL\n\n        UNION ALL\n\n        -- Ambil item dari transaksi Grosir\n        SELECT\n            (item->>'product_id')::uuid AS product_id,\n            (item->>'kuantitas')::numeric AS quantity,\n            p.harga_beli AS purchase_price\n        FROM \n            public.transactions t, -- <-- TAMBAHKAN ALIAS 't'\n            jsonb_array_elements(items) AS item\n        JOIN \n            public.products p ON p.id = (item->>'product_id')::uuid\n        WHERE \n            t.created_at >= start_date::timestamp AND t.created_at <= end_date::timestamp -- <-- PERBAIKI: Gunakan t.created_at\n            AND item->>'harga_grosir_deal' IS NOT NULL\n    )\n    SELECT COALESCE(SUM(quantity * purchase_price), 0)\n    INTO v_total_hpp\n    FROM all_sold_items;\n\n    -- 4. Hitung Laba Kotor dan Laba Bersih\n    v_laba_kotor := v_total_pendapatan - v_total_hpp;\n    v_laba_bersih := v_laba_kotor - v_total_pengeluaran;\n\n    -- 5. Kembalikan semua hasil\n    RETURN QUERY\n    SELECT\n        v_total_pendapatan,\n        v_total_hpp,\n        v_laba_kotor,\n        v_total_pengeluaran,\n        v_laba_bersih;\nEND;\n"
+  }
+]

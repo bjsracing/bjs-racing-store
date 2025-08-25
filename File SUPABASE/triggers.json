@@ -1,0 +1,17 @@
+[
+  {
+    "table_name": "products",
+    "trigger_name": "on_products_update",
+    "action_statement": "EXECUTE FUNCTION handle_updated_at()"
+  },
+  {
+    "table_name": "products",
+    "trigger_name": "product_changes_trigger",
+    "action_statement": "EXECUTE FUNCTION log_product_changes()"
+  },
+  {
+    "table_name": "products",
+    "trigger_name": "product_changes_trigger",
+    "action_statement": "EXECUTE FUNCTION log_product_changes()"
+  }
+]

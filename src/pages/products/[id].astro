@@ -23,7 +23,8 @@ if (id) {
 
     // 2. Ambil semua varian produk (berdasarkan nama & merek) untuk dikirim ke panel pembelian
     if (product) {
-        const { data: variants } = await supabase.from('products').select('*').eq('nama', product.nama).eq('merek', product.merek);
+// Kode Baru
+const { data: variants } = await supabase.rpc('search_active_products', { search_term: product.nama });
         allProducts = variants || [];
     }
 }
