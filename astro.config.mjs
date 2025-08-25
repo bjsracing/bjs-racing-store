@@ -1,4 +1,4 @@
-// astro.config.mjs (Final dengan Vercel & PWA)
+// astro.config.mjs (Versi Final untuk Deployment Vercel)
 
 import { defineConfig } from 'astro/config';
 import tailwind from "@astrojs/tailwind";
@@ -10,9 +10,10 @@ import pwa from "@vite-pwa/astro";
 export default defineConfig({
   output: "server",
   adapter: vercel({
+    // Menambahkan konfigurasi ini akan meningkatkan performa gambar
     imageService: true,
     imagesConfig: {
-      domains: ["ykotzsmncvyfveypeevb.supabase.co"],
+      domains: ["ykotzsmncvyfveypeevb.supabase.co"], // Pastikan ini domain Supabase Anda
       sizes: [300, 600, 1080],
     },
   }),
@@ -23,7 +24,7 @@ export default defineConfig({
       mode: 'production',
       base: '/',
       scope: '/',
-      includeAssets: ['favicon.svg', '/logo/logo-bjsracingstore.jpg'], // Path diperbaiki
+      includeAssets: ['favicon.svg', '/logo/logo-bjsracingstore.png'],
       manifest: {
         name: 'BJS RACING STORE',
         short_name: 'BJS Racing',
@@ -32,11 +33,23 @@ export default defineConfig({
         display: 'standalone',
         icons: [
           {
-            src: '/logo/logo-bjsracingstore.jpg', // Path diperbaiki
-            sizes: '640x640',
-            type: 'image/jpeg', // Tipe diperbaiki
-            purpose: 'any maskable',
+            src: '/logo/logo-bjsracingstore.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any'
           },
+          {
+            src: '/logo/logo-bjsracingstore.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: '/logo/logo-bjsracingstore.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
+          }
         ],
       },
       workbox: {
@@ -62,7 +75,7 @@ export default defineConfig({
         ],
       },
       devOptions: {
-        enabled: true,
+        enabled: false,
         type: 'module',
       },
     }),
