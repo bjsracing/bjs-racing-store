@@ -14,23 +14,16 @@ const { title } = Astro.props;
 ---
 <!doctype html>
 <html lang="id">
-	<head>
+<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
 
-		{/* Hanya gunakan link-link yang esensial */}
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="preconnect" href="https://fonts.googleapis.com">
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-		{/* Ikon untuk PWA */}
 		<link rel="apple-touch-icon" sizes="180x180" href="/logo/apple-touch-icon.png" />
 		<link rel="icon" type="image/png" sizes="512x512" href="/logo/logo-bjsracingstore.png" />
-
-	</head>
+</head>
 	<body class="bg-slate-100 text-slate-800">
 
 		<Header session={session} />
