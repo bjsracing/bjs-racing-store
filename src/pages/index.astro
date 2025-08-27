@@ -1,14 +1,93 @@
 ---
 // src/pages/index.astro
 import MainLayout from '../layouts/MainLayout.astro';
-// HAPUS: import { t } from "i18next";
-
-// TAMBAH: Impor file JSON secara langsung
 import id from '../../public/locales/id/common.json';
 ---
 
 <MainLayout title="BJS RACING STORE - Home">
-	<h1 class="text-4xl font-bold text-center p-20">
-		{id.home_page.welcome} {/* GANTI t() dengan pemanggilan objek biasa */}
-	</h1>
+    {/* Hero Section */}
+    <section class="bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+        <div class="container mx-auto px-3 mobile:px-4 tablet:px-6 py-12 mobile:py-16 tablet:py-20 desktop:py-24 text-center">
+            <h1 class="text-2xl mobile:text-3xl tablet:text-4xl desktop:text-5xl font-bold mb-4 mobile:mb-6">
+                {id.home_page.welcome}
+            </h1>
+            <p class="text-base mobile:text-lg tablet:text-xl text-orange-100 max-w-2xl mx-auto mb-6 mobile:mb-8">
+                Distributor terpercaya untuk spray paint dan onderdil motor berkualitas tinggi
+            </p>
+            <div class="flex flex-col mobile:flex-row gap-3 mobile:gap-4 justify-center">
+                <a href="/products" class="bg-white text-orange-600 px-6 mobile:px-8 py-3 rounded-lg font-semibold hover:bg-orange-50 transition-colors text-sm mobile:text-base">
+                    Lihat Produk
+                </a>
+                <a href="/categories" class="border-2 border-white text-white px-6 mobile:px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-orange-600 transition-colors text-sm mobile:text-base">
+                    Kategori
+                </a>
+            </div>
+        </div>
+    </section>
+
+    {/* Features Section */}
+    <section class="bg-white py-12 mobile:py-16 tablet:py-20">
+        <div class="container mx-auto px-3 mobile:px-4 tablet:px-6">
+            <h2 class="text-xl mobile:text-2xl tablet:text-3xl font-bold text-center text-slate-800 mb-8 mobile:mb-12">
+                Kenapa Memilih BJS Racing Store?
+            </h2>
+            
+            <div class="grid grid-cols-1 mobile:grid-cols-2 tablet:grid-cols-3 gap-6 mobile:gap-8">
+                <div class="text-center p-6 bg-slate-50 rounded-lg">
+                    <div class="text-orange-500 text-3xl mb-4">🚀</div>
+                    <h3 class="font-semibold text-slate-800 mb-2">Produk Berkualitas</h3>
+                    <p class="text-slate-600 text-sm">Spray paint dan onderdil motor kualitas terbaik</p>
+                </div>
+                
+                <div class="text-center p-6 bg-slate-50 rounded-lg">
+                    <div class="text-orange-500 text-3xl mb-4">⚡</div>
+                    <h3 class="font-semibold text-slate-800 mb-2">Pengiriman Cepat</h3>
+                    <p class="text-slate-600 text-sm">Dikirim cepat ke seluruh Indonesia</p>
+                </div>
+                
+                <div class="text-center p-6 bg-slate-50 rounded-lg">
+                    <div class="text-orange-500 text-3xl mb-4">🛡️</div>
+                    <h3 class="font-semibold text-slate-800 mb-2">Garansi Terjamin</h3>
+                    <p class="text-slate-600 text-sm">Garansi resmi untuk semua produk</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {/* Categories Preview */}
+    <section class="bg-slate-100 py-12 mobile:py-16 tablet:py-20">
+        <div class="container mx-auto px-3 mobile:px-4 tablet:px-6">
+            <h2 class="text-xl mobile:text-2xl tablet:text-3xl font-bold text-center text-slate-800 mb-8 mobile:mb-12">
+                Kategori Produk
+            </h2>
+            
+            <div class="grid grid-cols-2 mobile:grid-cols-3 tablet:grid-cols-4 gap-4 mobile:gap-6">
+                <a href="/pilok" class="bg-white p-4 rounded-lg text-center hover:shadow-md transition-shadow">
+                    <div class="text-orange-500 text-2xl mb-2">🎨</div>
+                    <p class="text-sm font-semibold">Pilok</p>
+                </a>
+                
+                <a href="/spray-paint" class="bg-white p-4 rounded-lg text-center hover:shadow-md transition-shadow">
+                    <div class="text-orange-500 text-2xl mb-2">💨</div>
+                    <p class="text-sm font-semibold">Spray Paint</p>
+                </a>
+                
+                <a href="/onderdil" class="bg-white p-4 rounded-lg text-center hover:shadow-md transition-shadow">
+                    <div class="text-orange-500 text-2xl mb-2">⚙️</div>
+                    <p class="text-sm font-semibold">Onderdil</p>
+                </a>
+                
+                <a href="/aksesoris" class="bg-white p-4 rounded-lg text-center hover:shadow-md transition-shadow">
+                    <div class="text-orange-500 text-2xl mb-2">🔧</div>
+                    <p class="text-sm font-semibold">Aksesoris</p>
+                </a>
+            </div>
+            
+            <div class="text-center mt-8 mobile:mt-12">
+                <a href="/categories" class="inline-block bg-orange-500 text-white px-6 mobile:px-8 py-3 rounded-lg font-semibold hover:bg-orange-600 transition-colors text-sm mobile:text-base">
+                    Lihat Semua Kategori
+                </a>
+            </div>
+        </div>
+    </section>
 </MainLayout>

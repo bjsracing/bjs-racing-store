@@ -12,19 +12,34 @@ const navLinks = [
   { name: "Katalog Pilok", path: "/katalog-warna" },
   { name: "Garasi Virtual", path: "/simulator" },
   { name: "Scan Warna", path: "/scan-warna" },
-  { name: id.nav.federal_part, path: "/federal-part" },
+  { name: id.nav.federal_part, path: "/federal_part" },
 ];
 ---
 {/* Gunakan tag <header> HTML biasa, bukan komponen <Header> */}
 <header class="bg-white text-slate-800 shadow-sm sticky top-0 z-50">
-    <div class="container mx-auto px-4 flex justify-between items-center py-4">
-        <a href="/" class="text-xl font-bold text-slate-900"> BJS RACING <span class="text-orange-500">STORE</span> </a>
-        <nav class="hidden md:flex items-center space-x-8"> {navLinks.map(link => ( <a href={link.path} class="font-semibold text-slate-600 hover:text-orange-500 transition-colors"> {link.name} </a> ))} </nav>
-        <div class="hidden md:flex items-center gap-6">
+    <div class="container mx-auto px-3 mobile:px-4 tablet:px-6 flex justify-between items-center py-3 mobile:py-4">
+        {/* Logo dengan responsive text */}
+        <a href="/" class="text-lg mobile:text-xl tablet:text-2xl font-bold text-slate-900"> 
+            BJS RACING <span class="text-orange-500">STORE</span> 
+        </a>
+        
+        {/* Desktop/Tablet Navigation */}
+        <nav class="hidden tablet:flex items-center space-x-4 mobile:space-x-6 tablet:space-x-8">
+            {navLinks.map(link => ( 
+                <a href={link.path} class="font-semibold text-slate-600 hover:text-orange-500 transition-colors text-sm mobile:text-base">
+                    {link.name} 
+                </a> 
+            ))} 
+        </nav>
+        
+        {/* Desktop/Tablet Icons */}
+        <div class="hidden tablet:flex items-center gap-4 mobile:gap-5 tablet:gap-6">
             <CartIcon client:visible />
             <AuthMenu client:load />
         </div>
-        <div class="md:hidden">
+        
+        {/* Mobile Menu Button */}
+        <div class="tablet:hidden">
             <MobileMenuButton client:load />
         </div>
     </div>
@@ -34,13 +49,35 @@ const navLinks = [
 <MobileMenu client:load />
 
 <script>
-    // Sedikit script untuk handle header sticky
-    document.addEventListener('scroll', () => {
+    // Sedikit script untuk handle header sticky dengan debounce
+    function handleHeaderScroll() {
         const header = document.querySelector('header');
         if (window.scrollY > 10) {
             header.classList.add('bg-white/80', 'backdrop-blur-md', 'shadow-sm');
         } else {
             header.classList.remove('bg-white/80', 'backdrop-blur-md', 'shadow-sm');
         }
+    }
+    
+    // Debounce function untuk performance
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    // Event listener dengan debounce
+    document.addEventListener('DOMContentLoaded', () => {
+        const debouncedScroll = debounce(handleHeaderScroll, 25);
+        window.addEventListener('scroll', debouncedScroll);
+        
+        // Initial check
+        handleHeaderScroll();
     });
 </script>
