@@ -43,10 +43,10 @@ const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
     {/* Generator tag */}
     <meta name="generator" content={Astro.generator} />
   </head>
-  <body class="bg-slate-100 text-slate-800">
+  <body class="bg-slate-100 text-slate-800 text-sm mobile:text-base tablet:text-lg">
     <Header session={session} />
     
-    <main>
+    <main class="min-h-screen container mx-auto px-3 mobile:px-4 tablet:px-6 desktop:px-8 py-4">
       <slot />
     </main>
 
@@ -54,8 +54,20 @@ const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
     
     {/* PWA Registration Script */}
     <script>
-// ✅ DETECTION CODE - GANTI KODE YANG SUDAH ADA DENGAN INI
-// Deteksi semua jenis perangkat dan kemampuan
+// ✅ DEBOUNCE FUNCTION UNTUK PERFORMANCE
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+// ✅ DETECTION CODE
 function detectDeviceCapabilities() {
   const userAgent = navigator.userAgent;
   const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
@@ -142,9 +154,9 @@ document.addEventListener('DOMContentLoaded', function() {
   handleOrientationChange();
   handleResize();
   
-  // Tambahkan event listeners
-  window.addEventListener('resize', handleResize);
-  window.addEventListener('orientationchange', handleOrientationChange);
+  // Tambahkan event listeners dengan debounce
+  window.addEventListener('resize', debounce(handleResize, 250));
+  window.addEventListener('orientationchange', debounce(handleOrientationChange, 250));
   
   // iOS specific fixes
   if (window.deviceInfo && window.deviceInfo.isIOS) {
@@ -155,8 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('touchstart', function() {}, {passive: true});
   }
   
-  // ✅ KODE PWA YANG SUDAH ADA - JANGAN DIHAPUS
-  // Register Service Worker
+  // ✅ KODE PWA YANG SUDAH ADA
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
       navigator.serviceWorker.register('/sw.js')
@@ -169,7 +180,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Prompt user to install PWA
   let deferredPrompt;
   const installButton = document.createElement('button');
   
@@ -177,7 +187,6 @@ document.addEventListener('DOMContentLoaded', function() {
     e.preventDefault();
     deferredPrompt = e;
     
-    // Show install promotion (optional)
     installButton.style.display = 'block';
     installButton.textContent = 'Install App';
     installButton.classList.add('fixed', 'bottom-4', 'right-4', 'bg-orange-500', 'text-white', 'px-4', 'py-2', 'rounded-lg', 'shadow-lg');
