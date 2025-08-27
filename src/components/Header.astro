@@ -15,16 +15,15 @@ const navLinks = [
   { name: id.nav.federal_part, path: "/federal_part" },
 ];
 ---
-{/* Gunakan tag <header> HTML biasa, bukan komponen <Header> */}
 <header class="bg-white text-slate-800 shadow-sm sticky top-0 z-50">
     <div class="container mx-auto px-3 mobile:px-4 tablet:px-6 flex justify-between items-center py-3 mobile:py-4">
-        {/* Logo dengan responsive text */}
+        {/* Logo */}
         <a href="/" class="text-lg mobile:text-xl tablet:text-2xl font-bold text-slate-900"> 
             BJS RACING <span class="text-orange-500">STORE</span> 
         </a>
         
-        {/* Desktop/Tablet Navigation */}
-        <nav class="hidden tablet:flex items-center space-x-4 mobile:space-x-6 tablet:space-x-8">
+        {/* ✅ PERBAIKAN: Kembali ke md: breakpoint */}
+        <nav class="hidden md:flex items-center space-x-4 mobile:space-x-6 tablet:space-x-8">
             {navLinks.map(link => ( 
                 <a href={link.path} class="font-semibold text-slate-600 hover:text-orange-500 transition-colors text-sm mobile:text-base">
                     {link.name} 
@@ -32,24 +31,23 @@ const navLinks = [
             ))} 
         </nav>
         
-        {/* Desktop/Tablet Icons */}
-        <div class="hidden tablet:flex items-center gap-4 mobile:gap-5 tablet:gap-6">
+        {/* ✅ PERBAIKAN: Kembali ke md: breakpoint */}
+        <div class="hidden md:flex items-center gap-4 mobile:gap-5 tablet:gap-6">
             <CartIcon client:visible />
             <AuthMenu client:load />
         </div>
         
-        {/* Mobile Menu Button */}
-        <div class="tablet:hidden">
+        {/* ✅ PERBAIKAN: Kembali ke md: breakpoint */}
+        <div class="md:hidden">
             <MobileMenuButton client:load />
         </div>
     </div>
 </header>
 
-{/* Komponen Menu Mobile (hanya akan tampil jika state-nya aktif) */}
 <MobileMenu client:load />
 
 <script>
-    // Sedikit script untuk handle header sticky dengan debounce
+    // Script tetap sama
     function handleHeaderScroll() {
         const header = document.querySelector('header');
         if (window.scrollY > 10) {
@@ -59,7 +57,6 @@ const navLinks = [
         }
     }
     
-    // Debounce function untuk performance
     function debounce(func, wait) {
         let timeout;
         return function executedFunction(...args) {
@@ -72,12 +69,9 @@ const navLinks = [
         };
     }
     
-    // Event listener dengan debounce
     document.addEventListener('DOMContentLoaded', () => {
         const debouncedScroll = debounce(handleHeaderScroll, 25);
         window.addEventListener('scroll', debouncedScroll);
-        
-        // Initial check
         handleHeaderScroll();
     });
 </script>
