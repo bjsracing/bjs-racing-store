@@ -1,0 +1,45 @@
+---
+// src/pages/breakpoint-test.astro
+import MainLayout from '../layouts/MainLayout.astro';
+---
+
+<MainLayout title="Breakpoint Test - BJS Racing Store">
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold text-orange-600 mb-6 text-center">Breakpoint Verification</h1>
+
+    <div class="grid grid-cols-1 gap-4 mb-6">
+      <div class="mobile:bg-red-200 tablet:bg-blue-200 desktop:bg-green-200 p-4 rounded-lg text-center">
+        <p class="mobile:block tablet:hidden desktop:hidden">📱 Mobile Device (0-767px)</p>
+        <p class="mobile:hidden tablet:block desktop:hidden">📟 Tablet Device (768-1023px)</p>
+        <p class="mobile:hidden tablet:hidden desktop:block">💻 Desktop Device (1024px+)</p>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <h2 class="text-xl font-semibold mb-4">Current Breakpoint Info</h2>
+      <div id="breakpoint-info" class="p-4 bg-gray-100 rounded-lg">
+        <p>Detecting breakpoint...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function updateBreakpointInfo() {
+      const width = window.innerWidth;
+      let breakpoint = '';
+
+      if (width <= 767) breakpoint = 'mobile';
+      else if (width >= 768 && width <= 1023) breakpoint = 'tablet';
+      else breakpoint = 'desktop';
+
+      document.getElementById('breakpoint-info').innerHTML = `
+        <p><strong>Width:</strong> ${width}px</p>
+        <p><strong>Breakpoint:</strong> ${breakpoint}</p>
+        <p><strong>Orientation:</strong> ${width > window.innerHeight ? 'landscape' : 'portrait'}</p>
+      `;
+    }
+
+    document.addEventListener('DOMContentLoaded', updateBreakpointInfo);
+    window.addEventListener('resize', updateBreakpointInfo);
+  </script>
+</MainLayout>

@@ -1,0 +1,166 @@
+---
+// src/pages/responsive-test.astro
+import MainLayout from '../layouts/MainLayout.astro';
+---
+
+<MainLayout title="Test Responsivitas Universal - BJS Racing Store">
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold text-orange-600 mb-6 text-center">Testing Responsivitas Semua Perangkat</h1>
+    
+    <!-- Informasi Device -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-4">Informasi Perangkat</h2>
+      <div id="device-info" class="p-4 bg-gray-100 rounded-lg mb-4">
+        <p>Mendeteksi informasi perangkat...</p>
+      </div>
+      <button id="check-device" class="bg-orange-500 text-white px-4 py-2 rounded-lg">
+        Periksa Informasi Perangkat
+      </button>
+    </div>
+
+    <!-- Device Detection -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-4">Device Detection</h2>
+      <div class="grid grid-cols-1 gap-4">
+        <div class="mobile:bg-blue-100 tablet:bg-green-100 desktop:bg-yellow-100 p-4 rounded-lg">
+          <p class="mobile:block tablet:hidden desktop:hidden">📱 Ini terlihat di Mobile (0-767px)</p>
+          <p class="mobile:hidden tablet:block desktop:hidden">📟 Ini terlihat di Tablet (768-1023px)</p>
+          <p class="mobile:hidden tablet:hidden desktop:block">💻 Ini terlihat di Desktop (1024px+)</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Orientation Test -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-4">Orientation Test</h2>
+      <div class="landscape:bg-orange-100 portrait:bg-purple-100 p-4 rounded-lg">
+        <p class="landscape:block portrait:hidden">🔄 Landscape Mode</p>
+        <p class="landscape:hidden portrait:block">📱 Portrait Mode</p>
+      </div>
+    </div>
+
+    <!-- Grid Responsive Test -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-4">Grid Responsive Test</h2>
+      <div class="grid grid-cols-1 mobile:grid-cols-2 tablet:grid-cols-3 desktop:grid-cols-4 gap-4">
+        <div class="bg-blue-100 p-4 rounded-lg text-center">Item 1</div>
+        <div class="bg-green-100 p-4 rounded-lg text-center">Item 2</div>
+        <div class="bg-yellow-100 p-4 rounded-lg text-center">Item 3</div>
+        <div class="bg-purple-100 p-4 rounded-lg text-center">Item 4</div>
+      </div>
+    </div>
+
+    <!-- Layout Spesifik Test -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-4">Layout Spesifik Test</h2>
+      
+      <div class="mobile:hidden bg-red-100 p-4 rounded-lg mb-4">
+        <p>Ini hanya terlihat di <strong>Tablet dan Desktop</strong></p>
+      </div>
+      
+      <div class="hidden mobile:block tablet:hidden bg-blue-100 p-4 rounded-lg mb-4">
+        <p>Ini hanya terlihat di <strong>Mobile</strong></p>
+      </div>
+      
+      <div class="hidden tablet:block desktop:hidden bg-green-100 p-4 rounded-lg mb-4">
+        <p>Ini hanya terlihat di <strong>Tablet</strong></p>
+      </div>
+      
+      <div class="hidden desktop:block bg-yellow-100 p-4 rounded-lg">
+        <p>Ini hanya terlihat di <strong>Desktop</strong></p>
+      </div>
+    </div>
+
+    <!-- CSS Classes Detection -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <h2 class="text-xl font-semibold mb-4">CSS Classes Detection</h2>
+      <div id="css-classes-info" class="p-4 bg-gray-100 rounded-lg">
+        <p>Mendeteksi classes yang ditambahkan...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Function to update device info
+    function updateDeviceInfo() {
+      const infoDiv = document.getElementById('device-info');
+      const deviceInfo = window.deviceInfo || {};
+      
+      let infoHTML = `
+        <p><strong>User Agent:</strong> ${navigator.userAgent}</p>
+        <p><strong>Platform:</strong> ${navigator.platform}</p>
+        <p><strong>Jenis Perangkat:</strong> ${deviceInfo.isMobile ? 'Mobile' : deviceInfo.isTablet ? 'Tablet' : 'Desktop'}</p>
+        <p><strong>Sistem Operasi:</strong> ${deviceInfo.isIOS ? 'iOS' : deviceInfo.isAndroid ? 'Android' : 'Lainnya'}</p>
+        <p><strong>Orientasi:</strong> ${deviceInfo.isLandscape ? 'Landscape' : 'Portrait'}</p>
+        <p><strong>Touch Device:</strong> ${deviceInfo.isTouchDevice ? 'Ya' : 'Tidak'}</p>
+        <p><strong>Resolusi Layar:</strong> ${window.screen.width} × ${window.screen.height}</p>
+        <p><strong>Ukuran Window:</strong> ${window.innerWidth} × ${window.innerHeight}</p>
+        <p><strong>Device Pixel Ratio:</strong> ${window.devicePixelRatio}</p>
+      `;
+      
+      infoDiv.innerHTML = infoHTML;
+    }
+
+    // Function to update CSS classes info
+    function updateCSSClassesInfo() {
+      const classesDiv = document.getElementById('css-classes-info');
+      const htmlElement = document.documentElement;
+      const classes = Array.from(htmlElement.classList).filter(cls => 
+        cls.includes('ios') || cls.includes('android') || 
+        cls.includes('mobile') || cls.includes('tablet') || 
+        cls.includes('desktop') || cls.includes('touch') || 
+        cls.includes('pointer') || cls.includes('landscape') || 
+        cls.includes('portrait') || cls.includes('layout-')
+      );
+      
+      classesDiv.innerHTML = `
+        <p><strong>Classes pada &lt;html&gt; element:</strong></p>
+        <div class="mt-2">
+          ${classes.length > 0 ? 
+            classes.map(cls => `<span class="bg-gray-200 px-2 py-1 rounded text-sm mr-2 mb-2 inline-block">${cls}</span>`).join('') 
+            : '<p>Tidak ada classes terdeteksi</p>'
+          }
+        </div>
+      `;
+    }
+
+    // Event listener untuk button
+    document.getElementById('check-device').addEventListener('click', function() {
+      updateDeviceInfo();
+      updateCSSClassesInfo();
+    });
+
+    // Jalankan saat halaman dimuat
+    document.addEventListener('DOMContentLoaded', function() {
+      // Tunggu sebentar untuk memastikan device detection sudah berjalan
+      setTimeout(() => {
+        updateDeviceInfo();
+        updateCSSClassesInfo();
+      }, 100);
+      
+      // Update saat resize atau orientation change
+      window.addEventListener('resize', function() {
+        setTimeout(() => {
+          updateDeviceInfo();
+          updateCSSClassesInfo();
+        }, 100);
+      });
+      
+      window.addEventListener('orientationchange', function() {
+        setTimeout(() => {
+          updateDeviceInfo();
+          updateCSSClassesInfo();
+        }, 100);
+      });
+    });
+
+    // Tambahkan handler untuk log changes
+    document.addEventListener('orientationlandscape', function() {
+      console.log('Custom event: Orientation changed to landscape');
+    });
+    
+    document.addEventListener('orientationportrait', function() {
+      console.log('Custom event: Orientation changed to portrait');
+    });
+  </script>
+</MainLayout>

@@ -1,0 +1,51 @@
+---
+// src/pages/viewport-test.astro
+import MainLayout from '../layouts/MainLayout.astro';
+---
+
+<MainLayout title="Viewport Test - BJS Racing Store">
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold text-orange-600 mb-6 text-center">Viewport Test</h1>
+
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-4">Informasi Viewport</h2>
+      <div class="p-4 bg-gray-100 rounded-lg mb-4">
+        <p id="viewport-info">Loading...</p>
+      </div>
+      <button onclick="checkViewport()" class="bg-orange-500 text-white px-4 py-2 rounded-lg">
+        Periksa Viewport
+      </button>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <h2 class="text-xl font-semibold mb-4">Test Area</h2>
+      <div class="border-2 border-dashed border-gray-300 p-4 rounded-lg">
+        <p class="text-center">Ini adalah test area untuk melihat responsivitas</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div class="bg-blue-100 p-4 rounded-lg">Kolom 1</div>
+          <div class="bg-green-100 p-4 rounded-lg">Kolom 2</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function checkViewport() {
+      const info = document.getElementById('viewport-info');
+      info.innerHTML = `
+        <p><strong>Width:</strong> ${window.innerWidth}px</p>
+        <p><strong>Height:</strong> ${window.innerHeight}px</p>
+        <p><strong>Device Pixel Ratio:</strong> ${window.devicePixelRatio}</p>
+        <p><strong>Orientation:</strong> ${screen.orientation ? screen.orientation.type : 'unknown'}</p>
+        <p><strong>Touch Support:</strong> ${'ontouchstart' in window ? 'Yes' : 'No'}</p>
+      `;
+    }
+
+    // Jalankan saat halaman dimuat
+    document.addEventListener('DOMContentLoaded', checkViewport);
+
+    // Update saat resize
+    window.addEventListener('resize', checkViewport);
+    window.addEventListener('orientationchange', checkViewport);
+  </script>
+</MainLayout>
