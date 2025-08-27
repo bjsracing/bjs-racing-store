@@ -1,46 +1,105 @@
-// src/layouts/MainLayout.astro
-
+---
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 
-// Dengan middleware, kita tidak perlu membuat client di sini.
-// Astro.locals sudah disediakan oleh middleware.
 const { session } = Astro.locals;
 
 interface Props {
-	title: string;
+  title: string;
 }
 
 const { title } = Astro.props;
+
+// Daftar semua ukuran ikon yang diperlukan
+const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
 ---
+
 <!doctype html>
 <html lang="id">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="description" content="BJS Racing Store - Distributor Spray Paint dan Onderdil Motor" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="generator" content={Astro.generator} />
-		<title>{title}</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content="BJS Racing Store - Distributor Spray Paint dan Onderdil Motor" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <meta name="theme-color" content="#FF7800" />
+    
+    <title>{title}</title>
 
-		{/* Link Font Google yang sudah terbukti tidak menyebabkan error */}
-		<link rel="preconnect" href="https://fonts.googleapis.com">
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-		
-		{/* Tambahkan tag PWA di sini untuk menghindari bug compiler */}
-		<link rel="apple-touch-icon" sizes="180x180" href="/logo/apple-touch-icon.png" />
-		<link rel="icon" type="image/png" sizes="512x512" href="/logo/logo-bjsracingstore.png" />
-	</head>
-	<body class="bg-slate-100 text-slate-800">
-		
-<Header session={session} /> {/* <-- KIRIM DATA SESI KE HEADER */}
-		
-		<main>
-			<slot />
-		</main>
+    {/* Preload fonts */}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    {/* PWA Tags - HARUS ADA */}
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+    
+    {/* iOS-specific tags */}
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="BJS Racing" />
+    
+    {/* Generator tag */}
+    <meta name="generator" content={Astro.generator} />
+  </head>
+  <body class="bg-slate-100 text-slate-800">
+    <Header session={session} />
+    
+    <main>
+      <slot />
+    </main>
 
-		<Footer /> {/* <-- FOOTER DITAMBAHKAN DI SINI */}
-		
-	</body>
+    <Footer />
+    
+    {/* PWA Registration Script */}
+    <script>
+      // Register Service Worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js')
+            .then(function(registration) {
+              console.log('SW registered: ', registration);
+            })
+            .catch(function(registrationError) {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+      
+      // Prompt user to install PWA
+      let deferredPrompt;
+      const installButton = document.createElement('button');
+      
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        // Show install promotion (optional)
+        installButton.style.display = 'block';
+        installButton.textContent = 'Install App';
+        installButton.classList.add('fixed', 'bottom-4', 'right-4', 'bg-orange-500', 'text-white', 'px-4', 'py-2', 'rounded-lg', 'shadow-lg');
+        document.body.appendChild(installButton);
+      });
+      
+      installButton.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        
+        if (outcome === 'accepted') {
+          installButton.style.display = 'none';
+        }
+        
+        deferredPrompt = null;
+      });
+      
+      window.addEventListener('appinstalled', () => {
+        installButton.style.display = 'none';
+        deferredPrompt = null;
+        console.log('PWA was installed');
+      });
+    </script>
+  </body>
 </html>

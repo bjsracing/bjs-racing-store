@@ -1,0 +1,59 @@
+---
+// src/pages/pwa-test.astro
+import MainLayout from '../layouts/MainLayout.astro';
+---
+
+<MainLayout title="Test PWA - BJS Racing Store">
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold text-orange-600 mb-6 text-center">Testing PWA BJS Racing Store</h1>
+
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-4">Status PWA</h2>
+      <div id="pwa-status" class="p-4 bg-gray-100 rounded-lg mb-4">
+        <p>Memeriksa kompatibilitas PWA...</p>
+      </div>
+      <button id="check-pwa" class="bg-orange-500 text-white px-4 py-2 rounded-lg">
+        Periksa Status PWA
+      </button>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <h2 class="text-xl font-semibold mb-4">Cara Testing di Android</h2>
+      <ol class="list-decimal pl-5 space-y-2 mb-4">
+        <li>Buka website ini di browser Chrome pada tablet Android</li>
+        <li>Tap ikon menu (3 titik) di pojok kanan atas browser</li>
+        <li>Pilih "Add to Home screen"</li>
+        <li>Konfirmasi dengan mengetuk "Add"</li>
+        <li>Kembali ke launcher/homescreen dan cari ikon BJS Racing Store</li>
+      </ol>
+
+      <div class="p-4 bg-blue-50 rounded-lg">
+        <p class="text-blue-700">Pastikan Anda mengakses URL Replit yang <strong>publik</strong> (bukan preview editor).</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('check-pwa').addEventListener('click', function() {
+      const statusDiv = document.getElementById('pwa-status');
+
+      // Check service worker
+      const swSupport = 'serviceWorker' in navigator;
+
+      // Check manifest
+      const manifestSupport = document.querySelector('link[rel="manifest"]') !== null;
+
+      // Check display mode
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+
+      let html = `
+        <p><strong>Service Worker:</strong> ${swSupport ? '✅ Didukung' : '❌ Tidak didukung'}</p>
+        <p><strong>Web Manifest:</strong> ${manifestSupport ? '✅ Ditemukan' : '❌ Tidak ditemukan'}</p>
+        <p><strong>Display Mode:</strong> ${isStandalone ? '✅ Standalone' : '❌ Browser'}</p>
+        <p><strong>HTTPS:</strong> ${window.location.protocol === 'https:' ? '✅ Ya' : '❌ Tidak'}</p>
+      `;
+
+      statusDiv.innerHTML = html;
+    });
+  </script>
+</MainLayout>
