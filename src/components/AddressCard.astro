@@ -1,0 +1,41 @@
+---
+// src/components/AddressCard.astro
+
+// Komponen ini akan menerima satu objek 'address' sebagai properti
+export interface Props {
+  address: {
+    id: string;
+    label: string;
+    recipient_name: string;
+    recipient_phone: string;
+    full_address: string;
+    city_id: string; // Nanti kita ubah jadi nama kota
+    province_id: string; // Nanti kita ubah jadi nama provinsi
+    postal_code: string;
+    is_primary: boolean;
+  };
+}
+
+const { address } = Astro.props;
+---
+
+<div class="border rounded-lg p-4 mb-4 flex justify-between items-start">
+  <div>
+    <div class="flex items-center mb-2">
+      <h3 class="font-bold text-lg mr-2">{address.label || 'Alamat'}</h3>
+      {address.is_primary && (
+        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+          Utama
+        </span>
+      )}
+    </div>
+    <p class="font-semibold">{address.recipient_name}</p>
+    <p>{address.recipient_phone}</p>
+    <p>{address.full_address}</p>
+    <p>{address.city_id}, {address.province_id} {address.postal_code}</p>
+  </div>
+  <div class="flex flex-col space-y-2">
+    <button class="text-sm text-blue-600 hover:underline">Ubah</button>
+    <button class="text-sm text-red-600 hover:underline">Hapus</button>
+  </div>
+</div>

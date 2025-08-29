@@ -1,0 +1,80 @@
+---
+// src/components/AddressSection.astro
+import AddressCard from "./AddressCard.astro";
+---
+
+<div id="address-section">
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-2xl font-bold">Buku Alamat</h2>
+    <button id="add-address-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+      Tambah Alamat Baru
+    </button>
+  </div>
+
+  <div id="address-list-container">
+    <p id="loading-indicator">Memuat alamat...</p>
+    </div>
+</div>
+
+<script>
+  // Impor AddressCard sebagai string template untuk dirender di client
+  import AddressCard from './AddressCard.astro?raw';
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const addressListContainer = document.getElementById('address-list-container');
+    const loadingIndicator = document.getElementById('loading-indicator');
+
+    async function loadAddresses() {
+      try {
+        // Fetch ke API endpoint yang kita buat.
+        // Service Worker akan mencegat request ini.
+        const response = await fetch('/api/addresses');
+
+        // Jika offline dan data ada di cache, Service Worker akan tetap memberikan respons sukses.
+        if (!response.ok) {
+          throw new Error('Gagal memuat alamat.');
+        }
+
+        const addresses = await response.json();
+
+        loadingIndicator.style.display = 'none'; // Sembunyikan loading
+        addressListContainer.innerHTML = ''; // Kosongkan container
+
+        if (addresses.length === 0) {
+          addressListContainer.innerHTML = '<p>Anda belum memiliki alamat tersimpan.</p>';
+          return;
+        }
+
+        // Render setiap alamat menggunakan komponen AddressCard
+        addresses.forEach(address => {
+          // Trik untuk merender komponen Astro di client-side
+          // Kita mengganti placeholder di template dengan data aktual
+          let cardHtml = AddressCard
+            .replace(/{address.label \|\| 'Alamat'}/g, address.label || 'Alamat')
+            .replace(/{address.recipient_name}/g, address.recipient_name)
+            .replace(/{address.recipient_phone}/g, address.recipient_phone)
+            .replace(/{address.full_address}/g, address.full_address)
+            .replace(/{address.city_id}/g, address.city_id) // Sementara
+            .replace(/{address.province_id}/g, address.province_id) // Sementara
+            .replace(/{address.postal_code}/g, address.postal_code);
+
+          // Logika untuk menampilkan badge "Utama"
+          if (address.is_primary) {
+            cardHtml = cardHtml.replace(/<span class="bg-green-100.*?<\/span>/s, `<span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Utama</span>`);
+          } else {
+            cardHtml = cardHtml.replace(/<span class="bg-green-100.*?<\/span>/s, '');
+          }
+
+          addressListContainer.innerHTML += cardHtml;
+        });
+
+      } catch (error) {
+        console.error(error);
+        loadingIndicator.style.display = 'none';
+        addressListContainer.innerHTML = '<p class="text-red-500">Gagal memuat alamat. Periksa koneksi internet Anda.</p>';
+      }
+    }
+
+    loadAddresses();
+  });
+</script>
