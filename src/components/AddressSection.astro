@@ -23,7 +23,7 @@ import AddressForm from "./AddressForm.astro";
   // Template untuk kartu alamat. Kita akan mengkloning ini.
   const addressCardTemplate = document.createElement('template');
   addressCardTemplate.innerHTML = `
-    <div class="border rounded-lg p-4 mb-4 flex justify-between items-start">
+    <div class="address-card border rounded-lg p-4 mb-4 flex justify-between items-start">
       <div>
         <div class="flex items-center mb-2">
           <h3 class="font-bold text-lg mr-2" data-part="label"></h3>
@@ -37,15 +37,18 @@ import AddressForm from "./AddressForm.astro";
         <p data-part="city_province_postal"></p>
       </div>
       <div class="flex flex-col space-y-2">
-        <button class="text-sm text-blue-600 hover:underline">Ubah</button>
-        <button class="text-sm text-red-600 hover:underline">Hapus</button>
+        <button data-action="edit" class="text-sm text-blue-600 hover:underline">Ubah</button>
+        <button data-action="delete" class="text-sm text-red-600 hover:underline">Hapus</button>
       </div>
     </div>
   `;
 
   const addAddressBtn = document.getElementById('add-address-btn');
   addAddressBtn.addEventListener('click', () => {
-    document.dispatchEvent(new CustomEvent('showAddressForm'));
+    // Memberitahu form untuk muncul dalam mode 'tambah'
+    document.dispatchEvent(new CustomEvent('showAddressForm', { 
+      detail: { mode: 'add', address: null } 
+    }));
   });
   
   const addressListContainer = document.getElementById('address-list-container');
@@ -55,8 +58,9 @@ import AddressForm from "./AddressForm.astro";
     console.log('[BJS LOG] Memulai proses memuat alamat...');
     try {
       loadingIndicator.style.display = 'block';
+      addressListContainer.innerHTML = ''; // Kosongkan dulu
+      addressListContainer.appendChild(loadingIndicator); // Tampilkan loading lagi
 
-      console.log('[BJS LOG] Melakukan fetch ke /api/addresses...');
       const response = await fetch('/api/addresses');
       console.log(`[BJS LOG] Menerima respons dari API dengan status: ${response.status}`);
 
@@ -76,9 +80,15 @@ import AddressForm from "./AddressForm.astro";
         return;
       }
 
-      // Render setiap alamat menggunakan metode yang lebih aman
+      // Render setiap alamat
       addresses.forEach(address => {
         const cardClone = addressCardTemplate.content.cloneNode(true);
+        const cardElement = cardClone.querySelector('.address-card');
+        
+        // Simpan seluruh data alamat di dalam elemen untuk akses mudah nanti
+        cardElement.dataset.address = JSON.stringify(address);
+
+        // Isi data ke dalam template
         cardClone.querySelector('[data-part="label"]').textContent = address.label || 'Alamat';
         cardClone.querySelector('[data-part="recipient_name"]').textContent = address.recipient_name;
         cardClone.querySelector('[data-part="recipient_phone"]').textContent = address.recipient_phone;
@@ -95,7 +105,6 @@ import AddressForm from "./AddressForm.astro";
     } catch (error) {
       console.error('[BJS ERROR] Terjadi kesalahan saat memuat alamat:', error);
       loadingIndicator.style.display = 'none';
-      // Tampilkan pesan error yang jelas kepada pengguna
       addressListContainer.innerHTML = `
         <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
           <strong class="font-bold">Oops!</strong>
@@ -105,6 +114,50 @@ import AddressForm from "./AddressForm.astro";
       `;
     }
   }
+  
+  // FUNGSI BARU: Menangani semua klik pada tombol "Ubah" dan "Hapus"
+  addressListContainer.addEventListener('click', async (e) => {
+    const target = e.target as HTMLElement;
+    // Dapatkan data-action dari tombol yang diklik (edit/delete)
+    const action = target.dataset.action;
+    
+    // Jika yang diklik bukan tombol dengan data-action, abaikan
+    if (!action) return;
+
+    // Cari elemen kartu terdekat dan ambil data alamat lengkapnya
+    const card = target.closest('.address-card');
+    const address = JSON.parse(card.dataset.address);
+
+    // Jika tombol HAPUS yang diklik
+    if (action === 'delete') {
+      // Tampilkan konfirmasi untuk keamanan
+      if (confirm(`Apakah Anda yakin ingin menghapus alamat "${address.label || address.recipient_name}"?`)) {
+        try {
+          // Panggil API DELETE
+          const response = await fetch('/api/addresses', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ addressId: address.id }),
+          });
+          if (!response.ok) throw new Error('Gagal menghapus alamat dari server.');
+          
+          // Hapus kartu dari tampilan secara langsung untuk respons instan
+          card.remove(); 
+        } catch (error) {
+          alert(error.message);
+        }
+      }
+    }
+
+    // Jika tombol UBAH yang diklik
+    if (action === 'edit') {
+      // Kirim event untuk memberitahu AddressForm agar muncul dalam mode 'edit'
+      // dan kirim data alamat yang akan diubah
+      document.dispatchEvent(new CustomEvent('showAddressForm', { 
+        detail: { mode: 'edit', address: address } 
+      }));
+    }
+  });
   
   document.addEventListener('DOMContentLoaded', loadAddresses);
   document.addEventListener('addressSaved', loadAddresses);

@@ -3,12 +3,12 @@
 ---
 
 <div id="address-modal" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden items-center justify-center">
-  <div id="modal-content" class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg m-4">
+  <div id="modal-content" class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg m-4 max-h-[90vh] overflow-y-auto">
     <div class="flex justify-between items-center mb-4">
-      <h3 class="text-xl font-bold">Tambah Alamat Baru</h3>
-      <button id="close-modal-btn" class="text-gray-500 hover:text-gray-800">&times;</button>
+      <h3 id="modal-title" class="text-xl font-bold">Tambah Alamat Baru</h3>
+      <button id="close-modal-btn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
     </div>
-
+    
     <form id="address-form">
       <div class="space-y-4">
         <div>
@@ -25,7 +25,7 @@
           <label for="recipient_phone" class="block text-sm font-medium text-gray-700">Nomor Telepon</label>
           <input type="tel" id="recipient_phone" name="recipient_phone" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
         </div>
-
+        
         <div>
             <label for="province" class="block text-sm font-medium text-gray-700">Provinsi</label>
             <select id="province" name="province_id" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
@@ -50,7 +50,7 @@
         </div>
 
       </div>
-
+      
       <div class="mt-6 flex justify-end space-x-3">
         <button type="button" id="cancel-btn" class="bg-gray-200 px-4 py-2 rounded-md hover:bg-gray-300">Batal</button>
         <button type="submit" id="submit-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Simpan Alamat</button>
@@ -61,29 +61,70 @@
 </div>
 
 <script>
-    // Logika untuk menampilkan dan menyembunyikan modal
     const modal = document.getElementById('address-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const form = document.getElementById('address-form') as HTMLFormElement;
     const closeModalBtn = document.getElementById('close-modal-btn');
     const cancelBtn = document.getElementById('cancel-btn');
-
-    const showModal = () => modal.classList.remove('hidden');
-    const hideModal = () => modal.classList.add('hidden');
-
-    closeModalBtn.addEventListener('click', hideModal);
-    cancelBtn.addEventListener('click', hideModal);
-    document.addEventListener('showAddressForm', showModal);
-
-    // Logika untuk Dropdown RajaOngkir
+    const errorMsg = document.getElementById('form-error');
     const provinceSelect = document.getElementById('province') as HTMLSelectElement;
     const citySelect = document.getElementById('city') as HTMLSelectElement;
 
+    // Variabel untuk menyimpan state formulir
+    let currentMode = 'add';
+    let addressIdToEdit = null;
+
+    // Fungsi dasar untuk menampilkan/menyembunyikan modal
+    const showModal = () => modal.classList.remove('hidden');
+    const hideModal = () => {
+        modal.classList.add('hidden');
+        form.reset();
+        errorMsg.textContent = '';
+        citySelect.innerHTML = '<option>Pilih provinsi terlebih dahulu</option>';
+        citySelect.disabled = true;
+    };
+    
+    closeModalBtn.addEventListener('click', hideModal);
+    cancelBtn.addEventListener('click', hideModal);
+
+    // Event listener pintar yang menangani mode 'tambah' dan 'ubah'
+    document.addEventListener('showAddressForm', async (e: CustomEvent) => {
+        const { mode, address } = e.detail;
+        currentMode = mode;
+        form.reset();
+        
+        if (mode === 'edit') {
+            modalTitle.textContent = 'Ubah Alamat';
+            addressIdToEdit = address.id;
+
+            // Isi form dengan data yang ada
+            form.elements['label'].value = address.label || '';
+            form.elements['recipient_name'].value = address.recipient_name || '';
+            form.elements['recipient_phone'].value = address.recipient_phone || '';
+            form.elements['full_address'].value = address.full_address || '';
+            form.elements['postal_code'].value = address.postal_code || '';
+            
+            // Isi dropdown provinsi, lalu tunggu & isi dropdown kota
+            await fetchProvinces();
+            provinceSelect.value = address.province_id;
+            await fetchCities(address.province_id);
+            citySelect.value = address.city_id;
+
+        } else { // mode 'add'
+            modalTitle.textContent = 'Tambah Alamat Baru';
+            addressIdToEdit = null;
+            await fetchProvinces();
+            fetchCities(null);
+        }
+        showModal();
+    });
+
+    // Fungsi untuk mengambil data Provinsi dari API Proxy kita
     async function fetchProvinces() {
-      // PENTING: Nanti kita akan buat API proxy untuk ini agar API Key aman.
-      // Untuk sekarang kita asumsikan endpoint ini ada.
       try {
         const response = await fetch('/api/rajaongkir/provinces');
         const { rajaongkir: { results } } = await response.json();
-
+        
         provinceSelect.innerHTML = '<option value="">Pilih Provinsi</option>';
         results.forEach(province => {
           const option = document.createElement('option');
@@ -93,10 +134,10 @@
         });
       } catch (error) {
         console.error("Gagal memuat provinsi:", error);
-        provinceSelect.innerHTML = '<option value="">Gagal memuat data</option>';
       }
     }
 
+    // Fungsi untuk mengambil data Kota dari API Proxy kita
     async function fetchCities(provinceId) {
         if (!provinceId) {
             citySelect.innerHTML = '<option>Pilih provinsi terlebih dahulu</option>';
@@ -118,45 +159,42 @@
             });
         } catch (error) {
             console.error("Gagal memuat kota:", error);
-            citySelect.innerHTML = '<option value="">Gagal memuat data</option>';
         }
     }
-
-    // Panggil fetchProvinces saat modal ditampilkan
-    document.addEventListener('showAddressForm', fetchProvinces);
-    // Tambahkan event listener untuk perubahan provinsi
+    
     provinceSelect.addEventListener('change', () => fetchCities(provinceSelect.value));
 
-    // Logika untuk Submit Form
-    const form = document.getElementById('address-form') as HTMLFormElement;
-    const errorMsg = document.getElementById('form-error');
-
+    // Logika Submit yang dinamis (bisa POST atau PUT)
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       errorMsg.textContent = '';
-
       const formData = new FormData(form);
       const data = Object.fromEntries(formData.entries());
 
+      const method = currentMode === 'add' ? 'POST' : 'PUT';
+      
+      // Jika mode edit, tambahkan ID alamat ke data yang dikirim
+      if (currentMode === 'edit') {
+        data.id = addressIdToEdit;
+      }
+
       try {
         const response = await fetch('/api/addresses', {
-          method: 'POST',
+          method: method,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)
         });
 
         if (!response.ok) {
-          throw new Error(await response.text());
+          throw new Error('Gagal menyimpan alamat. Periksa kembali data Anda.');
         }
 
-        // Jika berhasil, reset form, sembunyikan modal, dan kirim event
-        form.reset();
         hideModal();
         document.dispatchEvent(new CustomEvent('addressSaved'));
 
       } catch (error) {
         console.error('Gagal menyimpan alamat:', error);
-        errorMsg.textContent = 'Gagal menyimpan alamat. Silakan coba lagi.';
+        errorMsg.textContent = error.message;
       }
     });
 </script>
