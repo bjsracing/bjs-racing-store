@@ -10,10 +10,38 @@ const AuthForm = () => {
     // Listener untuk mendeteksi perubahan status login
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN") {
-        // Jika berhasil login, arahkan ke halaman utama
-        window.location.href = "/";
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // Hanya jalankan jika event adalah SIGNED_IN dan ada sesi
+      if (event === "SIGNED_IN" && session) {
+        // --- LOGIKA BARU DITAMBAHKAN DI SINI ---
+        // Cek apakah profil pelanggan sudah ada di database kita
+        const { data: customerProfile, error } = await supabase
+          .from("customers")
+          .select("id")
+          .eq("auth_user_id", session.user.id)
+          .maybeSingle(); // .maybeSingle() tidak error jika data tidak ditemukan
+
+        if (error) {
+          console.error("Gagal memeriksa profil pelanggan:", error);
+          // Jika terjadi error, arahkan ke halaman utama sebagai fallback
+          window.location.href = "/";
+          return;
+        }
+
+        if (customerProfile) {
+          // PROFIL DITEMUKAN: Ini pengguna lama yang login
+          // Arahkan langsung ke halaman akun utama
+          console.log("Profil ditemukan, mengarahkan ke /akun");
+          window.location.href = "/akun";
+        } else {
+          // PROFIL TIDAK DITEMUKAN: Ini pengguna baru yang mendaftar
+          // Arahkan ke halaman untuk melengkapi profil
+          console.log(
+            "Profil tidak ditemukan, mengarahkan ke /akun/lengkapi-profil",
+          );
+          window.location.href = "/akun/lengkapi-profil";
+        }
+        // --- AKHIR DARI LOGIKA BARU ---
       }
     });
 
@@ -25,7 +53,7 @@ const AuthForm = () => {
       <Auth
         supabaseClient={supabase}
         appearance={{ theme: ThemeSupa }}
-        providers={["google"]} // Anda bisa menambahkan provider lain seperti 'github', 'facebook'
+        providers={["google"]}
         localization={{
           variables: {
             sign_in: {

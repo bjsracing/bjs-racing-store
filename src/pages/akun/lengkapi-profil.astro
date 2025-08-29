@@ -1,0 +1,66 @@
+---
+// src/pages/akun/lengkapi-profil.astro
+import MainLayout from '../../layouts/MainLayout.astro';
+
+// Lindungi halaman ini, hanya untuk yang sudah login
+const { session } = Astro.locals;
+if (!session) {
+  return Astro.redirect('/login');
+}
+---
+<MainLayout title="Lengkapi Profil - BJS Racing Store">
+  <div class="container mx-auto max-w-md px-4 py-16">
+    <h1 class="text-3xl font-bold text-center mb-2">Selamat Datang!</h1>
+    <p class="text-center text-slate-600 mb-8">Satu langkah lagi. Mohon lengkapi profil Anda.</p>
+
+    <form id="profile-form" class="space-y-4 bg-white p-6 rounded-lg shadow-md">
+      <div>
+        <label for="nama_pelanggan" class="block text-sm font-medium text-gray-700">Nama Lengkap</label>
+        <input type="text" id="nama_pelanggan" name="nama_pelanggan" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+      </div>
+
+      <div>
+        <label for="telepon" class="block text-sm font-medium text-gray-700">Nomor Telepon (WhatsApp)</label>
+        <input type="tel" id="telepon" name="telepon" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+      </div>
+
+      <button type="submit" id="submit-btn" class="w-full bg-orange-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-600">
+        Simpan Profil & Lanjutkan
+      </button>
+      <p id="form-error" class="text-red-500 text-sm mt-2 text-center"></p>
+    </form>
+  </div>
+</MainLayout>
+
+<script>
+  const form = document.getElementById('profile-form');
+  const errorMsg = document.getElementById('form-error');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorMsg.textContent = '';
+
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+
+    try {
+      // Kita akan membuat API ini di langkah selanjutnya
+      const response = await fetch('/api/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      if (!response.ok) {
+        throw new Error('Gagal menyimpan profil. Silakan coba lagi.');
+      }
+
+      // Jika berhasil, arahkan ke halaman akun utama
+      window.location.href = '/akun';
+
+    } catch (error) {
+      console.error('Gagal membuat profil:', error);
+      errorMsg.textContent = error.message;
+    }
+  });
+</script>
