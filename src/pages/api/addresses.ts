@@ -1,34 +1,38 @@
 // src/pages/api/addresses.ts
-import type { APIRoute } from 'astro';
-// ✨ Kode menjadi lebih bersih dengan path alias
-import { supabase } from '@/lib/supabaseClient.js';
+import type { APIRoute } from "astro";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
-export const GET: APIRoute = async ({ request, cookies }) => {
-  // 1. Ambil token dari cookies
-  const accessToken = cookies.get("sb-access-token");
-  const refreshToken = cookies.get("sb-refresh-token");
+// =================================================================
+// == FUNGSI GET (UNTUK MENGAMBIL DATA) - VERSI BARU & BENAR     ==
+// =================================================================
+export const GET: APIRoute = async ({ cookies }) => {
+  // 1. Buat Supabase client versi server
+  const supabase = createServerClient(
+    import.meta.env.PUBLIC_SUPABASE_URL!,
+    import.meta.env.PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(key: string) {
+          return cookies.get(key)?.value;
+        },
+      },
+    },
+  );
 
-  if (!accessToken || !refreshToken) {
+  // 2. Dapatkan sesi pengguna dari cookie secara aman
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session) {
     return new Response("Authentication required.", { status: 401 });
   }
 
-  // 2. Otentikasi pengguna di server
-  const {
-    data: { user },
-  } = await supabase.auth.setSession({
-    refresh_token: refreshToken.value,
-    access_token: accessToken.value,
-  });
-
-  if (!user) {
-    return new Response("Authentication failed.", { status: 401 });
-  }
-
-  // 3. Ambil customer_id yang terhubung dengan auth_user_id
+  // 3. Ambil customer_id yang terhubung dengan user_id
   const { data: customerData, error: customerError } = await supabase
     .from("customers")
     .select("id")
-    .eq("auth_user_id", user.id)
+    .eq("auth_user_id", session.user.id)
     .single();
 
   if (customerError || !customerData) {
@@ -56,4 +60,87 @@ export const GET: APIRoute = async ({ request, cookies }) => {
       "Content-Type": "application/json",
     },
   });
+};
+
+// =================================================================
+// == FUNGSI POST (UNTUK MENYIMPAN DATA) - VERSI BARU & BENAR   ==
+// =================================================================
+export const POST: APIRoute = async ({ request, cookies }) => {
+  // 1. Buat Supabase client versi server
+  const supabase = createServerClient(
+    import.meta.env.PUBLIC_SUPABASE_URL!,
+    import.meta.env.PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(key: string) {
+          return cookies.get(key)?.value;
+        },
+        set(key: string, value: string, options: CookieOptions) {
+          cookies.set(key, value, options);
+        },
+        remove(key: string, options: CookieOptions) {
+          cookies.delete(key, options);
+        },
+      },
+    },
+  );
+
+  // 2. Dapatkan sesi pengguna secara aman
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session) {
+    return new Response("Authentication required.", { status: 401 });
+  }
+
+  // 3. Ambil customer_id
+  const { data: customerData, error: customerError } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("auth_user_id", session.user.id)
+    .single();
+
+  if (customerError || !customerData) {
+    return new Response("Customer profile not found.", { status: 404 });
+  }
+  const customerId = customerData.id;
+
+  // 4. Ambil data formulir dari body request
+  const formData = await request.json();
+
+  // 5. Validasi
+  if (
+    !formData.recipient_name ||
+    !formData.recipient_phone ||
+    !formData.full_address
+  ) {
+    return new Response("Nama, telepon, dan alamat lengkap wajib diisi.", {
+      status: 400,
+    });
+  }
+
+  // 6. Masukkan data baru ke database
+  const { data: newAddress, error } = await supabase
+    .from("customer_addresses")
+    .insert({
+      customer_id: customerId,
+      label: formData.label,
+      recipient_name: formData.recipient_name,
+      recipient_phone: formData.recipient_phone,
+      full_address: formData.full_address,
+      province_id: formData.province_id,
+      city_id: formData.city_id,
+      postal_code: formData.postal_code,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Supabase insert error:", error);
+    return new Response("Gagal menyimpan alamat ke database.", { status: 500 });
+  }
+
+  // 7. Kembalikan data alamat yang baru dibuat
+  return new Response(JSON.stringify(newAddress), { status: 201 });
 };

@@ -1,0 +1,37 @@
+---
+// src/pages/akun/index.astro
+import MainLayout from '../../layouts/MainLayout.astro'; // Menggunakan MainLayout Anda
+import AddressSection from '../../components/AddressSection.astro';
+
+// --- Logika BARU yang lebih baik untuk melindungi halaman ---
+const { session } = Astro.locals;
+
+// Jika tidak ada sesi, alihkan pengguna ke halaman login
+if (!session) {
+  // Pastikan path '/login' ini adalah halaman login Anda
+  return Astro.redirect('/login'); 
+}
+// --- Akhir dari Logika Baru ---
+
+// Jika sesi ada, maka halaman akan ditampilkan
+---
+<MainLayout title="Akun Saya - BJS Racing Store">
+  <main class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6">Akun Saya</h1>
+    
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <aside class="md:col-span-1">
+        <nav class="flex flex-col space-y-2">
+          <a href="/akun" class="font-semibold bg-gray-200 p-3 rounded-lg">Buku Alamat</a>
+          <a href="/akun/profil" class="hover:bg-gray-100 p-3 rounded-lg">Profil Saya</a>
+          <a href="/akun/pesanan" class="hover:bg-gray-100 p-3 rounded-lg">Riwayat Pesanan</a>
+          <a href="#" class="hover:bg-gray-100 p-3 rounded-lg">Keluar</a>
+        </nav>
+      </aside>
+
+      <section class="md:col-span-3">
+        <AddressSection />
+      </section>
+    </div>
+  </main>
+</MainLayout>

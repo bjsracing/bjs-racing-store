@@ -1,6 +1,7 @@
 ---
 // src/components/AddressSection.astro
 import AddressCard from "./AddressCard.astro";
+import AddressForm from "./AddressForm.astro";
 ---
 
 <div id="address-section">
@@ -12,69 +13,99 @@ import AddressCard from "./AddressCard.astro";
   </div>
 
   <div id="address-list-container">
-    <p id="loading-indicator">Memuat alamat...</p>
-    </div>
+    <p id="loading-indicator">Memuat alamat, mohon tunggu...</p>
+  </div>
 </div>
 
+<AddressForm />
+
 <script>
-  // Impor AddressCard sebagai string template untuk dirender di client
-  import AddressCard from './AddressCard.astro?raw';
+  // Template untuk kartu alamat. Kita akan mengkloning ini.
+  const addressCardTemplate = document.createElement('template');
+  addressCardTemplate.innerHTML = `
+    <div class="border rounded-lg p-4 mb-4 flex justify-between items-start">
+      <div>
+        <div class="flex items-center mb-2">
+          <h3 class="font-bold text-lg mr-2" data-part="label"></h3>
+          <span data-part="primary-badge" class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full hidden">
+            Utama
+          </span>
+        </div>
+        <p class="font-semibold" data-part="recipient_name"></p>
+        <p data-part="recipient_phone"></p>
+        <p data-part="full_address"></p>
+        <p data-part="city_province_postal"></p>
+      </div>
+      <div class="flex flex-col space-y-2">
+        <button class="text-sm text-blue-600 hover:underline">Ubah</button>
+        <button class="text-sm text-red-600 hover:underline">Hapus</button>
+      </div>
+    </div>
+  `;
 
-  document.addEventListener('DOMContentLoaded', () => {
-    const addressListContainer = document.getElementById('address-list-container');
-    const loadingIndicator = document.getElementById('loading-indicator');
-
-    async function loadAddresses() {
-      try {
-        // Fetch ke API endpoint yang kita buat.
-        // Service Worker akan mencegat request ini.
-        const response = await fetch('/api/addresses');
-
-        // Jika offline dan data ada di cache, Service Worker akan tetap memberikan respons sukses.
-        if (!response.ok) {
-          throw new Error('Gagal memuat alamat.');
-        }
-
-        const addresses = await response.json();
-
-        loadingIndicator.style.display = 'none'; // Sembunyikan loading
-        addressListContainer.innerHTML = ''; // Kosongkan container
-
-        if (addresses.length === 0) {
-          addressListContainer.innerHTML = '<p>Anda belum memiliki alamat tersimpan.</p>';
-          return;
-        }
-
-        // Render setiap alamat menggunakan komponen AddressCard
-        addresses.forEach(address => {
-          // Trik untuk merender komponen Astro di client-side
-          // Kita mengganti placeholder di template dengan data aktual
-          let cardHtml = AddressCard
-            .replace(/{address.label \|\| 'Alamat'}/g, address.label || 'Alamat')
-            .replace(/{address.recipient_name}/g, address.recipient_name)
-            .replace(/{address.recipient_phone}/g, address.recipient_phone)
-            .replace(/{address.full_address}/g, address.full_address)
-            .replace(/{address.city_id}/g, address.city_id) // Sementara
-            .replace(/{address.province_id}/g, address.province_id) // Sementara
-            .replace(/{address.postal_code}/g, address.postal_code);
-
-          // Logika untuk menampilkan badge "Utama"
-          if (address.is_primary) {
-            cardHtml = cardHtml.replace(/<span class="bg-green-100.*?<\/span>/s, `<span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Utama</span>`);
-          } else {
-            cardHtml = cardHtml.replace(/<span class="bg-green-100.*?<\/span>/s, '');
-          }
-
-          addressListContainer.innerHTML += cardHtml;
-        });
-
-      } catch (error) {
-        console.error(error);
-        loadingIndicator.style.display = 'none';
-        addressListContainer.innerHTML = '<p class="text-red-500">Gagal memuat alamat. Periksa koneksi internet Anda.</p>';
-      }
-    }
-
-    loadAddresses();
+  const addAddressBtn = document.getElementById('add-address-btn');
+  addAddressBtn.addEventListener('click', () => {
+    document.dispatchEvent(new CustomEvent('showAddressForm'));
   });
+  
+  const addressListContainer = document.getElementById('address-list-container');
+  const loadingIndicator = document.getElementById('loading-indicator');
+
+  async function loadAddresses() {
+    console.log('[BJS LOG] Memulai proses memuat alamat...');
+    try {
+      loadingIndicator.style.display = 'block';
+
+      console.log('[BJS LOG] Melakukan fetch ke /api/addresses...');
+      const response = await fetch('/api/addresses');
+      console.log(`[BJS LOG] Menerima respons dari API dengan status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Gagal memuat alamat. Status: ${response.status}. Pesan: ${errorText}`);
+      }
+      
+      const addresses = await response.json();
+      console.log('[BJS LOG] Berhasil mendapatkan data alamat:', addresses);
+      
+      loadingIndicator.style.display = 'none';
+      addressListContainer.innerHTML = ''; // Kosongkan container setelah loading berhasil
+
+      if (addresses.length === 0) {
+        addressListContainer.innerHTML = '<p>Anda belum memiliki alamat tersimpan.</p>';
+        return;
+      }
+
+      // Render setiap alamat menggunakan metode yang lebih aman
+      addresses.forEach(address => {
+        const cardClone = addressCardTemplate.content.cloneNode(true);
+        cardClone.querySelector('[data-part="label"]').textContent = address.label || 'Alamat';
+        cardClone.querySelector('[data-part="recipient_name"]').textContent = address.recipient_name;
+        cardClone.querySelector('[data-part="recipient_phone"]').textContent = address.recipient_phone;
+        cardClone.querySelector('[data-part="full_address"]').textContent = address.full_address;
+        cardClone.querySelector('[data-part="city_province_postal"]').textContent = `${address.city_id || ''}, ${address.province_id || ''} ${address.postal_code || ''}`;
+        
+        if (address.is_primary) {
+          cardClone.querySelector('[data-part="primary-badge"]').classList.remove('hidden');
+        }
+        
+        addressListContainer.appendChild(cardClone);
+      });
+
+    } catch (error) {
+      console.error('[BJS ERROR] Terjadi kesalahan saat memuat alamat:', error);
+      loadingIndicator.style.display = 'none';
+      // Tampilkan pesan error yang jelas kepada pengguna
+      addressListContainer.innerHTML = `
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <strong class="font-bold">Oops!</strong>
+          <span class="block sm:inline">Terjadi kesalahan saat memuat data alamat. Silakan coba muat ulang halaman.</span>
+          <p class="text-xs mt-2">Detail Error: ${error.message}</p>
+        </div>
+      `;
+    }
+  }
+  
+  document.addEventListener('DOMContentLoaded', loadAddresses);
+  document.addEventListener('addressSaved', loadAddresses);
 </script>
