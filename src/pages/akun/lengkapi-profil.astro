@@ -24,7 +24,7 @@ if (!session) {
         <input type="tel" id="telepon" name="telepon" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
       </div>
 
-      <button type="submit" id="submit-btn" class="w-full bg-orange-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-600">
+      <button type="submit" id="submit-btn" class="w-full bg-orange-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-600 transition-opacity disabled:opacity-50">
         Simpan Profil & Lanjutkan
       </button>
       <p id="form-error" class="text-red-500 text-sm mt-2 text-center"></p>
@@ -42,7 +42,7 @@ if (!session) {
     errorMsg.textContent = '';
     submitBtn.disabled = true;
     submitBtn.textContent = 'Menyimpan...';
-    
+
     const formData = new FormData(form);
     const data = Object.fromEntries(formData.entries());
 
@@ -54,19 +54,8 @@ if (!session) {
       });
 
       if (!response.ok) {
-        // ✅ PERBAIKAN: Duplikat respons sebelum dibaca
-        const clonedResponse = response.clone();
-        let errorText = 'Gagal menyimpan profil. Silakan coba lagi.';
-        
-        try {
-          // Coba baca duplikat pertama sebagai JSON
-          const errorData = await response.json();
-          errorText = errorData.message || 'Error tidak diketahui dari server.';
-        } catch (jsonError) {
-          // Jika gagal, baca duplikat kedua sebagai teks biasa
-          errorText = await clonedResponse.text();
-        }
-        throw new Error(errorText);
+        // Gunakan pesan error yang ramah untuk pengguna
+        throw new Error('Gagal menyimpan profil. Silakan coba lagi.');
       }
 
       // Jika berhasil, arahkan ke halaman akun utama
@@ -74,8 +63,9 @@ if (!session) {
 
     } catch (error) {
       console.error('Gagal membuat profil:', error);
-      // Tampilkan pesan error asli di halaman
-      errorMsg.textContent = `Error: ${error.message}`;
+      errorMsg.textContent = error.message;
+    } finally {
+      // Apapun hasilnya (sukses/gagal), aktifkan kembali tombolnya
       submitBtn.disabled = false;
       submitBtn.textContent = 'Simpan Profil & Lanjutkan';
     }
