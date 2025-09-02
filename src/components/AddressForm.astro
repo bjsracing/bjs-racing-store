@@ -1,5 +1,6 @@
 ---
 // src/components/AddressForm.astro
+// Bagian frontmatter ini sengaja kosong dan sudah benar.
 ---
 
 <div id="address-modal" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden flex items-center justify-center p-4">
@@ -12,8 +13,9 @@
       </div>
       
       <div class="max-h-[70vh] overflow-y-auto pr-2">
-        <form id="address-form">
+        <form id="address-form" novalidate>
           <div class="space-y-4">
+            
             <div>
               <label for="label" class="block text-sm font-medium text-gray-700">Label Alamat</label>
               <input type="text" id="label" name="label" placeholder="Contoh: Rumah, Kantor" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500">
@@ -30,20 +32,29 @@
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                  <label for="province" class="block text-sm font-medium text-gray-700">Provinsi</label>
-                  <select id="province" name="province_id" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500">
-                      <option>Memuat provinsi...</option>
-                  </select>
+              <div class="relative" id="province-wrapper">
+                <input type="hidden" id="province_id" name="province_id" required>
+                <label for="province-button" class="block text-sm font-medium text-gray-700">Provinsi</label>
+                <button type="button" id="province-button" class="mt-1 relative w-full cursor-default rounded-md border border-gray-300 bg-white p-2 pl-3 pr-10 text-left shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500">
+                  <span class="block truncate" id="province-selected-text">Pilih Provinsi</span>
+                  <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2"><svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a.75.75 0 01.53.22l3.5 3.5a.75.75 0 01-1.06 1.06L10 4.81 7.03 7.78a.75.75 0 01-1.06-1.06l3.5-3.5A.75.75 0 0110 3zm-3.72 9.28a.75.75 0 011.06 0L10 15.19l2.97-2.97a.75.75 0 111.06 1.06l-3.5 3.5a.75.75 0 01-1.06 0l-3.5-3.5a.75.75 0 010-1.06z" clip-rule="evenodd" /></svg></span>
+                </button>
+                <ul class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none hidden" id="province-options">
+                  </ul>
               </div>
-              <div>
-                  <label for="city" class="block text-sm font-medium text-gray-700">Kota/Kabupaten</label>
-                  <select id="city" name="city_id" required disabled class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-gray-100 cursor-not-allowed">
-                      <option>Pilih provinsi</option>
-                  </select>
+
+              <div class="relative" id="city-wrapper">
+                <input type="hidden" id="city_id" name="city_id" required>
+                <label for="city-button" class="block text-sm font-medium text-gray-700">Kota/Kabupaten</label>
+                <button type="button" id="city-button" class="mt-1 relative w-full cursor-default rounded-md border border-gray-300 bg-gray-100 p-2 pl-3 pr-10 text-left shadow-sm cursor-not-allowed" disabled>
+                  <span class="block truncate" id="city-selected-text">Pilih Provinsi Dulu</span>
+                  <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2"><svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a.75.75 0 01.53.22l3.5 3.5a.75.75 0 01-1.06 1.06L10 4.81 7.03 7.78a.75.75 0 01-1.06-1.06l3.5-3.5A.75.75 0 0110 3zm-3.72 9.28a.75.75 0 011.06 0L10 15.19l2.97-2.97a.75.75 0 111.06 1.06l-3.5 3.5a.75.75 0 01-1.06 0l-3.5-3.5a.75.75 0 010-1.06z" clip-rule="evenodd" /></svg></span>
+                </button>
+                <ul class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none hidden" id="city-options">
+                  </ul>
               </div>
             </div>
-
+            
             <div>
               <label for="full_address" class="block text-sm font-medium text-gray-700">Alamat Lengkap</label>
               <textarea id="full_address" name="full_address" rows="3" required placeholder="Nama jalan, nomor rumah, RT/RW, kelurahan, kecamatan..." class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"></textarea>
@@ -73,33 +84,135 @@
     const closeModalBtn = document.getElementById('close-modal-btn');
     const cancelBtn = document.getElementById('cancel-btn');
     const errorMsg = document.getElementById('form-error');
-    const provinceSelect = document.getElementById('province') as HTMLSelectElement;
-    const citySelect = document.getElementById('city') as HTMLSelectElement;
+    const submitBtn = document.getElementById('submit-btn');
+
+    // === Referensi Elemen Dropdown Kustom ===
+    const provinceWrapper = document.getElementById('province-wrapper');
+    const provinceButton = document.getElementById('province-button');
+    const provinceOptions = document.getElementById('province-options');
+    const provinceSelectedText = document.getElementById('province-selected-text');
+    const provinceHiddenInput = document.getElementById('province_id') as HTMLInputElement;
+
+    const cityWrapper = document.getElementById('city-wrapper');
+    const cityButton = document.getElementById('city-button');
+    const cityOptions = document.getElementById('city-options');
+    const citySelectedText = document.getElementById('city-selected-text');
+    const cityHiddenInput = document.getElementById('city_id') as HTMLInputElement;
 
     let currentMode = 'add';
     let addressIdToEdit = null;
 
+    // === Logika Modal ===
     const showModal = () => modal.classList.remove('hidden');
     const hideModal = () => {
         modal.classList.add('hidden');
         form.reset();
         errorMsg.textContent = '';
-        citySelect.innerHTML = '<option>Pilih provinsi terlebih dahulu</option>';
-        citySelect.disabled = true;
     };
-    
     closeModalBtn.addEventListener('click', hideModal);
     cancelBtn.addEventListener('click', hideModal);
 
+    // === Logika Dropdown Kustom ===
+    const toggleDropdown = (optionsEl) => {
+        // Tutup dropdown lain jika ada yang terbuka
+        if (optionsEl === provinceOptions) cityOptions.classList.add('hidden');
+        if (optionsEl === cityOptions) provinceOptions.classList.add('hidden');
+        optionsEl.classList.toggle('hidden');
+    };
+    provinceButton.addEventListener('click', (e) => { e.stopPropagation(); toggleDropdown(provinceOptions); });
+    cityButton.addEventListener('click', (e) => { e.stopPropagation(); toggleDropdown(cityOptions); });
+
+    document.addEventListener('click', () => {
+        provinceOptions.classList.add('hidden');
+        cityOptions.classList.add('hidden');
+    });
+
+    // === Fungsi Fetch & Render untuk Dropdown Kustom ===
+    async function fetchProvinces() {
+      try {
+        provinceOptions.innerHTML = '<li class="p-2 text-gray-500">Memuat...</li>';
+        const response = await fetch('/api/rajaongkir/provinces');
+        if (!response.ok) throw new Error('Gagal memuat provinsi.');
+        const results = await response.json();
+        
+        provinceOptions.innerHTML = ''; // Kosongkan
+        results.forEach(province => {
+          const li = document.createElement('li');
+          li.className = 'text-gray-900 relative cursor-pointer select-none py-2 px-4 hover:bg-orange-500 hover:text-white';
+          li.textContent = province.province;
+          li.dataset.value = province.province_id;
+          provinceOptions.appendChild(li);
+        });
+      } catch (error) {
+          console.error(error);
+          provinceOptions.innerHTML = `<li class="p-2 text-red-500">${error.message}</li>`;
+      }
+    }
+
+    async function fetchCities(provinceId) {
+      if (!provinceId) {
+        cityButton.disabled = true;
+        cityButton.classList.add('bg-gray-100', 'cursor-not-allowed');
+        citySelectedText.textContent = 'Pilih Provinsi Dulu';
+        cityOptions.innerHTML = '';
+        return;
+      }
+      cityButton.disabled = false;
+      cityButton.classList.remove('bg-gray-100', 'cursor-not-allowed');
+      cityOptions.innerHTML = '<li class="p-2 text-gray-500">Memuat...</li>';
+      try {
+        const response = await fetch(`/api/rajaongkir/cities?province=${provinceId}`);
+        if (!response.ok) throw new Error('Gagal memuat kota.');
+        const results = await response.json();
+        cityOptions.innerHTML = '';
+        results.forEach(city => {
+          const li = document.createElement('li');
+          li.className = 'text-gray-900 relative cursor-pointer select-none py-2 px-4 hover:bg-orange-500 hover:text-white';
+          li.textContent = `${city.type} ${city.city_name}`;
+          li.dataset.value = city.city_id;
+          cityOptions.appendChild(li);
+        });
+      } catch (error) {
+          console.error(error);
+          cityOptions.innerHTML = `<li class="p-2 text-red-500">${error.message}</li>`;
+      }
+    }
+
+    // === Logika Memilih Opsi ===
+    provinceOptions.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'LI' && target.dataset.value) {
+            provinceSelectedText.textContent = target.textContent;
+            provinceHiddenInput.value = target.dataset.value;
+            toggleDropdown(provinceOptions);
+            citySelectedText.textContent = 'Pilih Kota/Kabupaten';
+            cityHiddenInput.value = '';
+            fetchCities(target.dataset.value);
+        }
+    });
+
+    cityOptions.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'LI' && target.dataset.value) {
+            citySelectedText.textContent = target.textContent;
+            cityHiddenInput.value = target.dataset.value;
+            toggleDropdown(cityOptions);
+        }
+    });
+
+    // === Logika Utama Form ===
     document.addEventListener('showAddressForm', async (e: CustomEvent) => {
         const { mode, address } = e.detail;
         currentMode = mode;
         form.reset();
         
+        provinceSelectedText.textContent = 'Pilih Provinsi';
+        citySelectedText.textContent = 'Pilih Provinsi Dulu';
+        
         if (mode === 'edit') {
             modalTitle.textContent = 'Ubah Alamat';
             addressIdToEdit = address.id;
-
+            
             form.elements['label'].value = address.label || '';
             form.elements['recipient_name'].value = address.recipient_name || '';
             form.elements['recipient_phone'].value = address.recipient_phone || '';
@@ -107,80 +220,39 @@
             form.elements['postal_code'].value = address.postal_code || '';
             
             await fetchProvinces();
-            provinceSelect.value = address.province_id;
+            const provinceLi = Array.from(provinceOptions.children).find(li => (li as HTMLElement).dataset.value === address.province_id) as HTMLElement;
+            if (provinceLi) {
+                provinceSelectedText.textContent = provinceLi.textContent;
+                provinceHiddenInput.value = address.province_id;
+            }
             await fetchCities(address.province_id);
-            citySelect.value = address.city_id;
+            const cityLi = Array.from(cityOptions.children).find(li => (li as HTMLElement).dataset.value === address.city_id) as HTMLElement;
+            if (cityLi) {
+                citySelectedText.textContent = cityLi.textContent;
+                cityHiddenInput.value = address.city_id;
+            }
 
-        } else { // mode 'add'
+        } else {
             modalTitle.textContent = 'Tambah Alamat Baru';
             addressIdToEdit = null;
-            await fetchProvinces();
+            fetchProvinces();
             fetchCities(null);
+
         }
         showModal();
     });
 
-    async function fetchProvinces() {
-      try {
-        provinceSelect.innerHTML = '<option>Memuat provinsi...</option>';
-        const response = await fetch('/api/rajaongkir/provinces');
-        if (!response.ok) throw new Error('Gagal memuat data provinsi.');
-        const results = await response.json();
-        
-        provinceSelect.innerHTML = '<option value="">Pilih Provinsi</option>';
-        results.forEach(province => {
-          const option = document.createElement('option');
-          // ✅ PERBAIKAN KUNCI ADA DI SINI
-          option.value = province.province_id; 
-          option.textContent = province.province;
-          provinceSelect.appendChild(option);
-        });
-      } catch (error) {
-        console.error("Gagal memuat provinsi:", error);
-        provinceSelect.innerHTML = `<option value="">${error.message}</option>`;
-      }
-    }
-
-    async function fetchCities(provinceId) {
-        if (!provinceId) {
-            citySelect.innerHTML = '<option>Pilih provinsi terlebih dahulu</option>';
-            citySelect.disabled = true;
-            return;
-        }
-        citySelect.disabled = false;
-        citySelect.innerHTML = '<option>Memuat kota...</option>';
-        try {
-            const response = await fetch(`/api/rajaongkir/cities?province=${provinceId}`);
-            if (!response.ok) throw new Error('Gagal memuat data kota.');
-            const results = await response.json();
-
-            citySelect.innerHTML = '<option value="">Pilih Kota/Kabupaten</option>';
-            results.forEach(city => {
-                const option = document.createElement('option');
-                // ✅ PERBAIKAN KUNCI ADA DI SINI
-                option.value = city.city_id;
-                option.textContent = `${city.type} ${city.city_name}`;
-                citySelect.appendChild(option);
-            });
-        } catch (error) {
-            console.error("Gagal memuat kota:", error);
-            citySelect.innerHTML = `<option value="">${error.message}</option>`;
-        }
-    }
-    
-    provinceSelect.addEventListener('change', () => fetchCities(provinceSelect.value));
-
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       errorMsg.textContent = '';
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Menyimpan...';
+
       const formData = new FormData(form);
       const data = Object.fromEntries(formData.entries());
 
       const method = currentMode === 'add' ? 'POST' : 'PUT';
-      
-      if (currentMode === 'edit') {
-        data.id = addressIdToEdit;
-      }
+      if (currentMode === 'edit') data.id = addressIdToEdit;
 
       try {
         const response = await fetch('/api/addresses', {
@@ -189,23 +261,16 @@
           body: JSON.stringify(data)
         });
 
-        if (!response.ok) {
-          throw new Error('Gagal menyimpan alamat. Periksa kembali data Anda.');
-        }
+        if (!response.ok) throw new Error('Gagal menyimpan alamat.');
 
         hideModal();
         document.dispatchEvent(new CustomEvent('addressSaved'));
 
       } catch (error) {
-        console.error('Gagal menyimpan alamat:', error);
         errorMsg.textContent = error.message;
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Simpan Alamat';
       }
     });
 </script>
-
-<style>
-  select option {
-    color: #111827;
-    background-color: #FFFFFF;
-  }
-</style>
