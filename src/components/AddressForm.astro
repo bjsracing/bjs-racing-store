@@ -122,6 +122,7 @@
 
     async function fetchProvinces() {
       try {
+        provinceSelect.innerHTML = '<option>Memuat provinsi...</option>';
         const response = await fetch('/api/rajaongkir/provinces');
         if (!response.ok) throw new Error('Gagal memuat data provinsi.');
         const results = await response.json();
@@ -129,15 +130,14 @@
         provinceSelect.innerHTML = '<option value="">Pilih Provinsi</option>';
         results.forEach(province => {
           const option = document.createElement('option');
-          option.value = province.province_id;
+          // ✅ PERBAIKAN KUNCI ADA DI SINI
+          option.value = province.province_id; 
           option.textContent = province.province;
-          // ✅ PERBAIKAN STYLING DI SINI
-          option.classList.add('text-black'); 
           provinceSelect.appendChild(option);
         });
       } catch (error) {
         console.error("Gagal memuat provinsi:", error);
-        provinceSelect.innerHTML = `<option class="text-black" value="">${error.message}</option>`;
+        provinceSelect.innerHTML = `<option value="">${error.message}</option>`;
       }
     }
 
@@ -157,15 +157,14 @@
             citySelect.innerHTML = '<option value="">Pilih Kota/Kabupaten</option>';
             results.forEach(city => {
                 const option = document.createElement('option');
+                // ✅ PERBAIKAN KUNCI ADA DI SINI
                 option.value = city.city_id;
                 option.textContent = `${city.type} ${city.city_name}`;
-                // ✅ PERBAIKAN STYLING DI SINI
-                option.classList.add('text-black');
                 citySelect.appendChild(option);
             });
         } catch (error) {
             console.error("Gagal memuat kota:", error);
-            citySelect.innerHTML = `<option class="text-black" value="">${error.message}</option>`;
+            citySelect.innerHTML = `<option value="">${error.message}</option>`;
         }
     }
     
@@ -205,11 +204,8 @@
 </script>
 
 <style>
-  /* Ini adalah aturan CSS yang sangat spesifik untuk memaksa 
-    teks di dalam pilihan dropdown agar terlihat.
-  */
   select option {
-    color: #111827; /* Warna abu-abu gelap (mirip text-gray-900) */
-    background-color: #FFFFFF; /* Latar belakang putih */
+    color: #111827;
+    background-color: #FFFFFF;
   }
 </style>
