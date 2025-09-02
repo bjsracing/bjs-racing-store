@@ -2,61 +2,67 @@
 // src/components/AddressForm.astro
 ---
 
-<div id="address-modal" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden items-center justify-center">
-  <div id="modal-content" class="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg m-4 max-h-[90vh] overflow-y-auto">
-    <div class="flex justify-between items-center mb-4">
-      <h3 id="modal-title" class="text-xl font-bold">Tambah Alamat Baru</h3>
-      <button id="close-modal-btn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+<div id="address-modal" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden flex items-center justify-center p-4">
+
+  <div id="modal-content" class="bg-white rounded-lg shadow-xl w-full max-w-lg transform transition-all">
+    <div class="p-6">
+      <div class="flex justify-between items-center pb-3">
+        <h3 id="modal-title" class="text-xl font-bold">Tambah Alamat Baru</h3>
+        <button id="close-modal-btn" class="text-gray-400 hover:text-gray-800 text-3xl leading-none">&times;</button>
+      </div>
+
+      <div class="max-h-[70vh] overflow-y-auto pr-2">
+        <form id="address-form">
+          <div class="space-y-4">
+            <div>
+              <label for="label" class="block text-sm font-medium text-gray-700">Label Alamat</label>
+              <input type="text" id="label" name="label" placeholder="Contoh: Rumah, Kantor" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500">
+            </div>
+
+            <div>
+              <label for="recipient_name" class="block text-sm font-medium text-gray-700">Nama Penerima</label>
+              <input type="text" id="recipient_name" name="recipient_name" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500">
+            </div>
+
+            <div>
+              <label for="recipient_phone" class="block text-sm font-medium text-gray-700">Nomor Telepon</label>
+              <input type="tel" id="recipient_phone" name="recipient_phone" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500">
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                  <label for="province" class="block text-sm font-medium text-gray-700">Provinsi</label>
+                  <select id="province" name="province_id" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500">
+                      <option>Memuat provinsi...</option>
+                  </select>
+              </div>
+              <div>
+                  <label for="city" class="block text-sm font-medium text-gray-700">Kota/Kabupaten</label>
+                  <select id="city" name="city_id" required disabled class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-gray-100 cursor-not-allowed">
+                      <option>Pilih provinsi</option>
+                  </select>
+              </div>
+            </div>
+
+            <div>
+              <label for="full_address" class="block text-sm font-medium text-gray-700">Alamat Lengkap</label>
+              <textarea id="full_address" name="full_address" rows="3" required placeholder="Nama jalan, nomor rumah, RT/RW, kelurahan, kecamatan..." class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"></textarea>
+            </div>
+
+            <div>
+              <label for="postal_code" class="block text-sm font-medium text-gray-700">Kode Pos</label>
+              <input type="text" id="postal_code" name="postal_code" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500">
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
-    
-    <form id="address-form">
-      <div class="space-y-4">
-        <div>
-          <label for="label" class="block text-sm font-medium text-gray-700">Label Alamat (Contoh: Rumah, Kantor)</label>
-          <input type="text" id="label" name="label" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
-        </div>
 
-        <div>
-          <label for="recipient_name" class="block text-sm font-medium text-gray-700">Nama Penerima</label>
-          <input type="text" id="recipient_name" name="recipient_name" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
-        </div>
-
-        <div>
-          <label for="recipient_phone" class="block text-sm font-medium text-gray-700">Nomor Telepon</label>
-          <input type="tel" id="recipient_phone" name="recipient_phone" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
-        </div>
-        
-        <div>
-            <label for="province" class="block text-sm font-medium text-gray-700">Provinsi</label>
-            <select id="province" name="province_id" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
-                <option>Memuat provinsi...</option>
-            </select>
-        </div>
-        <div>
-            <label for="city" class="block text-sm font-medium text-gray-700">Kota/Kabupaten</label>
-            <select id="city" name="city_id" required disabled class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-gray-100">
-                <option>Pilih provinsi terlebih dahulu</option>
-            </select>
-        </div>
-
-        <div>
-          <label for="full_address" class="block text-sm font-medium text-gray-700">Alamat Lengkap</label>
-          <textarea id="full_address" name="full_address" rows="3" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea>
-        </div>
-
-        <div>
-          <label for="postal_code" class="block text-sm font-medium text-gray-700">Kode Pos</label>
-          <input type="text" id="postal_code" name="postal_code" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
-        </div>
-
-      </div>
-      
-      <div class="mt-6 flex justify-end space-x-3">
-        <button type="button" id="cancel-btn" class="bg-gray-200 px-4 py-2 rounded-md hover:bg-gray-300">Batal</button>
-        <button type="submit" id="submit-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Simpan Alamat</button>
-      </div>
-      <p id="form-error" class="text-red-500 text-sm mt-2"></p>
-    </form>
+    <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-lg">
+      <button type="button" id="cancel-btn" class="bg-gray-200 text-gray-700 font-semibold px-4 py-2 rounded-md hover:bg-gray-300">Batal</button>
+      <button type="submit" form="address-form" id="submit-btn" class="bg-orange-500 text-white font-bold px-4 py-2 rounded-md hover:bg-orange-600 transition-opacity disabled:opacity-50">Simpan Alamat</button>
+    </div>
+    <p id="form-error" class="text-red-500 text-sm p-6 pt-0"></p>
   </div>
 </div>
 
