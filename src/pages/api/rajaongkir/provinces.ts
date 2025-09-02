@@ -28,7 +28,9 @@ export const GET: APIRoute = async () => {
 
     const result = await response.json();
 
-    // Mengembalikan data dari properti 'data' sesuai struktur respons baru
+    // ✅ PERBAIKAN UTAMA DI SINI
+    // Struktur respons baru ternyata adalah { success: true, data: [...] }
+    // Kita langsung kembalikan 'result.data'
     return new Response(JSON.stringify(result.data || []), {
       status: 200,
       headers: { "Content-Type": "application/json" },
