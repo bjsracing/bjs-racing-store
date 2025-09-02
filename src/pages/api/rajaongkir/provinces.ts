@@ -5,36 +5,41 @@ export const GET: APIRoute = async () => {
   const apiKey = import.meta.env.RAJAONGKIR_API_KEY;
 
   if (!apiKey) {
-    return new Response("RajaOngkir API key is not configured.", {
-      status: 500,
-    });
+    return new Response(
+      JSON.stringify({ message: "RajaOngkir API key tidak dikonfigurasi." }),
+      { status: 500 },
+    );
   }
 
   try {
     const response = await fetch(
-      "https://api.rajaongkir.com/starter/province",
+      "https://rajaongkir.komerce.id/api/v1/destination/province",
       {
         method: "GET",
-        headers: {
-          key: apiKey,
-        },
+        headers: { key: apiKey },
       },
     );
 
     if (!response.ok) {
-      throw new Error(`RajaOngkir API error: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error("RajaOngkir API Error:", errorText);
+      throw new Error(`Error dari API RajaOngkir: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const result = await response.json();
 
-    return new Response(JSON.stringify(data), {
+    // Mengembalikan data dari properti 'data' sesuai struktur respons baru
+    return new Response(JSON.stringify(result.data || []), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error(error);
-    return new Response("Failed to fetch provinces from RajaOngkir.", {
-      status: 500,
-    });
+    console.error("Gagal mengambil data provinsi:", error);
+    return new Response(
+      JSON.stringify({
+        message: "Gagal mengambil data provinsi dari RajaOngkir.",
+      }),
+      { status: 500 },
+    );
   }
 };
