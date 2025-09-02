@@ -46,26 +46,25 @@ if (!session) {
     const formData = new FormData(form);
     const data = Object.fromEntries(formData.entries());
 
-    let response; // Definisikan response di luar try-catch
-
     try {
-      response = await fetch('/api/customers', {
+      const response = await fetch('/api/customers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
 
       if (!response.ok) {
+        // ✅ PERBAIKAN: Duplikat respons sebelum dibaca
+        const clonedResponse = response.clone();
         let errorText = 'Gagal menyimpan profil. Silakan coba lagi.';
         
-        // Coba baca error sebagai JSON terlebih dahulu
         try {
+          // Coba baca duplikat pertama sebagai JSON
           const errorData = await response.json();
-          errorText = errorData.message || 'Terjadi error tidak diketahui dari server.';
+          errorText = errorData.message || 'Error tidak diketahui dari server.';
         } catch (jsonError) {
-          // JIKA GAGAL, berarti respons BUKAN JSON. Baca sebagai teks biasa.
-          // Ini akan menangkap pesan error asli dari Vercel/server.
-          errorText = await response.text();
+          // Jika gagal, baca duplikat kedua sebagai teks biasa
+          errorText = await clonedResponse.text();
         }
         throw new Error(errorText);
       }
