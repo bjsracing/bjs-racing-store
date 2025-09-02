@@ -1,6 +1,5 @@
 ---
 // src/components/AddressForm.astro
-// Bagian frontmatter ini sengaja kosong dan sudah benar.
 ---
 
 <div id="address-modal" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden flex items-center justify-center p-4">
@@ -132,11 +131,13 @@
           const option = document.createElement('option');
           option.value = province.province_id;
           option.textContent = province.province;
+          // ✅ PERBAIKAN STYLING DI SINI
+          option.classList.add('text-black'); 
           provinceSelect.appendChild(option);
         });
       } catch (error) {
         console.error("Gagal memuat provinsi:", error);
-        provinceSelect.innerHTML = `<option value="">${error.message}</option>`;
+        provinceSelect.innerHTML = `<option class="text-black" value="">${error.message}</option>`;
       }
     }
 
@@ -158,11 +159,13 @@
                 const option = document.createElement('option');
                 option.value = city.city_id;
                 option.textContent = `${city.type} ${city.city_name}`;
+                // ✅ PERBAIKAN STYLING DI SINI
+                option.classList.add('text-black');
                 citySelect.appendChild(option);
             });
         } catch (error) {
             console.error("Gagal memuat kota:", error);
-            citySelect.innerHTML = `<option value="">${error.message}</option>`;
+            citySelect.innerHTML = `<option class="text-black" value="">${error.message}</option>`;
         }
     }
     
