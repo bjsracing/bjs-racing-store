@@ -35,30 +35,39 @@ if (!session) {
 <script>
   const form = document.getElementById('profile-form');
   const errorMsg = document.getElementById('form-error');
+  const submitBtn = document.getElementById('submit-btn');
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     errorMsg.textContent = '';
-    const submitBtn = document.getElementById('submit-btn');
     submitBtn.disabled = true;
     submitBtn.textContent = 'Menyimpan...';
     
     const formData = new FormData(form);
     const data = Object.fromEntries(formData.entries());
 
+    let response; // Definisikan response di luar try-catch
+
     try {
-      const response = await fetch('/api/customers', {
+      response = await fetch('/api/customers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
 
-      // ✅ PERUBAHAN UTAMA ADA DI SINI
       if (!response.ok) {
-        // Kita coba baca pesan error dari JSON yang dikirim API
-        const errorData = await response.json();
-        // Lemparkan error dengan pesan dari backend
-        throw new Error(errorData.message || 'Gagal menyimpan profil.');
+        let errorText = 'Gagal menyimpan profil. Silakan coba lagi.';
+        
+        // Coba baca error sebagai JSON terlebih dahulu
+        try {
+          const errorData = await response.json();
+          errorText = errorData.message || 'Terjadi error tidak diketahui dari server.';
+        } catch (jsonError) {
+          // JIKA GAGAL, berarti respons BUKAN JSON. Baca sebagai teks biasa.
+          // Ini akan menangkap pesan error asli dari Vercel/server.
+          errorText = await response.text();
+        }
+        throw new Error(errorText);
       }
 
       // Jika berhasil, arahkan ke halaman akun utama
