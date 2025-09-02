@@ -39,20 +39,26 @@ if (!session) {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     errorMsg.textContent = '';
-
+    const submitBtn = document.getElementById('submit-btn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Menyimpan...';
+    
     const formData = new FormData(form);
     const data = Object.fromEntries(formData.entries());
 
     try {
-      // Kita akan membuat API ini di langkah selanjutnya
       const response = await fetch('/api/customers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
 
+      // ✅ PERUBAHAN UTAMA ADA DI SINI
       if (!response.ok) {
-        throw new Error('Gagal menyimpan profil. Silakan coba lagi.');
+        // Kita coba baca pesan error dari JSON yang dikirim API
+        const errorData = await response.json();
+        // Lemparkan error dengan pesan dari backend
+        throw new Error(errorData.message || 'Gagal menyimpan profil.');
       }
 
       // Jika berhasil, arahkan ke halaman akun utama
@@ -60,7 +66,10 @@ if (!session) {
 
     } catch (error) {
       console.error('Gagal membuat profil:', error);
-      errorMsg.textContent = error.message;
+      // Tampilkan pesan error asli di halaman
+      errorMsg.textContent = `Error: ${error.message}`;
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Simpan Profil & Lanjutkan';
     }
   });
 </script>
