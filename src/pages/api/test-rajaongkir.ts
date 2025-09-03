@@ -9,7 +9,7 @@ export const GET: APIRoute = async () => {
       JSON.stringify({
         error: "API Key tidak ditemukan di environment Vercel.",
       }),
-      { status: 500 },
+      { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
 
@@ -20,7 +20,6 @@ export const GET: APIRoute = async () => {
         method: "GET",
         headers: {
           key: apiKey,
-          // Tambahkan header ini untuk mencegah caching di sisi server Vercel
           "Cache-Control": "no-cache, no-store, must-revalidate",
           Pragma: "no-cache",
           Expires: "0",
@@ -28,7 +27,7 @@ export const GET: APIRoute = async () => {
       },
     );
 
-    const responseBodyText = await response.text(); // Baca sebagai teks dulu
+    const responseBodyText = await response.text();
 
     if (!response.ok) {
       return new Response(
@@ -37,22 +36,32 @@ export const GET: APIRoute = async () => {
           status: response.status,
           body: responseBodyText,
         }),
-        { status: 500 },
+        { status: 500, headers: { "Content-Type": "application/json" } },
       );
     }
 
-    // Kembalikan body apa adanya agar kita bisa lihat data mentahnya
     return new Response(responseBodyText, {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
+    // ✅ PERBAIKAN ADA DI SINI
+    // Kita periksa dulu apakah 'error' adalah sebuah instance dari Error
+    if (error instanceof Error) {
+      return new Response(
+        JSON.stringify({
+          error: "Terjadi crash pada fungsi API.",
+          message: error.message, // Sekarang aman untuk mengakses .message
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
+    // Fallback jika error bukan instance dari Error
     return new Response(
       JSON.stringify({
-        error: "Terjadi crash pada fungsi API.",
-        message: error.message,
+        error: "Terjadi crash pada fungsi API dengan tipe error tidak dikenal.",
       }),
-      { status: 500 },
+      { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
 };
