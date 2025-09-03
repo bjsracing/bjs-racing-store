@@ -3,7 +3,6 @@ import type { APIRoute } from "astro";
 
 export const GET: APIRoute = async ({ url }) => {
   const apiKey = import.meta.env.RAJAONGKIR_API_KEY;
-  // Sesuai frontend, kita menggunakan 'province' sebagai nama parameter
   const provinceId = url.searchParams.get("province");
 
   if (!apiKey) {
@@ -21,7 +20,6 @@ export const GET: APIRoute = async ({ url }) => {
   }
 
   try {
-    // Menggunakan endpoint baru dengan query parameter `province_id`
     const response = await fetch(
       `https://rajaongkir.komerce.id/api/v1/destination/city?province_id=${provinceId}`,
       {
@@ -38,7 +36,8 @@ export const GET: APIRoute = async ({ url }) => {
 
     const result = await response.json();
 
-    // Mengembalikan data dari properti 'data'
+    // ✅ PERBAIKAN UTAMA DI SINI (SAMA SEPERTI PROVINCES.TS)
+    // Mengembalikan data dari properti 'data' sesuai struktur respons baru
     return new Response(JSON.stringify(result.data || []), {
       status: 200,
       headers: { "Content-Type": "application/json" },
