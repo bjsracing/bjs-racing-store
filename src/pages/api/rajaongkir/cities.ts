@@ -7,44 +7,57 @@ export const GET: APIRoute = async ({ url }) => {
 
   if (!apiKey) {
     return new Response(
-      JSON.stringify({ message: "RajaOngkir API key tidak dikonfigurasi." }),
+      JSON.stringify({ message: "API Key Vercel tidak ditemukan." }),
       { status: 500 },
     );
   }
-
   if (!provinceId) {
     return new Response(
-      JSON.stringify({ message: "ID Provinsi wajib diisi." }),
+      JSON.stringify({ message: "ID Provinsi tidak diterima dari frontend." }),
       { status: 400 },
     );
   }
 
   try {
-    // ✅ PERBAIKAN FINAL DI SINI: Mengubah 'province_id' menjadi 'province'
-    const response = await fetch(
-      `https://rajaongkir.komerce.id/api/v1/destination/city?province=${provinceId}`,
-      {
-        method: "GET",
-        headers: { key: apiKey },
-      },
-    );
+    const targetUrl = `https://rajaongkir.komerce.id/api/v1/destination/city?province=${provinceId}`;
+    console.log(`[BJS DEBUG] Memanggil URL RajaOngkir: ${targetUrl}`);
 
+    const response = await fetch(targetUrl, {
+      method: "GET",
+      headers: { key: apiKey },
+    });
+
+    // -- BLOK DEBUGGING UTAMA --
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("RajaOngkir API Error:", errorText);
-      throw new Error(`Error dari API RajaOngkir: ${response.statusText}`);
+      // Jika respons dari RajaOngkir adalah error, kita tangkap semuanya.
+      const errorBodyText = await response.text(); // Baca error sebagai teks
+      console.error("RAW ERROR DARI RAJAONGKIR:", errorBodyText);
+
+      // Kembalikan semua informasi ini ke frontend
+      return new Response(
+        JSON.stringify({
+          message: "Respons dari RajaOngkir tidak OK.",
+          rajaOngkirStatus: response.status,
+          rajaOngkirStatusText: response.statusText,
+          rajaOngkirResponseBody: errorBodyText,
+        }),
+        { status: 500 },
+      );
     }
+    // -- AKHIR BLOK DEBUGGING --
 
     const result = await response.json();
-
     return new Response(JSON.stringify(result.data || []), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Gagal mengambil data kota:", error);
+    console.error("Fungsi API Crash:", error);
     return new Response(
-      JSON.stringify({ message: "Gagal mengambil data kota dari RajaOngkir." }),
+      JSON.stringify({
+        message: "Fungsi API /api/rajaongkir/cities.ts mengalami crash.",
+        errorDetails: error.message,
+      }),
       { status: 500 },
     );
   }

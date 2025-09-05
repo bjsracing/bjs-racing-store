@@ -131,34 +131,46 @@
       }
     }
 
-    async function fetchCities(provinceId) {
-      if (!provinceId) {
+    // Kode Debugging Di dalam <script> di AddressForm.astro
+
+async function fetchCities(provinceId) {
+    if (!provinceId) {
+        cityOptions.innerHTML = '<li>Pilih provinsi terlebih dahulu</li>';
         cityButton.disabled = true;
         cityButton.classList.add('bg-gray-100', 'cursor-not-allowed');
-        citySelectedText.textContent = 'Pilih Provinsi Dulu';
-        cityOptions.innerHTML = '';
         return;
-      }
-      cityButton.disabled = false;
-      cityButton.classList.remove('bg-gray-100', 'cursor-not-allowed');
-      cityOptions.innerHTML = '<li class="p-2 text-gray-500">Memuat...</li>';
-      try {
+    }
+    cityButton.disabled = false;
+    cityButton.classList.remove('bg-gray-100', 'cursor-not-allowed');
+    cityOptions.innerHTML = '<li class="p-2 text-gray-500">Memuat...</li>';
+
+    try {
         const response = await fetch(`/api/rajaongkir/cities?province=${provinceId}`);
-        if (!response.ok) throw new Error('Gagal memuat kota.');
-        const results = await response.json();
+        const data = await response.json(); // Coba baca responsnya
+
+        if (!response.ok) {
+            // Jika tidak OK, 'data' sekarang berisi laporan error dari backend
+            // Kita akan tampilkan semuanya.
+            throw new Error(JSON.stringify(data, null, 2));
+        }
+
+        const results = data; // Data sudah berupa array
         cityOptions.innerHTML = '';
         results.forEach(city => {
-          const li = document.createElement('li');
-          li.className = 'text-gray-900 relative cursor-pointer select-none py-2 px-4 hover:bg-orange-500 hover:text-white';
-          li.textContent = `${city.type} ${city.name}`; // Menggunakan 'name'
-          li.dataset.value = city.id; // Menggunakan 'id'
-          cityOptions.appendChild(li);
+            const li = document.createElement('li');
+            li.className = 'text-gray-900 relative cursor-pointer select-none py-2 px-4 hover:bg-orange-500 hover:text-white';
+            li.textContent = `${city.type} ${city.name}`;
+            li.dataset.value = city.id;
+            cityOptions.appendChild(li);
         });
-      } catch (error) {
-          console.error(error);
-          cityOptions.innerHTML = `<li class="p-2 text-red-500">${error.message}</li>`;
-      }
+
+    } catch (error) {
+        console.error("Gagal memuat kota:", error);
+        // Tampilkan pesan error yang sangat detail di UI
+        citySelectedText.innerHTML = `<span class="text-red-500 text-xs">Error!</span>`;
+        cityOptions.innerHTML = `<li class="p-2 text-red-500 whitespace-pre-wrap">${error.message}</li>`;
     }
+}
 
     provinceOptions.addEventListener('click', (e) => {
         const target = e.target as HTMLElement;
