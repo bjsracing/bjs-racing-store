@@ -206,12 +206,17 @@
           body: JSON.stringify(data)
         });
 
-        if (!response.ok) throw new Error('Gagal menyimpan alamat.');
+        // ✅ BAGIAN INI AKAN MENANGKAP PESAN ERROR ASLI
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Gagal menyimpan alamat.');
+        }
 
         hideModal();
         document.dispatchEvent(new CustomEvent('addressSaved'));
 
       } catch (error) {
+        // Tampilkan error asli di UI
         errorMsg.textContent = error.message;
       } finally {
         submitBtn.disabled = false;
