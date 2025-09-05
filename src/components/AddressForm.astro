@@ -117,7 +117,7 @@
         results.forEach(city => {
           const div = document.createElement('div');
           div.className = 'text-gray-900 relative cursor-pointer select-none py-2 px-4 hover:bg-orange-500 hover:text-white';
-          div.textContent = `${city.subdistrict_name}, ${city.city}, ${city.province}`;
+          div.textContent = `${city.subdistrict_name}, ${city.city_name}, ${city.province_name}`;
           div.dataset.value = city.subdistrict_id;
           div.dataset.text = div.textContent;
           cityResultsContainer.appendChild(div);
