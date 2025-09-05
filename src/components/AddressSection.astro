@@ -19,39 +19,56 @@ import AddressForm from "./AddressForm.astro";
 <AddressForm />
 
 <script>
+  // Template untuk kartu alamat
   const addressCardTemplate = document.createElement('template');
   addressCardTemplate.innerHTML = `
-    <div class="address-card border rounded-lg p-4 mb-4 flex justify-between items-start">
-      <div>
-        <div class="flex items-center mb-2">
-          <h3 class="font-bold text-lg mr-2" data-part="label"></h3>
-          <span data-part="primary-badge" class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full hidden">
-            Utama
-          </span>
+    <div class="address-card bg-white shadow-md rounded-xl p-5 mb-4 flex flex-col gap-4">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-3">
+          <h3 class="font-bold text-lg text-slate-800" data-part="label"></h3>
+          <span data-part="primary-badge" class="bg-orange-100 text-orange-600 text-xs font-bold px-3 py-1 rounded-full hidden">Utama</span>
         </div>
-        <p class="font-semibold" data-part="recipient_name"></p>
-        <p data-part="recipient_phone"></p>
-        <p data-part="full_address"></p>
-        <p class="text-sm text-gray-600" data-part="destination_text"></p>
-        <p class="text-sm text-gray-600" data-part="postal_code"></p>
+        <div class="relative">
+          <details class="group">
+            <summary class="list-none cursor-pointer text-slate-500 hover:text-slate-800">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+            </summary>
+            <div class="absolute right-0 mt-2 w-32 bg-white rounded-md shadow-lg border z-10 hidden group-open:block">
+              <a href="#" data-action="edit" class="block px-4 py-2 text-sm text-slate-700 hover:bg-gray-100">Ubah Alamat</a>
+              <a href="#" data-action="delete" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">Hapus</a>
+            </div>
+          </details>
+        </div>
       </div>
-      <div class="flex flex-col space-y-2">
-        <button data-action="edit" class="text-sm text-blue-600 hover:underline">Ubah</button>
-        <button data-action="delete" class="text-sm text-red-600 hover:underline">Hapus</button>
+      <hr />
+      <div class="space-y-3 text-slate-600">
+        <div class="flex items-center gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-user flex-shrink-0"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          <p class="font-semibold" data-part="recipient_name"></p>
+        </div>
+        <div class="flex items-center gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-phone flex-shrink-0"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+          <p data-part="recipient_phone"></p>
+        </div>
+        <div class="flex items-start gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-map-pin flex-shrink-0 mt-1"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+          <div>
+            <p data-part="full_address"></p>
+            <p class="text-sm text-slate-500" data-part="destination_text"></p>
+            <p class="text-sm text-slate-500" data-part="postal_code"></p>
+          </div>
+        </div>
       </div>
     </div>
   `;
 
   const addAddressBtn = document.getElementById('add-address-btn');
   addAddressBtn.addEventListener('click', () => {
-    document.dispatchEvent(new CustomEvent('showAddressForm', {
-      detail: {
-        mode: 'add',
-        address: null
-      }
+    document.dispatchEvent(new CustomEvent('showAddressForm', { 
+      detail: { mode: 'add', address: null } 
     }));
   });
-
+  
   const addressListContainer = document.getElementById('address-list-container');
   const loadingIndicator = document.getElementById('loading-indicator');
 
@@ -60,7 +77,7 @@ import AddressForm from "./AddressForm.astro";
       loadingIndicator.style.display = 'block';
       addressListContainer.innerHTML = '';
       addressListContainer.appendChild(loadingIndicator);
-      
+
       const response = await fetch('/api/addresses');
       if (!response.ok) {
         const errorText = await response.text();
@@ -68,32 +85,35 @@ import AddressForm from "./AddressForm.astro";
       }
       
       const addresses = await response.json();
+      
       loadingIndicator.style.display = 'none';
       addressListContainer.innerHTML = '';
-      
+
       if (addresses.length === 0) {
         addressListContainer.innerHTML = '<p>Anda belum memiliki alamat tersimpan.</p>';
         return;
       }
-      
+
       addresses.forEach(address => {
         const cardClone = addressCardTemplate.content.cloneNode(true);
         const cardElement = cardClone.querySelector('.address-card');
         cardElement.dataset.address = JSON.stringify(address);
-        
+
+        // ✅ PERBAIKAN: Pemeriksaan nilai NULL sebelum ditampilkan
         cardElement.querySelector('[data-part="label"]').textContent = address.label || 'Alamat';
-        cardElement.querySelector('[data-part="recipient_name"]').textContent = address.recipient_name;
-        cardElement.querySelector('[data-part="recipient_phone"]').textContent = address.recipient_phone;
-        cardElement.querySelector('[data-part="full_address"]').textContent = address.full_address;
+        cardElement.querySelector('[data-part="recipient_name"]').textContent = address.recipient_name || '';
+        cardElement.querySelector('[data-part="recipient_phone"]').textContent = address.recipient_phone || '';
+        cardElement.querySelector('[data-part="full_address"]').textContent = address.full_address || '';
         cardElement.querySelector('[data-part="destination_text"]').textContent = address.destination_text || '';
         cardElement.querySelector('[data-part="postal_code"]').textContent = address.postal_code ? `Kode Pos: ${address.postal_code}` : '';
-        
-        if (address.is_primary) {
+
+        if (address.is_primary) { 
           cardElement.querySelector('[data-part="primary-badge"]').classList.remove('hidden');
         }
         
         addressListContainer.appendChild(cardClone);
       });
+
     } catch (error) {
       console.error('[BJS ERROR] Terjadi kesalahan saat memuat alamat:', error);
       loadingIndicator.style.display = 'none';
@@ -106,12 +126,12 @@ import AddressForm from "./AddressForm.astro";
       `;
     }
   }
-
+  
   addressListContainer.addEventListener('click', async (e) => {
-    const target = e.target;
-    const action = target.dataset.action;
-    if (!action) return;
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
     
+    const action = target.dataset.action;
     const card = target.closest('.address-card');
     const address = JSON.parse(card.dataset.address);
     
