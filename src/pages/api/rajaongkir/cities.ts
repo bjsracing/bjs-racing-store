@@ -20,8 +20,9 @@ export const GET: APIRoute = async ({ url }) => {
   }
 
   try {
+    // ✅ PERBAIKAN FINAL DI SINI: Mengubah 'province_id' menjadi 'province'
     const response = await fetch(
-      `https://rajaongkir.komerce.id/api/v1/destination/city?province_id=${provinceId}`,
+      `https://rajaongkir.komerce.id/api/v1/destination/city?province=${provinceId}`,
       {
         method: "GET",
         headers: { key: apiKey },
@@ -36,8 +37,6 @@ export const GET: APIRoute = async ({ url }) => {
 
     const result = await response.json();
 
-    // ✅ PERBAIKAN UTAMA DI SINI (SAMA SEPERTI PROVINCES.TS)
-    // Mengembalikan data dari properti 'data' sesuai struktur respons baru
     return new Response(JSON.stringify(result.data || []), {
       status: 200,
       headers: { "Content-Type": "application/json" },
