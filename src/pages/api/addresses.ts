@@ -92,11 +92,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   if (
     !formData.recipient_name ||
     !formData.recipient_phone ||
-    !formData.full_address
+    !formData.full_address ||
+    !formData.destination
   ) {
-    return new Response("Nama, telepon, dan alamat lengkap wajib diisi.", {
-      status: 400,
-    });
+    return new Response("Semua kolom wajib diisi.", { status: 400 });
   }
 
   const { data: newAddress, error } = await supabase
@@ -107,8 +106,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       recipient_name: formData.recipient_name,
       recipient_phone: formData.recipient_phone,
       full_address: formData.full_address,
-      province_id: formData.province_id,
-      city_id: formData.city_id,
+      destination: formData.destination,
+      // ✅ PERBAIKAN: Gunakan nama 'destination_text' untuk konsistensi
+      destination_text: formData.destination_text,
       postal_code: formData.postal_code,
     })
     .select()
@@ -123,7 +123,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 };
 
 // =================================================================
-// == FUNGSI DELETE (UNTUK MENGHAPUS ALAMAT) - KODE BARU       ==
+// == FUNGSI DELETE (UNTUK MENGHAPUS ALAMAT)                      ==
 // =================================================================
 export const DELETE: APIRoute = async ({ request, cookies }) => {
   const supabase = createServerClient(
@@ -165,7 +165,7 @@ export const DELETE: APIRoute = async ({ request, cookies }) => {
     .from("customer_addresses")
     .delete()
     .eq("id", addressId)
-    .eq("customer_id", customerData.id); // Keamanan: Pastikan hanya pemilik yang bisa hapus
+    .eq("customer_id", customerData.id);
 
   if (error) return new Response(error.message, { status: 500 });
 
@@ -175,7 +175,7 @@ export const DELETE: APIRoute = async ({ request, cookies }) => {
 };
 
 // =================================================================
-// == FUNGSI PUT (UNTUK MENGUBAH ALAMAT) - KODE BARU           ==
+// == FUNGSI PUT (UNTUK MENGUBAH ALAMAT)                         ==
 // =================================================================
 export const PUT: APIRoute = async ({ request, cookies }) => {
   const supabase = createServerClient(
@@ -214,11 +214,22 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
   if (!addressId)
     return new Response("Address ID is required", { status: 400 });
 
+  // ✅ PERBAIKAN: Pastikan updateData memiliki field yang benar
+  const finalUpdateData = {
+    label: updateData.label,
+    recipient_name: updateData.recipient_name,
+    recipient_phone: updateData.recipient_phone,
+    full_address: updateData.full_address,
+    destination: updateData.destination,
+    destination_text: updateData.destination_text,
+    postal_code: updateData.postal_code,
+  };
+
   const { data, error } = await supabase
     .from("customer_addresses")
-    .update(updateData)
+    .update(finalUpdateData)
     .eq("id", addressId)
-    .eq("customer_id", customerData.id) // Keamanan: Pastikan hanya pemilik yang bisa ubah
+    .eq("customer_id", customerData.id)
     .select()
     .single();
 

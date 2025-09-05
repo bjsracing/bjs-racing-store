@@ -11,7 +11,6 @@ import AddressForm from "./AddressForm.astro";
       Tambah Alamat Baru
     </button>
   </div>
-
   <div id="address-list-container">
     <p id="loading-indicator">Memuat alamat, mohon tunggu...</p>
   </div>
@@ -20,7 +19,6 @@ import AddressForm from "./AddressForm.astro";
 <AddressForm />
 
 <script>
-  // Template untuk kartu alamat. Kita akan mengkloning ini.
   const addressCardTemplate = document.createElement('template');
   addressCardTemplate.innerHTML = `
     <div class="address-card border rounded-lg p-4 mb-4 flex justify-between items-start">
@@ -34,7 +32,8 @@ import AddressForm from "./AddressForm.astro";
         <p class="font-semibold" data-part="recipient_name"></p>
         <p data-part="recipient_phone"></p>
         <p data-part="full_address"></p>
-        <p data-part="city_province_postal"></p>
+        <p class="text-sm text-gray-600" data-part="destination_text"></p>
+        <p class="text-sm text-gray-600" data-part="postal_code"></p>
       </div>
       <div class="flex flex-col space-y-2">
         <button data-action="edit" class="text-sm text-blue-600 hover:underline">Ubah</button>
@@ -45,63 +44,56 @@ import AddressForm from "./AddressForm.astro";
 
   const addAddressBtn = document.getElementById('add-address-btn');
   addAddressBtn.addEventListener('click', () => {
-    // Memberitahu form untuk muncul dalam mode 'tambah'
-    document.dispatchEvent(new CustomEvent('showAddressForm', { 
-      detail: { mode: 'add', address: null } 
+    document.dispatchEvent(new CustomEvent('showAddressForm', {
+      detail: {
+        mode: 'add',
+        address: null
+      }
     }));
   });
-  
+
   const addressListContainer = document.getElementById('address-list-container');
   const loadingIndicator = document.getElementById('loading-indicator');
 
   async function loadAddresses() {
-    console.log('[BJS LOG] Memulai proses memuat alamat...');
     try {
       loadingIndicator.style.display = 'block';
-      addressListContainer.innerHTML = ''; // Kosongkan dulu
-      addressListContainer.appendChild(loadingIndicator); // Tampilkan loading lagi
-
+      addressListContainer.innerHTML = '';
+      addressListContainer.appendChild(loadingIndicator);
+      
       const response = await fetch('/api/addresses');
-      console.log(`[BJS LOG] Menerima respons dari API dengan status: ${response.status}`);
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Gagal memuat alamat. Status: ${response.status}. Pesan: ${errorText}`);
       }
       
       const addresses = await response.json();
-      console.log('[BJS LOG] Berhasil mendapatkan data alamat:', addresses);
-      
       loadingIndicator.style.display = 'none';
-      addressListContainer.innerHTML = ''; // Kosongkan container setelah loading berhasil
-
+      addressListContainer.innerHTML = '';
+      
       if (addresses.length === 0) {
         addressListContainer.innerHTML = '<p>Anda belum memiliki alamat tersimpan.</p>';
         return;
       }
-
-      // Render setiap alamat
+      
       addresses.forEach(address => {
         const cardClone = addressCardTemplate.content.cloneNode(true);
         const cardElement = cardClone.querySelector('.address-card');
-        
-        // Simpan seluruh data alamat di dalam elemen untuk akses mudah nanti
         cardElement.dataset.address = JSON.stringify(address);
-
-        // Isi data ke dalam template
-        cardClone.querySelector('[data-part="label"]').textContent = address.label || 'Alamat';
-        cardClone.querySelector('[data-part="recipient_name"]').textContent = address.recipient_name;
-        cardClone.querySelector('[data-part="recipient_phone"]').textContent = address.recipient_phone;
-        cardClone.querySelector('[data-part="full_address"]').textContent = address.full_address;
-        cardClone.querySelector('[data-part="city_province_postal"]').textContent = `${address.city_id || ''}, ${address.province_id || ''} ${address.postal_code || ''}`;
+        
+        cardElement.querySelector('[data-part="label"]').textContent = address.label || 'Alamat';
+        cardElement.querySelector('[data-part="recipient_name"]').textContent = address.recipient_name;
+        cardElement.querySelector('[data-part="recipient_phone"]').textContent = address.recipient_phone;
+        cardElement.querySelector('[data-part="full_address"]').textContent = address.full_address;
+        cardElement.querySelector('[data-part="destination_text"]').textContent = address.destination_text || '';
+        cardElement.querySelector('[data-part="postal_code"]').textContent = address.postal_code ? `Kode Pos: ${address.postal_code}` : '';
         
         if (address.is_primary) {
-          cardClone.querySelector('[data-part="primary-badge"]').classList.remove('hidden');
+          cardElement.querySelector('[data-part="primary-badge"]').classList.remove('hidden');
         }
         
         addressListContainer.appendChild(cardClone);
       });
-
     } catch (error) {
       console.error('[BJS ERROR] Terjadi kesalahan saat memuat alamat:', error);
       loadingIndicator.style.display = 'none';
@@ -114,51 +106,41 @@ import AddressForm from "./AddressForm.astro";
       `;
     }
   }
-  
-  // FUNGSI BARU: Menangani semua klik pada tombol "Ubah" dan "Hapus"
-  addressListContainer.addEventListener('click', async (e) => {
-    const target = e.target as HTMLElement;
-    // Dapatkan data-action dari tombol yang diklik (edit/delete)
-    const action = target.dataset.action;
-    
-    // Jika yang diklik bukan tombol dengan data-action, abaikan
-    if (!action) return;
 
-    // Cari elemen kartu terdekat dan ambil data alamat lengkapnya
+  addressListContainer.addEventListener('click', async (e) => {
+    const target = e.target;
+    const action = target.dataset.action;
+    if (!action) return;
+    
     const card = target.closest('.address-card');
     const address = JSON.parse(card.dataset.address);
-
-    // Jika tombol HAPUS yang diklik
+    
     if (action === 'delete') {
-      // Tampilkan konfirmasi untuk keamanan
       if (confirm(`Apakah Anda yakin ingin menghapus alamat "${address.label || address.recipient_name}"?`)) {
         try {
-          // Panggil API DELETE
           const response = await fetch('/api/addresses', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ addressId: address.id }),
           });
           if (!response.ok) throw new Error('Gagal menghapus alamat dari server.');
-          
-          // Hapus kartu dari tampilan secara langsung untuk respons instan
-          card.remove(); 
+          card.remove();
         } catch (error) {
           alert(error.message);
         }
       }
     }
-
-    // Jika tombol UBAH yang diklik
+    
     if (action === 'edit') {
-      // Kirim event untuk memberitahu AddressForm agar muncul dalam mode 'edit'
-      // dan kirim data alamat yang akan diubah
-      document.dispatchEvent(new CustomEvent('showAddressForm', { 
-        detail: { mode: 'edit', address: address } 
+      document.dispatchEvent(new CustomEvent('showAddressForm', {
+        detail: {
+          mode: 'edit',
+          address: address
+        }
       }));
     }
   });
-  
+
   document.addEventListener('DOMContentLoaded', loadAddresses);
   document.addEventListener('addressSaved', loadAddresses);
 </script>
