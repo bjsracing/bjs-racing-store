@@ -50,151 +50,172 @@
   </div>
 </div>
 <script>
-  const modal = document.getElementById('address-modal');
-  const form = document.getElementById('address-form');
-  const modalTitle = document.getElementById('modal-title');
-  const closeModalBtn = document.getElementById('close-modal-btn');
-  const cancelBtn = document.getElementById('cancel-btn');
-  const errorMsg = document.getElementById('form-error');
-  const submitBtn = document.getElementById('submit-btn');
-  const cityWrapper = document.getElementById('city-wrapper');
-  const citySearchInput = document.getElementById('city-search');
-  const cityHiddenInput = document.getElementById('destination');
-  const cityResultsContainer = document.getElementById('city-results');
-  let currentMode = 'add';
-  let addressIdToEdit = null;
-  let debounceTimer;
-  const showModal = () => modal.classList.remove('hidden');
-  const hideModal = () => {
-    modal.classList.add('hidden');
-    form.reset();
-    errorMsg.textContent = '';
-    cityResultsContainer.classList.add('hidden');
-    cityResultsContainer.innerHTML = '';
-  };
-  closeModalBtn.addEventListener('click', hideModal);
-  cancelBtn.addEventListener('click', hideModal);
-  function debounce(func, delay = 500) {
-    return (...args) => {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        func.apply(this, args);
-      }, delay);
+    const modal = document.getElementById('address-modal');
+    const form = document.getElementById('address-form');
+    const modalTitle = document.getElementById('modal-title');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const cancelBtn = document.getElementById('cancel-btn');
+    const errorMsg = document.getElementById('form-error');
+    const submitBtn = document.getElementById('submit-btn');
+
+    const cityWrapper = document.getElementById('city-wrapper');
+    const citySearchInput = document.getElementById('city-search');
+    const cityHiddenInput = document.getElementById('destination');
+    const cityResultsContainer = document.getElementById('city-results');
+    
+    let currentMode = 'add';
+    let addressIdToEdit = null;
+    let debounceTimer;
+
+    const showModal = () => modal.classList.remove('hidden');
+    const hideModal = () => {
+        modal.classList.add('hidden');
+        form.reset();
+        errorMsg.textContent = '';
+        cityResultsContainer.classList.add('hidden');
+        cityResultsContainer.innerHTML = '';
     };
-  }
-  const searchCities = async (query) => {
-    cityResultsContainer.innerHTML = `<div class="p-2 text-gray-500">Mencari...</div>`;
-    cityResultsContainer.classList.remove('hidden');
-    try {
-      const response = await fetch(`/api/rajaongkir/search-city?query=${encodeURIComponent(query)}`);
-      if (!response.ok) throw new Error('Gagal mencari kota.');
-      const results = await response.json();
-      cityResultsContainer.innerHTML = '';
-      if (results.length === 0) {
-        cityResultsContainer.innerHTML = `<div class="p-2 text-gray-500">Tidak ditemukan.</div>`;
+    closeModalBtn.addEventListener('click', hideModal);
+    cancelBtn.addEventListener('click', hideModal);
+
+    function debounce(func, delay = 500) {
+      return (...args) => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          func.apply(this, args);
+        }, delay);
+      };
+    }
+
+    const searchCities = async (query) => {
+      cityResultsContainer.innerHTML = '<div class="p-2 text-gray-500">Mencari...</div>';
+      cityResultsContainer.classList.remove('hidden');
+      try {
+        const response = await fetch(`/api/rajaongkir/search-city?query=${encodeURIComponent(query)}`);
+        if (!response.ok) throw new Error('Gagal mencari kota.');
+        const results = await response.json();
+        
+        cityResultsContainer.innerHTML = '';
+        if (results.length === 0) {
+            cityResultsContainer.innerHTML = '<div class="p-2 text-gray-500">Tidak ditemukan.</div>';
+            return;
+        }
+
+        results.forEach(city => {
+          const resultItem = document.createElement('div');
+          resultItem.className = 'cursor-pointer p-2 hover:bg-orange-100';
+          
+          const mainText = `${city.subdistrict_name}, ${city.district_name}`;
+          const subText = `${city.city_name}, ${city.province_name}, ${city.zip_code}`;
+          const fullText = `${mainText}, ${subText}`;
+
+          resultItem.dataset.value = city.subdistrict_id;
+          resultItem.dataset.text = fullText;
+          resultItem.dataset.postalCode = city.zip_code;
+
+          resultItem.innerHTML = `
+            <div class="font-semibold text-gray-800">${mainText}</div>
+            <div class="text-xs text-gray-500">${subText}</div>
+          `;
+          
+          cityResultsContainer.appendChild(resultItem);
+        });
+      } catch (error) {
+          console.error(error);
+          cityResultsContainer.innerHTML = `<div class="p-2 text-red-500">${error.message}</div>`;
+      }
+    };
+
+    citySearchInput.addEventListener('input', debounce((e) => {
+      const query = e.target.value;
+      if (query.length < 3) {
+        cityResultsContainer.classList.add('hidden');
+        cityResultsContainer.innerHTML = '';
+        cityHiddenInput.value = '';
         return;
       }
-      results.forEach(city => {
-        const resultItem = document.createElement('div');
-        resultItem.className = 'cursor-pointer p-2 hover:bg-orange-100';
-        const mainText = `${city.subdistrict_name}, ${city.district_name}`;
-        const subText = `${city.city_name}, ${city.province_name}, ${city.zip_code}`;
-        const fullText = `${mainText}, ${subText}`;
-        resultItem.dataset.value = city.subdistrict_id;
-        resultItem.dataset.text = fullText;
-        resultItem.dataset.postalCode = city.zip_code;
-        resultItem.innerHTML = `
-          <div class="font-semibold text-gray-800">${mainText}</div>
-          <div class="text-xs text-gray-500">${subText}</div>
-        `;
-        cityResultsContainer.appendChild(resultItem);
-      });
-    } catch (error) {
-      console.error(error);
-      cityResultsContainer.innerHTML = `<div class="p-2 text-red-500">${error.message}</div>`;
-    }
-  };
-  citySearchInput.addEventListener('input', debounce((e) => {
-    const query = e.target.value;
-    if (query.length < 3) {
-      cityResultsContainer.classList.add('hidden');
-      cityResultsContainer.innerHTML = '';
-      cityHiddenInput.value = '';
-      return;
-    }
-    searchCities(query);
-  }));
-  cityResultsContainer.addEventListener('click', (e) => {
-    const target = e.target.closest('[data-value]');
-    if (target) {
-      citySearchInput.value = target.dataset.text;
-      cityHiddenInput.value = target.dataset.value;
-      if (target.dataset.postalCode) {
-        form.elements.postal_code.value = target.dataset.postalCode;
+      searchCities(query);
+    }));
+
+    cityResultsContainer.addEventListener('click', (e) => {
+      const target = e.target.closest('[data-value]');
+      if (target) {
+        citySearchInput.value = target.dataset.text;
+        cityHiddenInput.value = target.dataset.value;
+        if (target.dataset.postalCode) {
+            form.elements['postal_code'].value = target.dataset.postalCode;
+        }
+        cityResultsContainer.classList.add('hidden');
       }
-      cityResultsContainer.classList.add('hidden');
-    }
-  });
-  document.addEventListener('click', (e) => {
-    if (!cityWrapper.contains(e.target)) {
-      cityResultsContainer.classList.add('hidden');
-    }
-  });
-  document.addEventListener('showAddressForm', (e) => {
-    const {
-      mode,
-      address
-    } = e.detail;
-    currentMode = mode;
-    form.reset();
-    if (mode === 'edit') {
-      modalTitle.textContent = 'Ubah Alamat';
-      addressIdToEdit = address.id;
-      form.elements.label.value = address.label || '';
-      form.elements.recipient_name.value = address.recipient_name || '';
-      form.elements.recipient_phone.value = address.recipient_phone || '';
-      form.elements.full_address.value = address.full_address || '';
-      form.elements.postal_code.value = address.postal_code || '';
-      citySearchInput.placeholder = "Ketik untuk mencari kota/kecamatan baru";
-      citySearchInput.value = address.destination_text || '';
-      cityHiddenInput.value = address.destination || '';
-    } else {
-      modalTitle.textContent = 'Tambah Alamat Baru';
-      addressIdToEdit = null;
-    }
-    showModal();
-  });
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    errorMsg.textContent = '';
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Menyimpan...';
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData.entries());
-    const method = currentMode === 'add' ? 'POST' : 'PUT';
-    if (currentMode === 'edit') data.id = addressIdToEdit;
-    if (!data.destination) {
-      errorMsg.textContent = 'Kota/Kabupaten/Kecamatan harus dipilih dari hasil pencarian.';
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Simpan Alamat';
-      return;
-    }
-    try {
-      const response = await fetch('/api/addresses', {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      });
-      if (!response.ok) throw new Error('Gagal menyimpan alamat.');
-      hideModal();
-      document.dispatchEvent(new CustomEvent('addressSaved'));
-    } catch (error) {
-      errorMsg.textContent = error.message;
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Simpan Alamat';
-    }
-  });
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!cityWrapper.contains(e.target)) {
+            cityResultsContainer.classList.add('hidden');
+        }
+    });
+
+    document.addEventListener('showAddressForm', (e) => {
+        const { mode, address } = e.detail;
+        currentMode = mode;
+        form.reset();
+        
+        if (mode === 'edit') {
+            modalTitle.textContent = 'Ubah Alamat';
+            addressIdToEdit = address.id;
+            
+            form.elements['label'].value = address.label || '';
+            form.elements['recipient_name'].value = address.recipient_name || '';
+            form.elements['recipient_phone'].value = address.recipient_phone || '';
+            form.elements['full_address'].value = address.full_address || '';
+            form.elements['postal_code'].value = address.postal_code || '';
+            
+            citySearchInput.placeholder = "Ketik untuk mencari kota/kecamatan baru";
+            citySearchInput.value = address.destination_text || '';
+            cityHiddenInput.value = address.destination || '';
+
+        } else {
+            modalTitle.textContent = 'Tambah Alamat Baru';
+            addressIdToEdit = null;
+        }
+        showModal();
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMsg.textContent = '';
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Menyimpan...';
+
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData.entries());
+
+      const method = currentMode === 'add' ? 'POST' : 'PUT';
+      if (currentMode === 'edit') data.id = addressIdToEdit;
+       if (!data.destination) {
+        errorMsg.textContent = 'Kota/Kabupaten/Kecamatan harus dipilih dari hasil pencarian.';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Simpan Alamat';
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/addresses', {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        if (!response.ok) throw new Error('Gagal menyimpan alamat.');
+
+        hideModal();
+        document.dispatchEvent(new CustomEvent('addressSaved'));
+
+      } catch (error) {
+        errorMsg.textContent = error.message;
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Simpan Alamat';
+      }
+    });
 </script>
