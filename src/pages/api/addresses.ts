@@ -58,8 +58,15 @@ export const GET: APIRoute = async ({ cookies }) => {
     });
   } catch (error) {
     console.error("Error di GET /api/addresses:", error);
+    // ✅ PERBAIKAN: Pemeriksaan tipe error
+    if (error instanceof Error) {
+      return new Response(
+        JSON.stringify({ message: `Database Error: ${error.message}` }),
+        { status: 500 },
+      );
+    }
     return new Response(
-      JSON.stringify({ message: `Database Error: ${error.message}` }),
+      JSON.stringify({ message: "Terjadi error tidak dikenal." }),
       { status: 500 },
     );
   }
@@ -143,8 +150,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     return new Response(JSON.stringify(newAddress), { status: 201 });
   } catch (error) {
     console.error("Error di POST /api/addresses:", error);
+    // ✅ PERBAIKAN: Pemeriksaan tipe error
+    if (error instanceof Error) {
+      return new Response(
+        JSON.stringify({ message: `Database Error: ${error.message}` }),
+        { status: 500 },
+      );
+    }
     return new Response(
-      JSON.stringify({ message: `Database Error: ${error.message}` }),
+      JSON.stringify({ message: "Terjadi error tidak dikenal." }),
       { status: 500 },
     );
   }
@@ -215,8 +229,15 @@ export const DELETE: APIRoute = async ({ request, cookies }) => {
     );
   } catch (error) {
     console.error("Error di DELETE /api/addresses:", error);
+    // ✅ PERBAIKAN: Pemeriksaan tipe error
+    if (error instanceof Error) {
+      return new Response(
+        JSON.stringify({ message: `Database Error: ${error.message}` }),
+        { status: 500 },
+      );
+    }
     return new Response(
-      JSON.stringify({ message: `Database Error: ${error.message}` }),
+      JSON.stringify({ message: "Terjadi error tidak dikenal." }),
       { status: 500 },
     );
   }
@@ -287,8 +308,15 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
     return new Response(JSON.stringify(data), { status: 200 });
   } catch (error) {
     console.error("Error di PUT /api/addresses:", error);
+    // ✅ PERBAIKAN: Pemeriksaan tipe error
+    if (error instanceof Error) {
+      return new Response(
+        JSON.stringify({ message: `Database Error: ${error.message}` }),
+        { status: 500 },
+      );
+    }
     return new Response(
-      JSON.stringify({ message: `Database Error: ${error.message}` }),
+      JSON.stringify({ message: "Terjadi error tidak dikenal." }),
       { status: 500 },
     );
   }
