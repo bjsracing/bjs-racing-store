@@ -1,34 +1,65 @@
 ---
 // src/pages/akun/index.astro
-import MainLayout from '../../layouts/MainLayout.astro'; // Menggunakan MainLayout Anda
+
+import MainLayout from '../../layouts/MainLayout.astro';
 import AddressSection from '../../components/AddressSection.astro';
+import { createServerClient } from '@supabase/ssr'; // Asumsi path import, sesuaikan jika perlu
 
-// --- Logika BARU yang lebih baik untuk melindungi halaman ---
-const { session } = Astro.locals;
+// --- Logika Perlindungan Halaman ---
 
-// Jika tidak ada sesi, alihkan pengguna ke halaman login
+// 1. Cek Sesi Login
+const { session, cookies } = Astro.locals; // Ambil cookies untuk Supabase client
 if (!session) {
-  // Pastikan path '/login' ini adalah halaman login Anda
-  return Astro.redirect('/login'); 
+  return Astro.redirect('/login');
 }
-// --- Akhir dari Logika Baru ---
 
-// Jika sesi ada, maka halaman akan ditampilkan
+// 2. Cek Profil Pelanggan (Logika Penjaga Baru)
+// Inisialisasi Supabase client di server-side Astro
+// (Pastikan Anda memiliki mekanisme inisialisasi client yang konsisten)
+const supabase = createServerClient(
+  import.meta.env.PUBLIC_SUPABASE_URL!,
+  import.meta.env.PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    cookies: {
+      get(key: string) {
+        return cookies.get(key)?.value;
+      },
+    },
+  }
+);
+
+const { data: customerProfile, error: profileError } = await supabase
+  .from("customers")
+  .select("id")
+  .eq("auth_user_id", session.user.id)
+  .maybeSingle(); // Gunakan maybeSingle() agar tidak error jika data kosong
+
+// Jika terjadi error saat query, tampilkan error (opsional tapi bagus)
+if (profileError) {
+    console.error("Error checking customer profile:", profileError);
+    // Tampilkan halaman error atau pesan
+}
+
+// Jika profil tidak ada, paksa isi profil
+if (!customerProfile) {
+  return Astro.redirect('/akun/lengkapi-profil');
+}
 ---
+
 <MainLayout title="Akun Saya - BJS Racing Store">
   <main class="container mx-auto px-4 py-8">
     <h1 class="text-3xl font-bold mb-6">Akun Saya</h1>
-    
     <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
       <aside class="md:col-span-1">
         <nav class="flex flex-col space-y-2">
           <a href="/akun" class="font-semibold bg-gray-200 p-3 rounded-lg">Buku Alamat</a>
           <a href="/akun/profil" class="hover:bg-gray-100 p-3 rounded-lg">Profil Saya</a>
           <a href="/akun/pesanan" class="hover:bg-gray-100 p-3 rounded-lg">Riwayat Pesanan</a>
-          <a href="#" class="hover:bg-gray-100 p-3 rounded-lg">Keluar</a>
+          <form action="/api/auth/signout" method="post" class="w-full">
+             <button typeg="submit" class="w-full text-left hover:bg-gray-100 p-3 rounded-lg">Keluar</button>E>
+          </form>
         </nav>
       </aside>
-
       <section class="md:col-span-3">
         <AddressSection />
       </section>
