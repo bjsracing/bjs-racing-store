@@ -2,6 +2,8 @@
 import type { APIRoute } from "astro";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
+// Asumsi createSupabaseClient helper function sudah ada atau inisialisasi client di sini
+
 export const POST: APIRoute = async ({ request, cookies }) => {
   const supabase = createServerClient(
     import.meta.env.PUBLIC_SUPABASE_URL!,
@@ -41,21 +43,29 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
+    // --- PERBAIKAN UTAMA: Gunakan UPSERT ---
     const { data: newCustomer, error } = await supabase
       .from("customers")
-      .insert({
-        auth_user_id: session.user.id,
-        nama_pelanggan: nama_pelanggan,
-        telepon: telepon,
-      })
+      .upsert(
+        {
+          auth_user_id: session.user.id, // Kunci konflik
+          nama_pelanggan: nama_pelanggan,
+          telepon: telepon,
+        },
+        {
+          onConflict: "auth_user_id", // Kolom yang digunakan untuk mendeteksi konflik
+        },
+      )
       .select()
-      .single();
+      .single(); // Ambil data yang baru di-upsert
 
     if (error) {
-      console.error("Supabase insert error:", error);
-      // Kirim pesan error yang umum dan aman untuk produksi
+      console.error("Supabase upsert error:", error);
       return new Response(
-        JSON.stringify({ message: "Gagal menyimpan profil ke database." }),
+        // Kirim pesan error database yang sebenarnya (lebih baik untuk debugging)
+        JSON.stringify({
+          message: error.message || "Gagal menyimpan profil ke database.",
+        }),
         { status: 500 },
       );
     }
