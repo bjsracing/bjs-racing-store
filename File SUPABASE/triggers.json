@@ -2,16 +2,22 @@
   {
     "table_name": "products",
     "trigger_name": "on_products_update",
-    "action_statement": "EXECUTE FUNCTION handle_updated_at()"
+    "trigger_event": "UPDATE",
+    "trigger_definition": "EXECUTE FUNCTION handle_updated_at()",
+    "execution_time": "BEFORE"
   },
   {
     "table_name": "products",
     "trigger_name": "product_changes_trigger",
-    "action_statement": "EXECUTE FUNCTION log_product_changes()"
+    "trigger_event": "INSERT",
+    "trigger_definition": "EXECUTE FUNCTION log_product_changes()",
+    "execution_time": "AFTER"
   },
   {
     "table_name": "products",
     "trigger_name": "product_changes_trigger",
-    "action_statement": "EXECUTE FUNCTION log_product_changes()"
+    "trigger_event": "UPDATE",
+    "trigger_definition": "EXECUTE FUNCTION log_product_changes()",
+    "execution_time": "AFTER"
   }
 ]
