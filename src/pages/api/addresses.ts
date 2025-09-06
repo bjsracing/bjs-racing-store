@@ -30,30 +30,34 @@ function createSupabaseClient(cookies: APIContext["cookies"]) {
 /**
  * Mengambil customer_id berdasarkan session user yang sedang login.
  * Melempar error jika session atau profil customer tidak ditemukan.
+ * --- PERBAIKAN: Menggunakan getUser() untuk validasi server ---
  */
 async function getCustomerIdFromSession(
   supabase: ReturnType<typeof createSupabaseClient>,
 ) {
+  // --- PERBAIKAN: Ganti getSession() dengan getUser() ---
   const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
-  if (sessionError)
-    throw new Error(`Authentication error: ${sessionError.message}`);
-  if (!session) throw new Error("Otentikasi diperlukan.");
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) throw new Error(`Authentication error: ${userError.message}`);
+  if (!user) throw new Error("Otentikasi diperlukan.");
 
   const { data: customerData, error: customerError } = await supabase
     .from("customers")
     .select("id")
-    .eq("auth_user_id", session.user.id)
+    .eq("auth_user_id", user.id) // Gunakan user.id dari getUser()
     .single();
 
-  if (customerError)
-    throw new Error(`Database query error: ${customerError.message}`);
-  if (!customerData)
+  if (customerError) {
+    console.error("Customer profile query error:", customerError);
+    // Tambahkan log ini untuk debugging jika user ada tapi profile tidak ada
+    console.log("Mencari customer dengan auth_user_id:", user.id);
     throw new Error(
-      "Profil pelanggan tidak ditemukan terkait dengan akun ini.",
+      `Profil pelanggan tidak ditemukan terkait dengan akun ini. Pastikan profil sudah dibuat.`,
     );
+  }
 
   return customerData.id;
 }
