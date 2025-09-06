@@ -3,40 +3,38 @@
 
 import MainLayout from '../../layouts/MainLayout.astro';
 import AddressSection from '../../components/AddressSection.astro';
-// Impor createServerClient (sesuaikan path jika perlu)
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 
-// --- Variabel untuk penampung error ---
 let pageError: string | null = null;
 
 try {
   // --- Logika Perlindungan Halaman ---
-  const { session, cookies } = Astro.locals;
+  const { session } = Astro.locals; // Hanya ambil session dari locals
   if (!session) {
     return Astro.redirect('/login');
   }
 
-  // Inisialisasi Supabase client
   const supabase = createServerClient(
     import.meta.env.PUBLIC_SUPABASE_URL!,
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
+        // --- PERBAIKAN DI SINI ---
+        // Gunakan global 'Astro.cookies' secara langsung
         get(key: string) {
-          return cookies.get(key)?.value;
+          return Astro.cookies.get(key)?.value;
         },
-        // Tambahkan set/remove jika Anda melakukan modifikasi sesi di sini
         set(key: string, value: string, options: CookieOptions) {
-          cookies.set(key, value, options);
+          Astro.cookies.set(key, value, options);
         },
         remove(key: string, options: CookieOptions) {
-          cookies.delete(key, options);
+          Astro.cookies.delete(key, options);
         },
+        // --- Akhir Perbaikan ---
       },
     }
   );
 
-  // Cek Profil Pelanggan
   const { data: customerProfile, error: profileError } = await supabase
     .from("customers")
     .select("id")
@@ -44,7 +42,6 @@ try {
     .maybeSingle();
 
   if (profileError) {
-    // Jika query gagal, lempar error untuk ditangkap di bawah
     throw profileError;
   }
 
