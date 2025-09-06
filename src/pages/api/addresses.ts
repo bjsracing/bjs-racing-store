@@ -1,7 +1,6 @@
 // File: src/pages/api/addresses.ts
 
 import type { APIRoute, APIContext } from "astro"; // <-- TAMBAHKAN IMPORT APIContext
-import MainLayout from "@/layouts/MainLayout.astro";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
 /**
