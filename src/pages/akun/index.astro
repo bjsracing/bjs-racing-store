@@ -1,19 +1,19 @@
 ---
 // File: src/pages/akun/index.astro
 
-// --- PERBAIKAN 1: Path Impor ---
-// Hapus impor ke file .astro lama. Ganti dengan path ke komponen React (.tsx).
-// import AddressSection from '../../components/AddressSection.astro'; // <-- HAPUS INI
-import AddressSection from '@/components/AddressSection.tsx'; // <-- GUNAKAN INI
+// 1. Impor Layout dan Komponen React (tsx)
+import MainLayout from '@/layouts/MainLayout.astro';
+import AddressSection from '@/components/AddressSection.tsx'; // Pastikan path menunjuk ke file .tsx
 
-import MainLayout from '@/layouts/MainLayout.astro'; // Menggunakan alias path (pastikan tsconfig benar)
+// 2. Impor utilitas Supabase SSR
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 
 let pageError: string | null = null;
 
 try {
-  // --- Logika Perlindungan Halaman ---
-  const { session, cookies } = Astro.locals;
+  // --- Validasi Sesi Pengguna ---
+  const { session, cookies } = Astro; // Ambil konteks Astro secara langsung
+
   if (!session) {
     return Astro.redirect('/login');
   }
@@ -25,13 +25,15 @@ try {
     {
       cookies: {
         get(key: string) {
+          // Penambahan keamanan: Cek apakah cookies ada sebelum memanggil .get()
+          if (!cookies) return null; 
           return cookies.get(key)?.value;
         },
         set(key: string, value: string, options: CookieOptions) {
-          cookies.set(key, value, options);
+          if (cookies) cookies.set(key, value, options);
         },
         remove(key: string, options: CookieOptions) {
-          cookies.delete(key, options);
+          if (cookies) cookies.delete(key, options);
         },
       },
     }
@@ -48,6 +50,7 @@ try {
   }
 
   if (!customerProfile) {
+    // Paksa pengguna melengkapi profil jika datanya tidak ada
     return Astro.redirect('/akun/lengkapi-profil');
   }
 
