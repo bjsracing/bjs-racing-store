@@ -1,7 +1,7 @@
 // File: src/components/AddressForm.tsx
-// Deskripsi: Form tambah/ubah alamat dengan pencarian kota otomatis RajaOngkir.
+// Versi lengkap dengan semua fungsi didefinisikan.
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import type { Address, FormDataState } from "@/stores/addressStore";
 import { addAddress, updateAddress } from "@/stores/addressStore";
 
@@ -9,7 +9,7 @@ import { addAddress, updateAddress } from "@/stores/addressStore";
 interface RajaOngkirResult {
   subdistrict_id: string;
   subdistrict_name: string;
-  district_name: string; // Kecamatan
+  district_name: string;
   city_name: string;
   province_name: string;
   zip_code: string;
@@ -42,7 +42,7 @@ export default function AddressForm({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // --- State untuk Pencarian RajaOngkir ---
+  // --- State Pencarian RajaOngkir ---
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<RajaOngkirResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -61,7 +61,6 @@ export default function AddressForm({
           full_address: addressToEdit.full_address || "",
           postal_code: addressToEdit.postal_code || "",
         });
-        // Set input pencarian agar sesuai dengan data yang ada saat edit
         setSearchQuery(addressToEdit.destination_text || "");
       } else {
         setFormData(initialFormState);
@@ -99,16 +98,19 @@ export default function AddressForm({
 
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
-      // Hanya lakukan pencarian jika query tidak sama dengan teks destinasi yang sudah dipilih
       if (searchQuery && searchQuery !== formData.destination_text) {
         performSearch(searchQuery);
       }
-    }, 500); // Tunda 500ms setelah pengguna berhenti mengetik
-
+    }, 300);
     return () => clearTimeout(debounceTimer);
   }, [searchQuery, formData.destination_text, performSearch]);
 
   // --- Event Handlers ---
+
+  /**
+   * Menangani perubahan input form standar (non-search field).
+   * Fungsi ini memperbaiki error 'Cannot find name handleChange'.
+   */
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
@@ -116,12 +118,21 @@ export default function AddressForm({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  /**
+   * Menangani pengetikan di input pencarian kota.
+   */
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-    // Jika pengguna mengetik manual, hapus ID destinasi yang tersimpan sebelumnya
-    setFormData((prev) => ({ ...prev, destination: "" }));
+    const newQuery = e.target.value;
+    setSearchQuery(newQuery);
+    // Reset ID destinasi jika pengguna mengetik manual, untuk memaksa pemilihan ulang.
+    if (newQuery !== formData.destination_text) {
+      setFormData((prev) => ({ ...prev, destination: "" }));
+    }
   };
 
+  /**
+   * Menangani pemilihan kota dari dropdown hasil pencarian.
+   */
   const handleCitySelect = (city: RajaOngkirResult) => {
     const fullText = `${city.subdistrict_name}, ${city.district_name}, ${city.city_name}, ${city.province_name}`;
     setFormData((prev) => ({
@@ -130,16 +141,22 @@ export default function AddressForm({
       destination_text: fullText,
       postal_code: city.zip_code,
     }));
-    setSearchQuery(fullText); // Set teks input ke hasil pilihan
+    setSearchQuery(fullText);
     setIsDropdownOpen(false);
   };
 
+  const handleInputBlur = () => {
+    setTimeout(() => setIsDropdownOpen(false), 150);
+  };
+
+  /**
+   * Menangani submit form utama.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage("");
 
-    // Validasi: Pastikan ID destinasi sudah dipilih, bukan hanya teks manual
     if (!formData.destination) {
       setErrorMessage(
         "Kota/Kecamatan harus dipilih dari hasil pencarian dropdown.",
@@ -164,7 +181,7 @@ export default function AddressForm({
       } else {
         await addAddress(dataToSubmit);
       }
-      onClose();
+      onClose(); // Tutup modal jika sukses
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Terjadi kesalahan.",
@@ -195,8 +212,8 @@ export default function AddressForm({
               </button>
             </div>
 
-            {/* Form Fields */}
             <div className="max-h-[70vh] overflow-y-auto pr-2 space-y-4">
+              {/* Field: Label Alamat */}
               <div>
                 <label
                   htmlFor="label"
@@ -214,6 +231,7 @@ export default function AddressForm({
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
                 />
               </div>
+              {/* Field: Nama Penerima */}
               <div>
                 <label
                   htmlFor="recipient_name"
@@ -231,6 +249,7 @@ export default function AddressForm({
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
                 />
               </div>
+              {/* Field: Nomor Telepon */}
               <div>
                 <label
                   htmlFor="recipient_phone"
@@ -249,7 +268,7 @@ export default function AddressForm({
                 />
               </div>
 
-              {/* --- Input Pencarian Kota RajaOngkir --- */}
+              {/* Field: Pencarian Kota RajaOngkir */}
               <div className="relative">
                 <label
                   htmlFor="city-search"
@@ -265,9 +284,9 @@ export default function AddressForm({
                   value={searchQuery}
                   onChange={handleSearchInputChange}
                   onFocus={() => setIsDropdownOpen(true)}
+                  onBlur={handleInputBlur}
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
                 />
-                {/* --- Dropdown Hasil Pencarian --- */}
                 {isDropdownOpen &&
                   (searchResults.length > 0 || isSearching) && (
                     <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5">
@@ -277,7 +296,7 @@ export default function AddressForm({
                       {searchResults.map((city) => (
                         <div
                           key={city.subdistrict_id}
-                          onClick={() => handleCitySelect(city)}
+                          onMouseDown={() => handleCitySelect(city)}
                           className="cursor-pointer p-2 hover:bg-orange-100"
                         >
                           <div className="font-semibold text-gray-800">{`${city.subdistrict_name}, ${city.district_name}`}</div>
@@ -287,8 +306,8 @@ export default function AddressForm({
                     </div>
                   )}
               </div>
-              {/* --- Akhir Input Pencarian Kota --- */}
 
+              {/* Field: Alamat Lengkap */}
               <div>
                 <label
                   htmlFor="full_address"
@@ -307,6 +326,7 @@ export default function AddressForm({
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
                 ></textarea>
               </div>
+              {/* Field: Kode Pos */}
               <div>
                 <label
                   htmlFor="postal_code"
