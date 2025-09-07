@@ -1,40 +1,33 @@
 ---
 // File: src/pages/akun/index.astro
 
-// 1. Impor Layout dan Komponen React (tsx)
 import MainLayout from '@/layouts/MainLayout.astro';
-import AddressSection from '@/components/AddressSection.tsx'; // Pastikan path menunjuk ke file .tsx
-
-// 2. Impor utilitas Supabase SSR
+import AddressSection from '@/components/AddressSection.tsx';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 
 let pageError: string | null = null;
 
 try {
   // --- Validasi Sesi Pengguna ---
-  const { session, cookies } = Astro; // Ambil konteks Astro secara langsung
+  const { session } = Astro.locals; 
 
   if (!session) {
     return Astro.redirect('/login');
   }
 
-  // --- Validasi Profil Pelanggan ---
+  // --- VALIDASI PROFIL DINONAKTIFKAN SEMENTARA UNTUK DEBUGGING ---
+  // Kita akan asumsikan profil ada jika sesi ada, untuk menghindari crash loop.
+  // Validasi profil akan kita pindahkan ke client-side jika diperlukan nanti.
+  /*
+  const { cookies } = Astro;
   const supabase = createServerClient(
     import.meta.env.PUBLIC_SUPABASE_URL!,
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(key: string) {
-          // Penambahan keamanan: Cek apakah cookies ada sebelum memanggil .get()
-          if (!cookies) return null; 
-          return cookies.get(key)?.value;
-        },
-        set(key: string, value: string, options: CookieOptions) {
-          if (cookies) cookies.set(key, value, options);
-        },
-        remove(key: string, options: CookieOptions) {
-          if (cookies) cookies.delete(key, options);
-        },
+        get(key: string) { return cookies?.get(key)?.value; },
+        set(key: string, value: string, options: CookieOptions) { cookies?.set(key, value, options); },
+        remove(key: string, options: CookieOptions) { cookies?.delete(key, options); },
       },
     }
   );
@@ -45,14 +38,9 @@ try {
     .eq("auth_user_id", session.user.id)
     .maybeSingle();
 
-  if (profileError) {
-    throw profileError;
-  }
-
-  if (!customerProfile) {
-    // Paksa pengguna melengkapi profil jika datanya tidak ada
-    return Astro.redirect('/akun/lengkapi-profil');
-  }
+  if (profileError) throw profileError;
+  if (!customerProfile) return Astro.redirect('/akun/lengkapi-profil');
+  */
 
 } catch (error) {
   console.error("Server-side error in /akun/index.astro:", error.message);
@@ -68,24 +56,21 @@ try {
         <span class="block sm:inline">{pageError}</span>
       </div>
     ) : (
-      <>
-        <h1 class="text-3xl font-bold mb-6">Akun Saya</h1>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <aside class="md:col-span-1">
-            <nav class="flex flex-col space-y-2">
-              <a href="/akun" class="font-semibold bg-gray-200 p-3 rounded-lg">Buku Alamat</a>
-              <a href="/akun/profil" class="hover:bg-gray-100 p-3 rounded-lg">Profil Saya</a>
-              <a href="/akun/pesanan" class="hover:bg-gray-100 p-3 rounded-lg">Riwayat Pesanan</a>
-              <form action="/api/auth/signout" method="post" class="w-full">
-                <button type="submit" class="w-full text-left hover:bg-gray-100 p-3 rounded-lg">Keluar</button>
-              </form>
-            </nav>
-          </aside>
-          <section class="md:col-span-3">
-            <AddressSection client:load />
-          </section>
-        </div>
-      </>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <aside class="md:col-span-1">
+          <nav class="flex flex-col space-y-2">
+            <a href="/akun" class="font-semibold bg-gray-200 p-3 rounded-lg">Buku Alamat</a>
+            <a href="/akun/profil" class="hover:bg-gray-100 p-3 rounded-lg">Profil Saya</a>
+            <a href="/akun/pesanan" class="hover:bg-gray-100 p-3 rounded-lg">Riwayat Pesanan</a>
+            <form action="/api/auth/signout" method="post" class="w-full">
+              <button type="submit" class="w-full text-left hover:bg-gray-100 p-3 rounded-lg">Keluar</button>D>
+            </form>
+          </nav>
+        </aside>
+        <section class="md:col-span-3">
+          <AddressSection client:load />
+        </section>
+      </div>
     )}
   </main>
 </MainLayout>
