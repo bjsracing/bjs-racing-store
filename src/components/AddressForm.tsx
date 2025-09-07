@@ -59,15 +59,21 @@ export default function AddressForm({
     setIsLoading(true);
     setErrorMessage("");
 
+    // --- PERBAIKAN VALIDASI DI SINI ---
+    // Ubah pengecekan dari formData.destination ke formData.destination_text
     if (
       !formData.recipient_name ||
       !formData.recipient_phone ||
-      !formData.full_address
+      !formData.full_address ||
+      !formData.destination_text
     ) {
-      setErrorMessage("Nama, telepon, dan alamat lengkap wajib diisi.");
+      setErrorMessage(
+        "Nama, telepon, alamat lengkap, dan kota/kabupaten wajib diisi.",
+      );
       setIsLoading(false);
       return;
     }
+    // --- Akhir Perbaikan Validasi ---
 
     try {
       const dataToSubmit = { ...formData };

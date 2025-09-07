@@ -1,26 +1,23 @@
 // File: src/pages/api/addresses.ts
 
-import type { APIRoute, APIContext } from "astro"; // <-- TAMBAHKAN IMPORT APIContext
+import type { APIRoute, APIContext } from "astro";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
-/**
- * Membuat instance Supabase server client.
- */
+// Fungsi helper untuk inisialisasi Supabase Client
 function createSupabaseClient(cookies: APIContext["cookies"]) {
-  // <-- UBAH TIPE DATA DI SINI
   return createServerClient(
     import.meta.env.PUBLIC_SUPABASE_URL!,
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         get(key: string) {
-          return cookies.get(key)?.value;
+          return cookies?.get(key)?.value;
         },
         set(key: string, value: string, options: CookieOptions) {
-          cookies.set(key, value, options);
+          cookies?.set(key, value, options);
         },
         remove(key: string, options: CookieOptions) {
-          cookies.delete(key, options);
+          cookies?.delete(key, options);
         },
       },
     },
@@ -28,14 +25,11 @@ function createSupabaseClient(cookies: APIContext["cookies"]) {
 }
 
 /**
- * Mengambil customer_id berdasarkan session user yang sedang login.
- * Melempar error jika session atau profil customer tidak ditemukan.
- * --- PERBAIKAN: Menggunakan getUser() untuk validasi server ---
+ * Mengambil customer_id dan objek user berdasarkan session yang sedang login.
  */
-async function getCustomerIdFromSession(
+async function getCustomerIdAndUser(
   supabase: ReturnType<typeof createSupabaseClient>,
 ) {
-  // --- PERBAIKAN: Ganti getSession() dengan getUser() ---
   const {
     data: { user },
     error: userError,
@@ -47,61 +41,18 @@ async function getCustomerIdFromSession(
   const { data: customerData, error: customerError } = await supabase
     .from("customers")
     .select("id")
-    .eq("auth_user_id", user.id) // Gunakan user.id dari getUser()
+    .eq("auth_user_id", user.id)
     .single();
 
-  if (customerError) {
-    console.error("Customer profile query error:", customerError);
-    // Tambahkan log ini untuk debugging jika user ada tapi profile tidak ada
-    console.log("Mencari customer dengan auth_user_id:", user.id);
+  if (customerError)
     throw new Error(
-      `Profil pelanggan tidak ditemukan terkait dengan akun ini. Pastikan profil sudah dibuat.`,
+      `Profil pelanggan tidak ditemukan: ${customerError.message}`,
     );
-  }
+  if (!customerData) throw new Error("Data profil pelanggan tidak ditemukan.");
 
-  return customerData.id;
+  // --- PERBAIKAN 1: Kembalikan objek user bersama customerId ---
+  return { customerId: customerData.id, user: user };
 }
-
-// =================================================================
-// == FUNGSI GET (UNTUK MENGAMBIL SEMUA ALAMAT PENGGUNA)         ==
-// =================================================================
-export const GET: APIRoute = async ({ cookies }) => {
-  const supabase = createSupabaseClient(cookies);
-
-  try {
-    const customerId = await getCustomerIdFromSession(supabase);
-
-    const { data: addresses, error: addressesError } = await supabase
-      .from("customer_addresses")
-      .select("*")
-      .eq("customer_id", customerId)
-      .order("is_primary", { ascending: false })
-      .order("created_at", { ascending: false });
-
-    if (addressesError) throw addressesError;
-
-    return new Response(JSON.stringify(addresses), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    console.error("Error di GET /api/addresses:", error);
-    return new Response(
-      JSON.stringify({
-        message:
-          error instanceof Error
-            ? error.message
-            : "Terjadi error tidak dikenal.",
-      }),
-      {
-        status:
-          error instanceof Error && error.message.includes("Otentikasi")
-            ? 401
-            : 500,
-      },
-    );
-  }
-};
 
 // =================================================================
 // == FUNGSI POST (UNTUK MENYIMPAN ALAMAT BARU)                   ==
@@ -110,34 +61,30 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   const supabase = createSupabaseClient(cookies);
 
   try {
-    const customerId = await getCustomerIdFromSession(supabase);
+    // --- PERBAIKAN 2: Tangkap customerId dan user dari fungsi helper ---
+    const { customerId, user } = await getCustomerIdAndUser(supabase);
     const formData = await request.json();
 
-    // --- PERBAIKAN VALIDASI ---
-    // Memastikan semua field yang di-set NOT NULL di database divalidasi di sini.
-    const { recipient_name, recipient_phone, full_address, destination } =
+    // Validasi input wajib
+    const { recipient_name, recipient_phone, full_address, destination_text } =
       formData;
-
-    if (!recipient_name || !recipient_phone || !full_address || !destination) {
-      const missingFields = [];
-      if (!recipient_name) missingFields.push("Nama Penerima");
-      if (!recipient_phone) missingFields.push("Nomor Telepon");
-      if (!full_address) missingFields.push("Alamat Lengkap");
-      if (!destination) missingFields.push("Kota/Kecamatan");
-
+    if (
+      !recipient_name ||
+      !recipient_phone ||
+      !full_address ||
+      !destination_text
+    ) {
       return new Response(
-        JSON.stringify({
-          message: `Data wajib tidak lengkap: ${missingFields.join(", ")}`,
-        }),
+        JSON.stringify({ message: "Data wajib tidak lengkap." }),
         { status: 400 },
       );
     }
-    // --- Akhir Perbaikan Validasi ---
 
     const { data: newAddress, error } = await supabase
       .from("customer_addresses")
       .insert({
         customer_id: customerId,
+        auth_user_id: user.id, // <-- Sekarang variabel 'user' sudah dikenali di sini
         label: formData.label,
         recipient_name: formData.recipient_name,
         recipient_phone: formData.recipient_phone,
@@ -145,13 +92,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         destination: formData.destination,
         destination_text: formData.destination_text,
         postal_code: formData.postal_code,
-        // is_primary ditangani terpisah jika diperlukan logika khusus
       })
       .select()
       .single();
 
     if (error) throw error;
-
     return new Response(JSON.stringify(newAddress), { status: 201 });
   } catch (error) {
     console.error("Error di POST /api/addresses:", error);
@@ -162,10 +107,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             ? error.message
             : "Terjadi error tidak dikenal.",
       }),
-      {
-        status:
-          error instanceof Error && error.message.includes("wajib") ? 400 : 500,
-      },
+      { status: 500 },
     );
   }
 };
@@ -177,30 +119,13 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
   const supabase = createSupabaseClient(cookies);
 
   try {
-    const customerId = await getCustomerIdFromSession(supabase);
+    const { customerId } = await getCustomerIdAndUser(supabase); // Hanya butuh validasi kepemilikan
     const formData = await request.json();
     const { id: addressId, ...updateData } = formData;
 
     if (!addressId) {
       return new Response(
-        JSON.stringify({
-          message: "ID Alamat diperlukan untuk proses update.",
-        }),
-        { status: 400 },
-      );
-    }
-
-    // Validasi data yang diupdate (opsional namun disarankan)
-    if (
-      !updateData.recipient_name ||
-      !updateData.recipient_phone ||
-      !updateData.full_address ||
-      !updateData.destination
-    ) {
-      return new Response(
-        JSON.stringify({
-          message: "Field wajib tidak boleh dikosongkan saat update.",
-        }),
+        JSON.stringify({ message: "ID Alamat diperlukan." }),
         { status: 400 },
       );
     }
@@ -209,12 +134,11 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
       .from("customer_addresses")
       .update(updateData)
       .eq("id", addressId)
-      .eq("customer_id", customerId) // Memastikan pengguna hanya update miliknya (double check RLS)
+      .eq("customer_id", customerId) // Keamanan tambahan level API
       .select()
       .single();
 
     if (error) throw error;
-
     return new Response(JSON.stringify(data), { status: 200 });
   } catch (error) {
     console.error("Error di PUT /api/addresses:", error);
@@ -235,9 +159,8 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
 // =================================================================
 export const DELETE: APIRoute = async ({ request, cookies }) => {
   const supabase = createSupabaseClient(cookies);
-
   try {
-    const customerId = await getCustomerIdFromSession(supabase);
+    const { customerId } = await getCustomerIdAndUser(supabase);
     const { addressId } = await request.json();
 
     if (!addressId) {
@@ -251,16 +174,48 @@ export const DELETE: APIRoute = async ({ request, cookies }) => {
       .from("customer_addresses")
       .delete()
       .eq("id", addressId)
-      .eq("customer_id", customerId); // Memastikan pengguna hanya delete miliknya
+      .eq("customer_id", customerId);
 
     if (error) throw error;
-
     return new Response(
       JSON.stringify({ message: "Alamat berhasil dihapus" }),
       { status: 200 },
     );
   } catch (error) {
     console.error("Error di DELETE /api/addresses:", error);
+    return new Response(
+      JSON.stringify({
+        message:
+          error instanceof Error
+            ? error.message
+            : "Terjadi error tidak dikenal.",
+      }),
+      { status: 500 },
+    );
+  }
+};
+
+// =================================================================
+// == FUNGSI GET (UNTUK MENGAMBIL DATA)                           ==
+// =================================================================
+export const GET: APIRoute = async ({ cookies }) => {
+  const supabase = createSupabaseClient(cookies);
+  try {
+    const { customerId } = await getCustomerIdAndUser(supabase);
+    const { data: addresses, error: addressesError } = await supabase
+      .from("customer_addresses")
+      .select("*")
+      .eq("customer_id", customerId)
+      .order("is_primary", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    if (addressesError) throw addressesError;
+    return new Response(JSON.stringify(addresses), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("Error di GET /api/addresses:", error);
     return new Response(
       JSON.stringify({
         message:
