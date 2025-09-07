@@ -1,25 +1,27 @@
 // File: src/components/AddressForm.tsx
-// Perbaikan error TypeScript: Hapus import 'useRef' yang tidak terpakai dan refactor handleSubmit.
+// Perbaikan final: Menggunakan field 'id' dari data RajaOngkir, bukan 'subdistrict_id'.
 
-// PERBAIKAN 1: Hapus 'useRef' dari impor di bawah ini
 import React, { useState, useEffect, useCallback } from "react";
 import type { Address, FormDataState } from "@/stores/addressStore";
 import { addAddress, updateAddress } from "@/stores/addressStore";
 
 // --- Tipe Data ---
 interface RajaOngkirResult {
-  subdistrict_id: string;
+  // PERBAIKAN TIPE: Sesuaikan dengan data log Vercel
+  id: number; // Field ID yang benar (tipe number)
   subdistrict_name: string;
   district_name: string;
   city_name: string;
   province_name: string;
   zip_code: string;
 }
+
 interface AddressFormProps {
   isOpen: boolean;
   onClose: () => void;
   addressToEdit?: Address | null;
 }
+
 const initialFormState: FormDataState = {
   label: "",
   recipient_name: "",
@@ -43,7 +45,6 @@ export default function AddressForm({
   const [searchResults, setSearchResults] = useState<RajaOngkirResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  // Hapus searchInputRef jika tidak digunakan: const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -117,15 +118,13 @@ export default function AddressForm({
 
   const handleCitySelect = (city: RajaOngkirResult) => {
     const fullText = `${city.subdistrict_name}, ${city.district_name}, ${city.city_name}, ${city.province_name}`;
-    console.log(
-      "[DEBUG] Kota dipilih. ID Destinasi:",
-      city.subdistrict_id,
-      "Teks:",
-      fullText,
-    );
+
     setFormData((prev) => ({
       ...prev,
-      destination: city.subdistrict_id,
+      // --- PERBAIKAN UTAMA DI SINI ---
+      // Ganti city.subdistrict_id menjadi city.id (sesuai log Vercel)
+      // Konversi ke String karena ID mungkin bertipe number, sedangkan form state kita string.
+      destination: String(city.id),
       destination_text: fullText,
       postal_code: city.zip_code,
     }));
@@ -141,11 +140,6 @@ export default function AddressForm({
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage("");
-
-    console.log(
-      "[DEBUG] Data form saat submit:",
-      JSON.stringify(formData, null, 2),
-    );
 
     if (!formData.destination) {
       setErrorMessage(
@@ -165,7 +159,6 @@ export default function AddressForm({
     }
 
     try {
-      // --- PERBAIKAN 2: Ubah ternary operator menjadi if/else ---
       if (addressToEdit) {
         await updateAddress(addressToEdit.id, formData);
       } else {
@@ -185,7 +178,6 @@ export default function AddressForm({
   if (!isOpen) return null;
 
   return (
-    // ... (Kode JSX form tetap sama persis seperti di Turn 56, tidak perlu diubah) ...
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-lg transform transition-all">
         <form onSubmit={handleSubmit} noValidate>
@@ -203,6 +195,7 @@ export default function AddressForm({
               </button>
             </div>
             <div className="max-h-[70vh] overflow-y-auto pr-2 space-y-4">
+              {/* Field: Label Alamat */}
               <div>
                 <label
                   htmlFor="label"
@@ -220,6 +213,7 @@ export default function AddressForm({
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
                 />
               </div>
+              {/* Field: Nama Penerima */}
               <div>
                 <label
                   htmlFor="recipient_name"
@@ -237,6 +231,7 @@ export default function AddressForm({
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
                 />
               </div>
+              {/* Field: Nomor Telepon */}
               <div>
                 <label
                   htmlFor="recipient_phone"
@@ -254,6 +249,7 @@ export default function AddressForm({
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
                 />
               </div>
+              {/* Field: Pencarian Kota RajaOngkir */}
               <div className="relative">
                 <label
                   htmlFor="city-search"
@@ -280,7 +276,7 @@ export default function AddressForm({
                       )}
                       {searchResults.map((city) => (
                         <div
-                          key={city.subdistrict_id}
+                          key={city.id} // Gunakan city.id sebagai key
                           onMouseDown={() => handleCitySelect(city)}
                           className="cursor-pointer p-2 hover:bg-orange-100"
                         >
@@ -291,6 +287,7 @@ export default function AddressForm({
                     </div>
                   )}
               </div>
+              {/* Field: Alamat Lengkap */}
               <div>
                 <label
                   htmlFor="full_address"
@@ -309,6 +306,7 @@ export default function AddressForm({
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
                 ></textarea>
               </div>
+              {/* Field: Kode Pos */}
               <div>
                 <label
                   htmlFor="postal_code"
