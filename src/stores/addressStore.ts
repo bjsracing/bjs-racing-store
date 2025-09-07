@@ -2,48 +2,51 @@
 
 import { atom } from "nanostores";
 
-// Definisikan tipe data untuk satu alamat (sesuaikan jika perlu)
+// Definisikan tipe data untuk satu alamat
 export interface Address {
   id: string;
   label: string;
   recipient_name: string;
   recipient_phone: string;
   full_address: string;
+  destination: string;
   destination_text: string;
   postal_code: string;
   is_primary: boolean;
 }
 
-// 1. Definisikan Atom Store
-// Ini adalah state terpusat yang menyimpan daftar alamat.
-// Kita mulai dengan array kosong.
-export const addressListStore = atom<Address[]>([]);
+// Tipe data form yang digunakan di AddressForm.tsx
+export interface FormDataState {
+  label: string;
+  recipient_name: string;
+  recipient_phone: string;
+  destination: string;
+  destination_text: string;
+  full_address: string;
+  postal_code: string;
+}
 
-// 2. Definisikan Aksi (Actions) untuk memanipulasi store
+// Store terpusat
+export const addressListStore = atom<Address[]>([]);
 
 /**
  * Mengambil data alamat terbaru dari server dan memperbarui store.
- * Fungsi ini akan dipanggil saat halaman dimuat dan setiap kali ada perubahan data.
  */
 export async function fetchAddresses() {
   try {
-    // Gunakan cache busting untuk memastikan data selalu segar
     const response = await fetch(`/api/addresses?timestamp=${Date.now()}`);
     if (!response.ok)
       throw new Error("Gagal mengambil data alamat dari server.");
-
     const data: Address[] = await response.json();
-    addressListStore.set(data); // Memperbarui state terpusat dengan data baru
+    addressListStore.set(data);
   } catch (error) {
     console.error("Error fetching addresses:", error);
-    // Set store ke array kosong jika terjadi error untuk menghindari data basi
     addressListStore.set([]);
   }
 }
 
 /**
  * Menambahkan alamat baru ke server, lalu memicu refresh data di store.
- * @param addressData Data alamat baru dari form.
  */
 export async function addAddress(
   addressData: Omit<Address, "id" | "is_primary">,
@@ -58,11 +61,30 @@ export async function addAddress(
     const errorResult = await response.json();
     throw new Error(errorResult.message || "Gagal menyimpan alamat baru.");
   }
-
-  // Setelah berhasil menyimpan, panggil fetchAddresses untuk menyinkronkan state.
   await fetchAddresses();
 }
 
+/**
+ * Memperbarui alamat yang ada di server, lalu memicu refresh data di store.
+ */
+export async function updateAddress(
+  addressId: string,
+  addressData: Partial<FormDataState>,
+) {
+  const response = await fetch("/api/addresses", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: addressId, ...addressData }),
+  });
+
+  if (!response.ok) {
+    const errorResult = await response.json();
+    throw new Error(errorResult.message || "Gagal memperbarui alamat.");
+  }
+  await fetchAddresses();
+}
+
+// --- FUNGSI BARU (Perbaikan Error) ---
 /**
  * Menghapus alamat dari server, lalu memicu refresh data di store.
  * @param addressId ID alamat yang akan dihapus.
@@ -74,10 +96,11 @@ export async function deleteAddress(addressId: string) {
     body: JSON.stringify({ addressId: addressId }),
   });
 
-  if (!response.ok) throw new Error("Gagal menghapus alamat di server.");
+  if (!response.ok) {
+    const errorResult = await response.json();
+    throw new Error(errorResult.message || "Gagal menghapus alamat di server.");
+  }
 
   // Setelah berhasil menghapus, panggil fetchAddresses untuk menyinkronkan state.
   await fetchAddresses();
 }
-
-// TODO: Tambahkan fungsi updateAddress jika diperlukan.
