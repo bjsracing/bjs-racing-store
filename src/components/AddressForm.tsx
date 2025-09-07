@@ -1,7 +1,8 @@
 // File: src/components/AddressForm.tsx
-// Versi lengkap dengan semua fungsi didefinisikan.
+// Perbaikan error TypeScript: Hapus import 'useRef' yang tidak terpakai dan refactor handleSubmit.
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+// PERBAIKAN 1: Hapus 'useRef' dari impor di bawah ini
+import React, { useState, useEffect, useCallback } from "react";
 import type { Address, FormDataState } from "@/stores/addressStore";
 import { addAddress, updateAddress } from "@/stores/addressStore";
 
@@ -14,13 +15,11 @@ interface RajaOngkirResult {
   province_name: string;
   zip_code: string;
 }
-
 interface AddressFormProps {
   isOpen: boolean;
   onClose: () => void;
   addressToEdit?: Address | null;
 }
-
 const initialFormState: FormDataState = {
   label: "",
   recipient_name: "",
@@ -37,18 +36,15 @@ export default function AddressForm({
   onClose,
   addressToEdit,
 }: AddressFormProps) {
-  // --- State Form Utama ---
   const [formData, setFormData] = useState<FormDataState>(initialFormState);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-
-  // --- State Pencarian RajaOngkir ---
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<RajaOngkirResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  // Hapus searchInputRef jika tidak digunakan: const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // --- Efek untuk mengisi form saat mode edit ---
   useEffect(() => {
     if (isOpen) {
       if (addressToEdit) {
@@ -72,7 +68,6 @@ export default function AddressForm({
     }
   }, [addressToEdit, isOpen]);
 
-  // --- Logika Pencarian Kota RajaOngkir dengan Debounce ---
   const performSearch = useCallback(async (query: string) => {
     if (query.length < 3) {
       setSearchResults([]);
@@ -105,12 +100,6 @@ export default function AddressForm({
     return () => clearTimeout(debounceTimer);
   }, [searchQuery, formData.destination_text, performSearch]);
 
-  // --- Event Handlers ---
-
-  /**
-   * Menangani perubahan input form standar (non-search field).
-   * Fungsi ini memperbaiki error 'Cannot find name handleChange'.
-   */
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
@@ -118,23 +107,22 @@ export default function AddressForm({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  /**
-   * Menangani pengetikan di input pencarian kota.
-   */
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newQuery = e.target.value;
     setSearchQuery(newQuery);
-    // Reset ID destinasi jika pengguna mengetik manual, untuk memaksa pemilihan ulang.
     if (newQuery !== formData.destination_text) {
       setFormData((prev) => ({ ...prev, destination: "" }));
     }
   };
 
-  /**
-   * Menangani pemilihan kota dari dropdown hasil pencarian.
-   */
   const handleCitySelect = (city: RajaOngkirResult) => {
     const fullText = `${city.subdistrict_name}, ${city.district_name}, ${city.city_name}, ${city.province_name}`;
+    console.log(
+      "[DEBUG] Kota dipilih. ID Destinasi:",
+      city.subdistrict_id,
+      "Teks:",
+      fullText,
+    );
     setFormData((prev) => ({
       ...prev,
       destination: city.subdistrict_id,
@@ -149,13 +137,15 @@ export default function AddressForm({
     setTimeout(() => setIsDropdownOpen(false), 150);
   };
 
-  /**
-   * Menangani submit form utama.
-   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage("");
+
+    console.log(
+      "[DEBUG] Data form saat submit:",
+      JSON.stringify(formData, null, 2),
+    );
 
     if (!formData.destination) {
       setErrorMessage(
@@ -175,13 +165,13 @@ export default function AddressForm({
     }
 
     try {
-      const dataToSubmit = { ...formData };
+      // --- PERBAIKAN 2: Ubah ternary operator menjadi if/else ---
       if (addressToEdit) {
-        await updateAddress(addressToEdit.id, dataToSubmit);
+        await updateAddress(addressToEdit.id, formData);
       } else {
-        await addAddress(dataToSubmit);
+        await addAddress(formData);
       }
-      onClose(); // Tutup modal jika sukses
+      onClose();
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Terjadi kesalahan.",
@@ -195,6 +185,7 @@ export default function AddressForm({
   if (!isOpen) return null;
 
   return (
+    // ... (Kode JSX form tetap sama persis seperti di Turn 56, tidak perlu diubah) ...
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-lg transform transition-all">
         <form onSubmit={handleSubmit} noValidate>
@@ -211,9 +202,7 @@ export default function AddressForm({
                 &times;
               </button>
             </div>
-
             <div className="max-h-[70vh] overflow-y-auto pr-2 space-y-4">
-              {/* Field: Label Alamat */}
               <div>
                 <label
                   htmlFor="label"
@@ -231,7 +220,6 @@ export default function AddressForm({
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
                 />
               </div>
-              {/* Field: Nama Penerima */}
               <div>
                 <label
                   htmlFor="recipient_name"
@@ -249,7 +237,6 @@ export default function AddressForm({
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
                 />
               </div>
-              {/* Field: Nomor Telepon */}
               <div>
                 <label
                   htmlFor="recipient_phone"
@@ -267,8 +254,6 @@ export default function AddressForm({
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
                 />
               </div>
-
-              {/* Field: Pencarian Kota RajaOngkir */}
               <div className="relative">
                 <label
                   htmlFor="city-search"
@@ -306,8 +291,6 @@ export default function AddressForm({
                     </div>
                   )}
               </div>
-
-              {/* Field: Alamat Lengkap */}
               <div>
                 <label
                   htmlFor="full_address"
@@ -326,7 +309,6 @@ export default function AddressForm({
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
                 ></textarea>
               </div>
-              {/* Field: Kode Pos */}
               <div>
                 <label
                   htmlFor="postal_code"
@@ -346,7 +328,6 @@ export default function AddressForm({
               </div>
             </div>
           </div>
-          {/* Tombol Aksi Form */}
           <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-lg items-center">
             {errorMessage && (
               <p className="text-red-500 text-sm mr-auto">{errorMessage}</p>
