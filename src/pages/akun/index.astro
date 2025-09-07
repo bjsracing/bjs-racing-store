@@ -1,36 +1,38 @@
 ---
-// src/pages/akun/index.astro
+// File: src/pages/akun/index.astro
 
-import MainLayout from '../../layouts/MainLayout.astro';
-import AddressSection from '../../components/AddressSection.astro';
+// --- PERBAIKAN 1: Path Impor ---
+// Hapus impor ke file .astro lama. Ganti dengan path ke komponen React (.tsx).
+// import AddressSection from '../../components/AddressSection.astro'; // <-- HAPUS INI
+import AddressSection from '@/components/AddressSection.tsx'; // <-- GUNAKAN INI
+
+import MainLayout from '@/layouts/MainLayout.astro'; // Menggunakan alias path (pastikan tsconfig benar)
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 
 let pageError: string | null = null;
 
 try {
   // --- Logika Perlindungan Halaman ---
-  const { session } = Astro.locals; // Hanya ambil session dari locals
+  const { session, cookies } = Astro.locals;
   if (!session) {
     return Astro.redirect('/login');
   }
 
+  // --- Validasi Profil Pelanggan ---
   const supabase = createServerClient(
     import.meta.env.PUBLIC_SUPABASE_URL!,
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        // --- PERBAIKAN DI SINI ---
-        // Gunakan global 'Astro.cookies' secara langsung
         get(key: string) {
-          return Astro.cookies.get(key)?.value;
+          return cookies.get(key)?.value;
         },
         set(key: string, value: string, options: CookieOptions) {
-          Astro.cookies.set(key, value, options);
+          cookies.set(key, value, options);
         },
         remove(key: string, options: CookieOptions) {
-          Astro.cookies.delete(key, options);
+          cookies.delete(key, options);
         },
-        // --- Akhir Perbaikan ---
       },
     }
   );
@@ -77,7 +79,7 @@ try {
             </nav>
           </aside>
           <section class="md:col-span-3">
-            <AddressSection />
+            <AddressSection client:load />
           </section>
         </div>
       </>
