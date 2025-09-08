@@ -59,7 +59,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     const url = `${endpoint}?${params.toString()}`;
 
-    console.log(`[DEBUG] Mengirim request ke Komerce: ${url}`);
+    // Debug log removed for production
 
     // 4. Lakukan request GET dengan header yang benar
     const response = await fetch(url, {
