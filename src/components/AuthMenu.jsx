@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
-import id from "../../public/locales/id/common.json";
+import id from "../locales/id/common.json";
 
 // 1. Impor store Zustand Anda (pastikan path dan ekstensi .ts benar)
 import { useAppStore } from "../lib/store.ts";

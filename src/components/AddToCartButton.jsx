@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useAppStore } from "../lib/store.js";
-import id from "../../public/locales/id/common.json";
+import id from "../locales/id/common.json";
 import { FiShoppingCart } from "react-icons/fi";
 
 const AddToCartButton = ({ product }) => {
