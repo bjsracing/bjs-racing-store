@@ -1,12 +1,18 @@
 // File: src/components/CartIcon.jsx
+// Perbaikan: Menggunakan alias path '@/' untuk impor yang stabil dan mengatasi error build R2.
 
 import React from "react";
-// PERBAIKAN: Ubah path impor agar menunjuk ke file store.ts yang sudah dimigrasi.
-import { useAppStore } from "../lib/store.ts"; 
+// PERBAIKAI UTAMA: Gunakan alias path '@/' yang sudah dikonfigurasi di tsconfig.json.
+// Ini adalah cara yang paling stabil untuk impor.
+import { useAppStore } from "@/lib/store.ts";
 
 const CartIcon = () => {
   const items = useAppStore((state) => state.items);
-  const totalItems = items.reduce((total, item) => total + (item.quantity || 0), 0);
+  // Menambahkan fallback '|| 0' untuk memastikan quantity selalu berupa angka dan mencegah error
+  const totalItems = items.reduce(
+    (total, item) => total + (item.quantity || 0),
+    0,
+  );
 
   return (
     <a
@@ -30,15 +36,8 @@ const CartIcon = () => {
       </svg>
 
       {totalItems > 0 && (
-        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
+        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
           {totalItems}
-        </span>
-      )}
-    </a>
-  );
-};
-
-export default CartIcon;   {totalItems}
         </span>
       )}
     </a>
