@@ -1,4 +1,6 @@
-// src/pages/api/rajaongkir/cost.ts
+// File: src/pages/api/rajaongkir/cost.ts
+// Perbaikan: Ubah case sensitivity field 'origin' -> 'Origin' dan 'destination' -> 'Destination'.
+
 import type { APIRoute } from "astro";
 
 export const POST: APIRoute = async ({ request }) => {
@@ -24,19 +26,18 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Sesuai dokumentasi baru, endpointnya adalah untuk 'domestic-cost'
     const response = await fetch(
       "https://rajaongkir.komerce.id/api/v1/calculate/domestic-cost",
       {
         method: "POST",
         headers: {
           key: apiKey,
-          // Sesuai contoh Postman, API baru menggunakan 'application/json'
           "content-type": "application/json",
         },
         body: JSON.stringify({
-          origin: origin,
-          destination: destination,
+          // --- PERBAIKAN DI SINI ---
+          Origin: origin, // 'o' menjadi 'O'
+          Destination: destination, // 'd' menjadi 'D'
           weight: weight,
           courier: courier.toLowerCase(),
         }),
@@ -51,7 +52,6 @@ export const POST: APIRoute = async ({ request }) => {
 
     const result = await response.json();
 
-    // Mengembalikan hasil kalkulasi dari properti 'data'
     return new Response(JSON.stringify(result.data || []), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -59,7 +59,13 @@ export const POST: APIRoute = async ({ request }) => {
   } catch (error) {
     console.error("Gagal menghitung ongkos kirim:", error);
     return new Response(
-      JSON.stringify({ message: "Gagal menghitung ongkos kirim." }),
+      // Mengirim pesan error yang lebih spesifik jika memungkinkan
+      JSON.stringify({
+        message:
+          error instanceof Error
+            ? error.message
+            : "Gagal menghitung ongkos kirim.",
+      }),
       { status: 500 },
     );
   }
