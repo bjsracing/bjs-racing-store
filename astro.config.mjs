@@ -18,7 +18,8 @@ export default defineConfig({
   ],
   vite: {
     server: {
-      allowedHosts: ['.replit.dev']
+      host: '0.0.0.0',
+      allowedHosts: true
     }
   }
 });
