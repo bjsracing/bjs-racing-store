@@ -1,24 +1,28 @@
 // File: src/components/CheckoutView.tsx
-// Perbaikan Final: Disesuaikan untuk mengirim parameter lengkap ke API Komerce
-// dan menampilkan hasil ongkir reguler, kargo, dan instan.
+// Komponen React untuk menangani seluruh logika checkout.
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useAppStore } from "@/lib/store.ts";
-import type { Address } from "@/lib/store.ts";
+import { useAppStore } from "@/lib/store.ts"; // Pastikan ekstensi file .ts disertakan jika diperlukan
+import type { Address } from "@/lib/store.ts"; // Impor tipe data dari store Zustand
 
-// Tipe data baru untuk hasil ongkos kirim dari API Komerce
-interface ShippingService {
-  shipping_name: string;
-  service_name: string;
-  shipping_cost: number;
-  etd: string;
+// Tipe data untuk hasil ongkos kirim dari RajaOngkir
+interface ShippingCost {
+  service: string;
+  description: string;
+  cost: {
+    value: number;
+    etd: string; // Estimasi Waktu Tiba
+    note: string;
+  }[];
 }
 
-interface ShippingCostsResponse {
-  calculate_reguler: ShippingService[];
-  calculate_cargo: ShippingService[];
-  calculate_instant: ShippingService[];
-}
+// Opsi kurir yang tersedia (sesuai permintaan Anda: JNE, J&T, SiCepat, GoSend)
+const courierOptions = [
+  { code: "jne", name: "JNE" },
+  { code: "jnt", name: "J&T" },
+  { code: "sicepat", name: "SiCepat" },
+  { code: "gosend", name: "GoSend Instant" },
+];
 
 export default function CheckoutView() {
   // --- Mengambil State dan Aksi dari Zustand Store ---
@@ -33,8 +37,8 @@ export default function CheckoutView() {
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
     null,
   );
-  const [shippingCosts, setShippingCosts] =
-    useState<ShippingCostsResponse | null>(null);
+  const [selectedCourier, setSelectedCourier] = useState<string>("");
+  const [shippingCosts, setShippingCosts] = useState<ShippingCost[]>([]);
   const [selectedShipping, setSelectedShipping] = useState<{
     service: string;
     cost: number;
@@ -60,6 +64,7 @@ export default function CheckoutView() {
     [subtotal, selectedShipping],
   );
 
+  // Fungsi format mata uang
   const formatRupiah = (number: number) =>
     new Intl.NumberFormat("id-ID", {
       style: "currency",
@@ -69,12 +74,12 @@ export default function CheckoutView() {
 
   // --- Efek Samping (Side Effects) ---
 
-  // 1. Ambil daftar alamat saat komponen dimuat
+  // 1. Ambil daftar alamat saat komponen pertama kali dimuat
   useEffect(() => {
     fetchAddresses();
   }, [fetchAddresses]);
 
-  // 2. Set alamat utama sebagai pilihan default
+  // 2. Set alamat utama sebagai pilihan default saat data alamat dimuat
   useEffect(() => {
     if (addresses.length > 0 && !selectedAddressId) {
       const primaryAddress =
@@ -83,12 +88,11 @@ export default function CheckoutView() {
     }
   }, [addresses, selectedAddressId]);
 
-  // 3. Hitung ongkos kirim setiap kali alamat yang dipilih berubah
+  // 3. Hitung ongkos kirim setiap kali alamat atau kurir yang dipilih berubah
   useEffect(() => {
     const fetchShippingCosts = async () => {
-      // Hanya berjalan jika alamat sudah dipilih dan ada barang di keranjang
-      if (!selectedAddressId || totalWeight === 0) {
-        setShippingCosts(null);
+      if (!selectedAddressId || !selectedCourier || totalWeight === 0) {
+        setShippingCosts([]);
         setSelectedShipping(null);
         return;
       }
@@ -96,7 +100,6 @@ export default function CheckoutView() {
       setIsLoadingCosts(true);
       setError("");
       setSelectedShipping(null);
-      setShippingCosts(null);
 
       const selectedAddress = addresses.find(
         (addr) => addr.id === selectedAddressId,
@@ -104,38 +107,33 @@ export default function CheckoutView() {
       if (!selectedAddress || !selectedAddress.destination) return;
 
       try {
-        // Siapkan payload lengkap sesuai dokumentasi Komerce
-        const payload = {
-          shipper_destination_id: "65100", // ID Asal Pengiriman Anda
-          receiver_destination_id: selectedAddress.destination,
-          weight: totalWeight,
-          item_value: subtotal,
-          // Sediakan pin point jika ada di data alamat (penting untuk GoSend)
-          origin_pin_point: "-6.5951,110.6726", // Koordinat toko Anda (contoh: Jepara)
-          destination_pin_point: `${selectedAddress.latitude},${selectedAddress.longitude}`,
-        };
-
         const response = await fetch("/api/rajaongkir/cost", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            origin: "65100", // ID Asal Pengiriman Anda (sesuai konfirmasi sebelumnya)
+            destination: selectedAddress.destination, // ID Destinasi dari alamat
+            weight: totalWeight,
+            courier: selectedCourier,
+          }),
         });
 
         const result = await response.json();
         if (!response.ok)
           throw new Error(result.message || "Gagal menghitung ongkos kirim.");
 
-        setShippingCosts(result);
+        // Asumsi data yang relevan ada di result[0].costs
+        setShippingCosts(result[0]?.costs || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Terjadi kesalahan.");
-        setShippingCosts(null);
+        setShippingCosts([]);
       } finally {
         setIsLoadingCosts(false);
       }
     };
 
     fetchShippingCosts();
-  }, [selectedAddressId, totalWeight, addresses, subtotal]);
+  }, [selectedAddressId, selectedCourier, totalWeight, addresses]);
 
   // --- Render Komponen ---
   return (
@@ -172,7 +170,8 @@ export default function CheckoutView() {
               ))
             ) : (
               <p className="text-sm text-gray-500">
-                Memuat alamat atau Anda belum memiliki alamat tersimpan...
+                Anda belum memiliki alamat. Silakan tambahkan alamat di halaman
+                akun Anda.
               </p>
             )}
             <a
@@ -187,131 +186,60 @@ export default function CheckoutView() {
         {/* Pilihan Metode Pengiriman */}
         <div className="bg-white p-6 rounded-xl shadow-md">
           <h2 className="text-xl font-bold mb-4">Metode Pengiriman</h2>
+          <select
+            value={selectedCourier}
+            onChange={(e) => setSelectedCourier(e.target.value)}
+            className="w-full p-3 border rounded-md bg-gray-50 focus:border-blue-500 focus:ring-blue-500"
+            disabled={!selectedAddressId}
+          >
+            <option value="">-- Pilih Kurir --</option>
+            {courierOptions.map((courier) => (
+              <option key={courier.code} value={courier.code}>
+                {courier.name}
+              </option>
+            ))}
+          </select>
 
           {isLoadingCosts && (
-            <p className="text-sm text-gray-500 animate-pulse">
+            <p className="text-sm text-gray-500 mt-4 animate-pulse">
               Menghitung ongkos kirim...
             </p>
           )}
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && <p className="text-sm text-red-500 mt-4">{error}</p>}
 
-          {shippingCosts && (
-            <div className="space-y-4">
-              {/* --- Tampilan untuk Kurir Instan --- */}
-              {shippingCosts.calculate_instant?.length > 0 && (
-                <div>
-                  <h3 className="font-semibold mb-2">Instan</h3>
-                  {shippingCosts.calculate_instant.map((service) => (
-                    <label
-                      key={service.shipping_name + service.service_name}
-                      className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500"
-                    >
-                      <input
-                        type="radio"
-                        name="shippingService"
-                        onChange={() =>
-                          setSelectedShipping({
-                            service: service.service_name,
-                            cost: service.shipping_cost,
-                          })
-                        }
-                        className="flex-shrink-0"
-                      />
-                      <div className="ml-3 flex justify-between w-full text-sm">
-                        <div>
-                          <p className="font-semibold">
-                            {service.shipping_name} {service.service_name}
-                          </p>
-                          <p className="text-gray-500">
-                            Estimasi {service.etd}
-                          </p>
-                        </div>
-                        <p className="font-bold">
-                          {formatRupiah(service.shipping_cost)}
-                        </p>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              )}
-              {/* --- Tampilan untuk Kurir Reguler --- */}
-              {shippingCosts.calculate_reguler?.length > 0 && (
-                <div>
-                  <h3 className="font-semibold mb-2">Reguler</h3>
-                  <div className="space-y-2">
-                    {shippingCosts.calculate_reguler.map((service) => (
-                      <label
-                        key={service.shipping_name + service.service_name}
-                        className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500"
-                      >
-                        <input
-                          type="radio"
-                          name="shippingService"
-                          onChange={() =>
-                            setSelectedShipping({
-                              service: service.service_name,
-                              cost: service.shipping_cost,
-                            })
-                          }
-                          className="flex-shrink-0"
-                        />
-                        <div className="ml-3 flex justify-between w-full text-sm">
-                          <div>
-                            <p className="font-semibold">
-                              {service.shipping_name} {service.service_name}
-                            </p>
-                            <p className="text-gray-500">
-                              Estimasi {service.etd}
-                            </p>
-                          </div>
-                          <p className="font-bold">
-                            {formatRupiah(service.shipping_cost)}
-                          </p>
-                        </div>
-                      </label>
-                    ))}
+          {shippingCosts.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <p className="text-sm font-medium">Pilih Layanan Pengiriman:</p>
+              {shippingCosts.map((service) => (
+                <label
+                  key={service.service}
+                  className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500"
+                >
+                  <input
+                    type="radio"
+                    name="shippingService"
+                    onChange={() =>
+                      setSelectedShipping({
+                        service: service.service,
+                        cost: service.cost[0].value,
+                      })
+                    }
+                    className="flex-shrink-0"
+                  />
+                  <div className="ml-3 flex-grows flex justify-between w-full text-sm flex-wrap gap-2">
+                    <div>
+                      <p className="font-semibold">{service.service}</p>
+                      <p className="text-gray-500">
+                        {service.description} (Estimasi {service.cost[0].etd}{" "}
+                        hari)
+                      </p>
+                    </div>
+                    <p className="font-bold whitespace-nowrap">
+                      {formatRupiah(service.cost[0].value)}
+                    </p>
                   </div>
-                </div>
-              )}
-              {/* --- Tampilan untuk Kurir Kargo --- */}
-              {shippingCosts.calculate_cargo?.length > 0 && (
-                <div>
-                  <h3 className="font-semibold mb-2">Kargo</h3>
-                  <div className="space-y-2">
-                    {shippingCosts.calculate_cargo.map((service) => (
-                      <label
-                        key={service.shipping_name + service.service_name}
-                        className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500"
-                      >
-                        <input
-                          type="radio"
-                          name="shippingService"
-                          onChange={() =>
-                            setSelectedShipping({
-                              service: service.service_name,
-                              cost: service.shipping_cost,
-                            })
-                          }
-                          className="flex-shrink-0"
-                        />
-                        <div className="ml-3 flex justify-between w-full text-sm">
-                          <div>
-                            <p className="font-semibold">
-                              {service.shipping_name} {service.service_name}
-                            </p>
-                            <p className="text-gray-500">
-                              Estimasi {service.etd}
-                            </p>
-                          </div>
-                          <p className="font-bold">
-                            {formatRupiah(service.shipping_cost)}
-                          </p>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
+                </label>
+              ))}
             </div>
           )}
         </div>

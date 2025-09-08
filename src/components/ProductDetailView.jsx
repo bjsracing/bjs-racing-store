@@ -57,7 +57,7 @@ const ProductDetailView = ({ initialProduct, allProductVariants }) => {
                 setQuantity(1);
             }
         }
-    }, [selectedSize, allProductVariants, initialProduct, quantity]);
+    }, [selectedSize, allProductVariants, initialProduct]);
 
     const handleQuantityChange = (amount) => {
         const newQuantity = Math.max(

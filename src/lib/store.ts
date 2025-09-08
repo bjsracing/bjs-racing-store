@@ -1,7 +1,4 @@
 // File: src/lib/store.ts
-// Versi lengkap dan utuh dengan state management untuk keranjang dan alamat,
-// serta Tipe Data yang diperbarui untuk mendukung data koordinat peta.
-
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -9,7 +6,7 @@ import { persist } from "zustand/middleware";
 // == DEFINISI TIPE DATA (TYPESCRIPT)                            ==
 // ==================================================================
 
-// Tipe data untuk objek produk
+// Tipe data untuk produk (sesuaikan dengan struktur data produk Anda)
 interface Product {
   id: string;
   nama: string;
@@ -20,12 +17,12 @@ interface Product {
   ukuran?: string;
 }
 
-// Tipe data untuk item di dalam keranjang belanja
+// Tipe data untuk item di keranjang
 interface CartItem extends Product {
   quantity: number;
 }
 
-// Tipe data untuk objek Alamat lengkap yang disimpan di state
+// Tipe data untuk alamat (dari langkah sebelumnya)
 export interface Address {
   id: string;
   label: string;
@@ -38,11 +35,9 @@ export interface Address {
   is_primary: boolean;
   province_id?: string;
   city_id?: string;
-  latitude?: number; // Ditambahkan untuk pin point peta
-  longitude?: number; // Ditambahkan untuk pin point peta
 }
 
-// Tipe data untuk state internal form di AddressForm.tsx
+// Tipe data untuk form input (dari langkah sebelumnya)
 export interface FormDataState {
   label: string;
   recipient_name: string;
@@ -53,8 +48,6 @@ export interface FormDataState {
   postal_code: string;
   province_id?: string;
   city_id?: string;
-  latitude?: number; // Ditambahkan untuk pin point peta
-  longitude?: number; // Ditambahkan untuk pin point peta
 }
 
 // Tipe data untuk keseluruhan state Zustand store
@@ -83,6 +76,7 @@ interface StoreState {
 // ==================================================================
 
 export const useAppStore = create<StoreState>()(
+  // Terapkan tipe StoreState di sini
   persist(
     (set, get) => ({
       // --- State Keranjang Belanja ---
@@ -94,10 +88,11 @@ export const useAppStore = create<StoreState>()(
           );
           if (existingItem) {
             return {
-              items: state.items.map((item) =>
-                item.id === productToAdd.id
-                  ? { ...item, quantity: item.quantity + quantity }
-                  : item,
+              items: state.items.map(
+                (item) =>
+                  item.id === productToAdd.id
+                    ? { ...item, quantity: item.quantity + quantity }
+                    : item, // Perbaikan error: Hapus typo "a:" jika ada di sini
               ),
             };
           } else {
@@ -190,8 +185,6 @@ export const useAppStore = create<StoreState>()(
     }),
     {
       name: "bjs-racing-store-cart",
-      // Hanya menyimpan keranjang di localStorage untuk persistensi antar sesi.
-      // Alamat akan selalu diambil dari server untuk memastikan data segar.
       partialize: (state) => ({ items: state.items }),
     },
   ),

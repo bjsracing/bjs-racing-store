@@ -1,5 +1,5 @@
 // File: src/pages/api/rajaongkir/cost.ts
-// Perbaikan Final: Menggunakan metode GET dan parameter sesuai dokumentasi resmi Komerce.
+// Versi Final dengan perbaikan struktur payload dan logging diagnostik.
 
 import type { APIRoute } from "astro";
 
@@ -8,95 +8,75 @@ export const POST: APIRoute = async ({ request }) => {
 
   if (!apiKey) {
     return new Response(
-      JSON.stringify({ message: "API key tidak dikonfigurasi." }),
+      JSON.stringify({ message: "RajaOngkir API key tidak dikonfigurasi." }),
       { status: 500 },
     );
   }
 
   try {
-    // 1. Ambil semua parameter dari body request frontend
     const body = await request.json();
-    const {
-      shipper_destination_id,
-      receiver_destination_id,
-      weight,
-      item_value,
-      origin_pin_point,
-      destination_pin_point,
-    } = body;
+    const { origin, destination, weight, courier } = body;
 
-    // 2. Validasi parameter wajib untuk semua kurir
-    if (
-      !shipper_destination_id ||
-      !receiver_destination_id ||
-      !weight ||
-      !item_value
-    ) {
+    if (!origin || !destination || !weight || !courier) {
       return new Response(
-        JSON.stringify({
-          message:
-            "Parameter origin, destination, weight, dan item_value wajib diisi.",
-        }),
+        JSON.stringify({ message: "Data input tidak lengkap." }),
         { status: 400 },
       );
     }
 
-    // 3. Bangun URL dengan URLSearchParams untuk request GET
-    const endpoint =
-      "https://api-sandbox.collaborator.komerce.id/tariff/api/v1/calculate";
-    const params = new URLSearchParams({
-      shipper_destination_id: shipper_destination_id,
-      receiver_destination_id: receiver_destination_id,
-      weight: String(weight),
-      item_value: String(item_value),
-    });
+    // Buat objek payload internal yang akan dikirim
+    const rajaOngkirPayload = {
+      Origin: origin,
+      Destination: destination,
+      weight: weight,
+      courier: courier.toLowerCase(),
+    };
 
-    // Tambahkan parameter pin point HANYA jika ada (penting untuk GoSend)
-    if (origin_pin_point && destination_pin_point) {
-      params.append("origin_pin_point", origin_pin_point);
-      params.append("destination_pin_point", destination_pin_point);
-    }
-
-    const url = `${endpoint}?${params.toString()}`;
-
-    // Debug log removed for production
-
-    // 4. Lakukan request GET dengan header yang benar
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "x-api-key": apiKey,
-        "Content-Type": "application/json",
+    // Kirim permintaan ke server RajaOngkir
+    const response = await fetch(
+      "https://rajaongkir.komerce.id/api/v1/calculate/domestic-cost",
+      {
+        method: "POST",
+        headers: {
+          key: apiKey,
+          "content-type": "application/json",
+        },
+        // Bungkus payload di dalam objek "data"
+        body: JSON.stringify({ data: rajaOngkirPayload }),
       },
-    });
+    );
 
+    // Ambil respons dalam format JSON
     const result = await response.json();
 
-    if (!response.ok || result.meta.status !== "success") {
+    // Cek jika respons TIDAK berhasil (status bukan 2xx)
+    if (!response.ok) {
+      // --- FUNGSI DEBUGGING 1: Log error spesifik dari RajaOngkir ---
       console.error(
-        "Komerce Calculate API Error:",
+        "RajaOngkir API Error Response:",
         JSON.stringify(result, null, 2),
       );
       const errorMessage =
-        result?.meta?.message || "Gagal menghitung ongkos kirim.";
+        result?.meta?.message || "Terjadi kesalahan dari API RajaOngkir.";
       return new Response(JSON.stringify({ message: errorMessage }), {
-        status: result.meta.code || 500,
+        status: response.status,
       });
     }
 
-    // 5. Kembalikan data dari properti 'data'
-    return new Response(JSON.stringify(result.data || {}), {
+    // Jika berhasil, kembalikan data ongkos kirim
+    return new Response(JSON.stringify(result.data || []), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
+    // --- FUNGSI DEBUGGING 2: Log error umum (jaringan, dll) ---
     console.error("Gagal memproses permintaan ongkos kirim:", error);
     return new Response(
       JSON.stringify({
         message:
           error instanceof Error
             ? error.message
-            : "Terjadi kesalahan pada server.",
+            : "Gagal menghitung ongkos kirim.",
       }),
       { status: 500 },
     );

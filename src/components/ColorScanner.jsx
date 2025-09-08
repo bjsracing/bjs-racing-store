@@ -19,23 +19,14 @@ const ColorScanner = () => {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
       const img = new Image();
-      
-      const handleLoad = () => {
+      img.src = imageSrc;
+      img.onload = () => {
         // Atur ukuran canvas agar sesuai dengan kontainernya, sambil menjaga rasio aspek gambar
         const maxWidth = canvas.parentElement.clientWidth;
         const scale = maxWidth / img.width;
         canvas.width = maxWidth;
         canvas.height = img.height * scale;
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      };
-      
-      img.onload = handleLoad;
-      img.src = imageSrc;
-      
-      // Cleanup untuk mencegah memory leak
-      return () => {
-        img.onload = null;
-        img.src = "";
       };
     }
   }, [imageSrc]);

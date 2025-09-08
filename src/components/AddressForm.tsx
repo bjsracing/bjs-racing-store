@@ -1,17 +1,15 @@
 // File: src/components/AddressForm.tsx
-// Perbaikan: Menggunakan React.lazy untuk memastikan komponen peta hanya dirender di browser.
+// Deskripsi: Versi lengkap dengan validasi penuh di handleSubmit.
 
-import React, { useState, useEffect, useCallback, lazy, Suspense } from "react";
-import { useAppStore } from "@/lib/store.ts";
-import type { Address, FormDataState } from "@/lib/store.ts";
+import React, { useState, useEffect, useCallback } from "react";
+import { useAppStore } from "@/lib/store";
+import type { Address, FormDataState } from "@/lib/store";
 
-// PERBAIKAN 1: Impor komponen peta secara dinamis
-const MapPicker = lazy(() => import("./MapPicker"));
-
-// Tipe data untuk hasil pencarian dari API Komerce
-interface KomerceSearchResult {
+// --- Tipe Data ---
+interface RajaOngkirResult {
   id: number;
-  label: string;
+  city_id?: string;
+  province_id?: string;
   subdistrict_name: string;
   district_name: string;
   city_name: string;
@@ -19,14 +17,12 @@ interface KomerceSearchResult {
   zip_code: string;
 }
 
-// Tipe props untuk komponen form
 interface AddressFormProps {
   isOpen: boolean;
   onClose: () => void;
   addressToEdit?: Address | null;
 }
 
-// State awal untuk form
 const initialFormState: FormDataState = {
   label: "",
   recipient_name: "",
@@ -35,10 +31,11 @@ const initialFormState: FormDataState = {
   destination_text: "",
   full_address: "",
   postal_code: "",
-  latitude: -6.2088,
-  longitude: 106.8456,
+  city_id: "",
+  province_id: "",
 };
 
+// --- Komponen React ---
 export default function AddressForm({
   isOpen,
   onClose,
@@ -48,10 +45,9 @@ export default function AddressForm({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<KomerceSearchResult[]>([]);
+  const [searchResults, setSearchResults] = useState<RajaOngkirResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [showMap, setShowMap] = useState(false);
 
   const addAddress = useAppStore((state) => state.addAddress);
   const updateAddress = useAppStore((state) => state.updateAddress);
@@ -67,15 +63,13 @@ export default function AddressForm({
           destination_text: addressToEdit.destination_text || "",
           full_address: addressToEdit.full_address || "",
           postal_code: addressToEdit.postal_code || "",
-          latitude: addressToEdit.latitude || initialFormState.latitude,
-          longitude: addressToEdit.longitude || initialFormState.longitude,
+          province_id: addressToEdit.province_id || "",
+          city_id: addressToEdit.city_id || "",
         });
         setSearchQuery(addressToEdit.destination_text || "");
-        setShowMap(true);
       } else {
         setFormData(initialFormState);
         setSearchQuery("");
-        setShowMap(false);
       }
       setErrorMessage("");
       setSearchResults([]);
@@ -83,6 +77,7 @@ export default function AddressForm({
     }
   }, [addressToEdit, isOpen]);
 
+  // --- Logika Pencarian Kota RajaOngkir ---
   const performSearch = useCallback(async (query: string) => {
     if (query.length < 3) {
       setSearchResults([]);
@@ -94,12 +89,12 @@ export default function AddressForm({
       const response = await fetch(
         `/api/rajaongkir/search-city?query=${encodeURIComponent(query)}`,
       );
-      if (!response.ok) throw new Error("Gagal mencari destinasi.");
-      const results: KomerceSearchResult[] = await response.json();
+      if (!response.ok) throw new Error("Gagal mencari kota.");
+      const results: RajaOngkirResult[] = await response.json();
       setSearchResults(results);
       setIsDropdownOpen(true);
     } catch (error) {
-      console.error("Komerce search error:", error);
+      console.error("RajaOngkir search error:", error);
       setSearchResults([]);
     } finally {
       setIsSearching(false);
@@ -111,10 +106,11 @@ export default function AddressForm({
       if (searchQuery && searchQuery !== formData.destination_text) {
         performSearch(searchQuery);
       }
-    }, 500);
+    }, 300);
     return () => clearTimeout(debounceTimer);
   }, [searchQuery, formData.destination_text, performSearch]);
 
+  // --- Event Handlers ---
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
@@ -127,47 +123,56 @@ export default function AddressForm({
     setSearchQuery(newQuery);
     if (newQuery !== formData.destination_text) {
       setFormData((prev) => ({ ...prev, destination: "" }));
-      setShowMap(false);
     }
   };
 
-  const handleCitySelect = (city: KomerceSearchResult) => {
+  const handleCitySelect = (city: RajaOngkirResult) => {
+    const fullText = `${city.subdistrict_name}, ${city.district_name}, ${city.city_name}, ${city.province_name}`;
     setFormData((prev) => ({
       ...prev,
       destination: String(city.id),
-      destination_text: city.label,
+      destination_text: fullText,
       postal_code: city.zip_code,
+      city_id: city.city_id || "",
+      province_id: city.province_id || "",
     }));
-    setSearchQuery(city.label);
+    setSearchQuery(fullText);
     setIsDropdownOpen(false);
-    setShowMap(true);
   };
 
-  const handleLocationChange = useCallback((lat: number, lng: number) => {
-    setFormData((prev) => ({ ...prev, latitude: lat, longitude: lng }));
-  }, []);
+  const handleInputBlur = () => {
+    setTimeout(() => setIsDropdownOpen(false), 150);
+  };
 
+  /**
+   * Menangani submit form utama.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage("");
 
+    // ==================================================================
+    // == PERBAIKAN VALIDASI LENGKAP                                   ==
+    // ==================================================================
+    // 1. Validasi pemilihan destinasi dari dropdown
     if (!formData.destination) {
-      setErrorMessage("Area destinasi harus dipilih dari hasil pencarian.");
+      setErrorMessage(
+        "Kota/Kecamatan harus dipilih dari hasil pencarian dropdown.",
+      );
       setIsLoading(false);
       return;
     }
-    if (!formData.latitude || !formData.longitude) {
-      setErrorMessage("Mohon tentukan titik lokasi di peta.");
-      setIsLoading(false);
-      return;
-    }
+
+    // 2. Validasi field wajib lainnya (Nama, Telepon, Alamat Lengkap)
     if (
       !formData.recipient_name ||
       !formData.recipient_phone ||
       !formData.full_address
     ) {
-      setErrorMessage("Nama, telepon, dan alamat lengkap wajib diisi.");
+      setErrorMessage(
+        "Nama Penerima, Nomor Telepon, dan Alamat Lengkap wajib diisi.",
+      );
       setIsLoading(false);
       return;
     }
@@ -188,6 +193,7 @@ export default function AddressForm({
     }
   };
 
+  // --- Render JSX ---
   if (!isOpen) return null;
 
   return (
@@ -208,6 +214,7 @@ export default function AddressForm({
               </button>
             </div>
             <div className="max-h-[70vh] overflow-y-auto pr-2 space-y-4">
+              {/* Field: Label Alamat */}
               <div>
                 <label
                   htmlFor="label"
@@ -222,9 +229,10 @@ export default function AddressForm({
                   value={formData.label}
                   onChange={handleChange}
                   placeholder="Contoh: Rumah, Kantor"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
                 />
               </div>
+              {/* Field: Nama Penerima */}
               <div>
                 <label
                   htmlFor="recipient_name"
@@ -239,9 +247,10 @@ export default function AddressForm({
                   value={formData.recipient_name}
                   onChange={handleChange}
                   required
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
                 />
               </div>
+              {/* Field: Nomor Telepon */}
               <div>
                 <label
                   htmlFor="recipient_phone"
@@ -256,16 +265,16 @@ export default function AddressForm({
                   value={formData.recipient_phone}
                   onChange={handleChange}
                   required
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
                 />
               </div>
-
+              {/* Field: Pencarian Kota RajaOngkir */}
               <div className="relative">
                 <label
                   htmlFor="city-search"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Cari Kecamatan / Kota
+                  Kota / Kabupaten / Kecamatan
                 </label>
                 <input
                   type="text"
@@ -275,11 +284,12 @@ export default function AddressForm({
                   value={searchQuery}
                   onChange={handleSearchInputChange}
                   onFocus={() => setIsDropdownOpen(true)}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                  onBlur={handleInputBlur}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
                 />
                 {isDropdownOpen &&
                   (searchResults.length > 0 || isSearching) && (
-                    <div className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5">
+                    <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5">
                       {isSearching && (
                         <div className="p-2 text-gray-500">Mencari...</div>
                       )}
@@ -289,46 +299,20 @@ export default function AddressForm({
                           onMouseDown={() => handleCitySelect(city)}
                           className="cursor-pointer p-2 hover:bg-orange-100"
                         >
-                          <p className="font-semibold text-gray-800 text-sm">
-                            {city.label}
-                          </p>
+                          <div className="font-semibold text-gray-800">{`${city.subdistrict_name}, ${city.district_name}`}</div>
+                          <div className="text-xs text-gray-500">{`${city.city_name}, ${city.province_name}`}</div>
                         </div>
                       ))}
                     </div>
                   )}
               </div>
-
-              {/* PERBAIKAN 2: Bungkus komponen peta dengan Suspense */}
-              {showMap && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Tentukan Pin Point Lokasi
-                  </label>
-                  <div className="mt-2">
-                    <Suspense
-                      fallback={
-                        <div className="h-64 w-full flex items-center justify-center bg-gray-100 rounded-lg">
-                          Memuat peta...
-                        </div>
-                      }
-                    >
-                      <MapPicker
-                        key={`${formData.latitude}-${formData.longitude}`}
-                        initialLat={formData.latitude}
-                        initialLng={formData.longitude}
-                        onLocationChange={handleLocationChange}
-                      />
-                    </Suspense>
-                  </div>
-                </div>
-              )}
-
+              {/* Field: Alamat Lengkap */}
               <div>
                 <label
                   htmlFor="full_address"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Alamat Lengkap (Nama Jalan, No. Rumah)
+                  Alamat Lengkap
                 </label>
                 <textarea
                   id="full_address"
@@ -337,10 +321,11 @@ export default function AddressForm({
                   onChange={handleChange}
                   rows={3}
                   required
-                  placeholder="Contoh: Jl. Merdeka No. 10, RT 01/RW 02"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                  placeholder="Nama jalan, nomor rumah, RT/RW"
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
                 ></textarea>
               </div>
+              {/* Field: Kode Pos */}
               <div>
                 <label
                   htmlFor="postal_code"
@@ -355,7 +340,7 @@ export default function AddressForm({
                   value={formData.postal_code}
                   onChange={handleChange}
                   readOnly
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-gray-100"
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-gray-100 focus:ring-orange-500 focus:border-orange-500"
                 />
               </div>
             </div>
