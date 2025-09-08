@@ -1,12 +1,12 @@
-// src/components/CartView.jsx (Versi Final & Stabil)
+// File: src/components/CartView.jsx
+// Perbaikan: Tombol "Lanjut ke Checkout" diubah menjadi tag <a> untuk navigasi.
 
 import React from "react";
-import { useAppStore } from "../lib/store.js";
+import { useAppStore } from "../lib/store.ts"; // Pastikan impor dari file .ts jika store sudah diganti namanya
 
 const CartView = () => {
   const { items, removeFromCart, updateQuantity } = useAppStore();
 
-  // PERBAIKAN: Logika subtotal sekarang lebih aman
   const subtotal = items.reduce(
     (total, item) => total + (item.quantity || 0) * (item.harga_jual || 0),
     0,
@@ -30,7 +30,7 @@ const CartView = () => {
           Mari jelajahi produk kami dan temukan yang Anda butuhkan!
         </p>
         <a
-          href="/pilok"
+          href="/pilok" // Arahkan ke halaman produk utama
           className="mt-6 inline-block bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
         >
           Mulai Belanja
@@ -40,15 +40,14 @@ const CartView = () => {
   }
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-lg">
+    <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
       <div className="space-y-4">
         {items.map((item) => {
-          // PERBAIKAN: Pastikan 'quantity' selalu memiliki nilai
           const quantity = item.quantity || 0;
           return (
             <div
               key={item.id}
-              className="flex items-center gap-4 border-b pb-4 last:border-b-0"
+              className="flex flex-col sm:flex-row items-center gap-4 border-b pb-4 last:border-b-0"
             >
               <div className="w-20 h-20 bg-slate-100 rounded-md flex-shrink-0">
                 <img
@@ -58,7 +57,7 @@ const CartView = () => {
                 />
               </div>
 
-              <div className="flex-grow">
+              <div className="flex-grow text-center sm:text-left">
                 <p className="font-semibold text-slate-800">{item.nama}</p>
                 <p className="text-sm text-slate-500">
                   {item.merek} - {item.ukuran}
@@ -79,9 +78,9 @@ const CartView = () => {
                   type="number"
                   value={quantity}
                   onChange={(e) =>
-                    updateQuantity(item.id, parseInt(e.target.value, 10))
+                    updateQuantity(item.id, parseInt(e.target.value, 10) || 1)
                   }
-                  className="w-12 text-center font-semibold border-none focus:ring-0"
+                  className="w-12 text-center font-semibold border-none focus:ring-0 bg-transparent"
                 />
                 <button
                   onClick={() => updateQuantity(item.id, quantity + 1)}
@@ -121,7 +120,7 @@ const CartView = () => {
         })}
       </div>
 
-      <div className="mt-8 flex justify-end">
+      <div className="mt-8 flex flex-col sm:flex-row justify-end">
         <div className="w-full max-w-sm">
           <div className="flex justify-between text-lg">
             <span className="text-slate-600">Subtotal</span>
@@ -132,9 +131,14 @@ const CartView = () => {
           <p className="text-xs text-slate-400 text-right mt-1">
             Pajak dan ongkos kirim dihitung saat checkout.
           </p>
-          <button className="mt-4 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors">
+
+          {/* --- PERBAIKAN: Tombol diubah menjadi Link Navigasi --- */}
+          <a
+            href="/checkout"
+            className="mt-4 block text-center w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+          >
             Lanjut ke Checkout
-          </button>
+          </a>
         </div>
       </div>
     </div>

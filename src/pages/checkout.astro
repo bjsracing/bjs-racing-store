@@ -1,0 +1,27 @@
+---
+// File: src/pages/checkout.astro
+// Halaman ini memuat komponen React untuk proses checkout.
+
+import MainLayout from '@/layouts/MainLayout.astro';
+import CheckoutView from '@/components/CheckoutView.tsx';
+
+// Proteksi Halaman: Hanya pengguna yang login yang bisa mengakses.
+const { session } = Astro.locals;
+if (!session) {
+  // Arahkan ke halaman login, dan sertakan parameter redirect
+  // agar pengguna kembali ke checkout setelah login berhasil.
+  return Astro.redirect('/login?redirect=/checkout');
+}
+---
+
+<MainLayout title="Checkout - BJS RACING STORE">
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-8 text-center md:text-left">Checkout</h1>
+
+    {/* Memuat komponen React CheckoutView.
+      'client:load' memastikan JavaScript komponen ini dieksekusi di browser
+      agar halaman menjadi interaktif.
+    */}
+    <CheckoutView client:load />
+  </div>
+</MainLayout>
