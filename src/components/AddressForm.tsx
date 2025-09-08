@@ -1,10 +1,12 @@
 // File: src/components/AddressForm.tsx
-// Versi final dengan integrasi pencarian alamat otomatis Komerce dan peta Leaflet.
+// Perbaikan: Menggunakan React.lazy untuk memastikan komponen peta hanya dirender di browser.
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { useAppStore } from "@/lib/store.ts";
 import type { Address, FormDataState } from "@/lib/store.ts";
-import MapPicker from "./MapPicker"; // Impor komponen peta baru
+
+// PERBAIKAN 1: Impor komponen peta secara dinamis
+const MapPicker = lazy(() => import("./MapPicker"));
 
 // Tipe data untuk hasil pencarian dari API Komerce
 interface KomerceSearchResult {
@@ -33,35 +35,27 @@ const initialFormState: FormDataState = {
   destination_text: "",
   full_address: "",
   postal_code: "",
-  latitude: -6.2088, // Default ke Jakarta
-  longitude: 106.8456, // Default ke Jakarta
+  latitude: -6.2088,
+  longitude: 106.8456,
 };
 
-// --- Komponen React Utama ---
 export default function AddressForm({
   isOpen,
   onClose,
   addressToEdit,
 }: AddressFormProps) {
-  // --- State Management ---
   const [formData, setFormData] = useState<FormDataState>(initialFormState);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-
-  // State untuk pencarian
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<KomerceSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  // State untuk mengontrol visibilitas peta
   const [showMap, setShowMap] = useState(false);
 
-  // Mengambil aksi dari store Zustand
   const addAddress = useAppStore((state) => state.addAddress);
   const updateAddress = useAppStore((state) => state.updateAddress);
 
-  // Efek untuk mengisi form saat mode edit atau reset saat mode tambah
   useEffect(() => {
     if (isOpen) {
       if (addressToEdit) {
@@ -77,11 +71,11 @@ export default function AddressForm({
           longitude: addressToEdit.longitude || initialFormState.longitude,
         });
         setSearchQuery(addressToEdit.destination_text || "");
-        setShowMap(true); // Langsung tampilkan peta saat mode edit
+        setShowMap(true);
       } else {
         setFormData(initialFormState);
         setSearchQuery("");
-        setShowMap(false); // Sembunyikan peta saat mode tambah baru
+        setShowMap(false);
       }
       setErrorMessage("");
       setSearchResults([]);
@@ -89,7 +83,6 @@ export default function AddressForm({
     }
   }, [addressToEdit, isOpen]);
 
-  // --- Logika Pencarian Alamat Komerce ---
   const performSearch = useCallback(async (query: string) => {
     if (query.length < 3) {
       setSearchResults([]);
@@ -122,7 +115,6 @@ export default function AddressForm({
     return () => clearTimeout(debounceTimer);
   }, [searchQuery, formData.destination_text, performSearch]);
 
-  // --- Event Handlers ---
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
@@ -135,7 +127,7 @@ export default function AddressForm({
     setSearchQuery(newQuery);
     if (newQuery !== formData.destination_text) {
       setFormData((prev) => ({ ...prev, destination: "" }));
-      setShowMap(false); // Sembunyikan peta jika pengguna mengetik ulang
+      setShowMap(false);
     }
   };
 
@@ -148,15 +140,11 @@ export default function AddressForm({
     }));
     setSearchQuery(city.label);
     setIsDropdownOpen(false);
-    setShowMap(true); // Tampilkan peta setelah destinasi dipilih
+    setShowMap(true);
   };
 
   const handleLocationChange = useCallback((lat: number, lng: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      latitude: lat,
-      longitude: lng,
-    }));
+    setFormData((prev) => ({ ...prev, latitude: lat, longitude: lng }));
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -220,7 +208,6 @@ export default function AddressForm({
               </button>
             </div>
             <div className="max-h-[70vh] overflow-y-auto pr-2 space-y-4">
-              {/* Field: Label, Nama, Telepon */}
               <div>
                 <label
                   htmlFor="label"
@@ -273,7 +260,6 @@ export default function AddressForm({
                 />
               </div>
 
-              {/* Field: Pencarian Destinasi */}
               <div className="relative">
                 <label
                   htmlFor="city-search"
@@ -312,24 +298,31 @@ export default function AddressForm({
                   )}
               </div>
 
-              {/* Field: Peta Interaktif (ditampilkan secara kondisional) */}
+              {/* PERBAIKAN 2: Bungkus komponen peta dengan Suspense */}
               {showMap && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     Tentukan Pin Point Lokasi
                   </label>
                   <div className="mt-2">
-                    <MapPicker
-                      key={`${formData.latitude}-${formData.longitude}`} // Paksa re-render jika data berubah
-                      initialLat={formData.latitude}
-                      initialLng={formData.longitude}
-                      onLocationChange={handleLocationChange}
-                    />
+                    <Suspense
+                      fallback={
+                        <div className="h-64 w-full flex items-center justify-center bg-gray-100 rounded-lg">
+                          Memuat peta...
+                        </div>
+                      }
+                    >
+                      <MapPicker
+                        key={`${formData.latitude}-${formData.longitude}`}
+                        initialLat={formData.latitude}
+                        initialLng={formData.longitude}
+                        onLocationChange={handleLocationChange}
+                      />
+                    </Suspense>
                   </div>
                 </div>
               )}
 
-              {/* Field: Alamat Lengkap & Kode Pos */}
               <div>
                 <label
                   htmlFor="full_address"
@@ -367,7 +360,6 @@ export default function AddressForm({
               </div>
             </div>
           </div>
-          {/* Tombol Aksi */}
           <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-lg items-center">
             {errorMessage && (
               <p className="text-red-500 text-sm mr-auto">{errorMessage}</p>
