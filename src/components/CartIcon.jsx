@@ -1,11 +1,12 @@
-// src/components/CartIcon.jsx
+// File: src/components/CartIcon.jsx
 
 import React from "react";
-import { useAppStore } from "../lib/store.js"; // <-- Gunakan useAppStore
+// PERBAIKAN: Ubah path impor agar menunjuk ke file store.ts yang sudah dimigrasi.
+import { useAppStore } from "../lib/store.ts"; 
 
 const CartIcon = () => {
   const items = useAppStore((state) => state.items);
-  const totalItems = items.reduce((total, item) => total + item.quantity, 0);
+  const totalItems = items.reduce((total, item) => total + (item.quantity || 0), 0);
 
   return (
     <a
@@ -29,8 +30,15 @@ const CartIcon = () => {
       </svg>
 
       {totalItems > 0 && (
-        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
           {totalItems}
+        </span>
+      )}
+    </a>
+  );
+};
+
+export default CartIcon;   {totalItems}
         </span>
       )}
     </a>
