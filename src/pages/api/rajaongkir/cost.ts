@@ -1,5 +1,5 @@
 // File: src/pages/api/rajaongkir/cost.ts
-// Perbaikan: Ubah case sensitivity field 'origin' -> 'Origin' dan 'destination' -> 'Destination'.
+// Perbaikan: Menambahkan logging diagnostik untuk melihat payload yang dikirim.
 
 import type { APIRoute } from "astro";
 
@@ -19,12 +19,29 @@ export const POST: APIRoute = async ({ request }) => {
 
     if (!origin || !destination || !weight || !courier) {
       return new Response(
-        JSON.stringify({
-          message: "Data origin, destination, weight, dan courier wajib diisi.",
-        }),
+        JSON.stringify({ message: "Data input tidak lengkap." }),
         { status: 400 },
       );
     }
+
+    // ==================================================================
+    // == INSTRUKSI DEBUGGING: Membuat payload dan mencetaknya ke log  ==
+    // ==================================================================
+    // 1. Buat objek payload yang akan dikirim ke RajaOngkir.
+    const rajaOngkirPayload = {
+      Origin: origin,
+      Destination: destination,
+      weight: weight,
+      courier: courier.toLowerCase(),
+    };
+
+    // 2. Cetak payload ini ke log Vercel. Ini akan menunjukkan kepada kita
+    //    secara pasti apa yang dikirim oleh server Anda.
+    console.log(
+      "[DEBUG] Payload yang dikirim ke RajaOngkir:",
+      JSON.stringify(rajaOngkirPayload, null, 2),
+    );
+    // ==================================================================
 
     const response = await fetch(
       "https://rajaongkir.komerce.id/api/v1/calculate/domestic-cost",
@@ -34,20 +51,24 @@ export const POST: APIRoute = async ({ request }) => {
           key: apiKey,
           "content-type": "application/json",
         },
-        body: JSON.stringify({
-          // --- PERBAIKAN DI SINI ---
-          Origin: origin, // 'o' menjadi 'O'
-          Destination: destination, // 'd' menjadi 'D'
-          weight: weight,
-          courier: courier.toLowerCase(),
-        }),
+        // 3. Kirim payload yang sudah kita log.
+        body: JSON.stringify(rajaOngkirPayload),
       },
     );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("RajaOngkir API Error:", errorText);
-      throw new Error(`Error dari API RajaOngkir: ${response.statusText}`);
+      console.error("RajaOngkir API Error Response:", errorText);
+
+      // Kembalikan error yang lebih detail ke frontend untuk debugging
+      return new Response(
+        JSON.stringify({
+          message: "API RajaOngkir merespons dengan error.",
+          details: errorText, // Sertakan detail error asli
+          sentPayload: rajaOngkirPayload, // Sertakan payload yang kita kirim
+        }),
+        { status: response.status },
+      );
     }
 
     const result = await response.json();
@@ -57,9 +78,8 @@ export const POST: APIRoute = async ({ request }) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Gagal menghitung ongkos kirim:", error);
+    console.error("Gagal memproses permintaan ongkos kirim:", error);
     return new Response(
-      // Mengirim pesan error yang lebih spesifik jika memungkinkan
       JSON.stringify({
         message:
           error instanceof Error
