@@ -1,14 +1,15 @@
 // File: src/components/AddressForm.tsx
-// Perbaikan final: Menggunakan field 'id' dari data RajaOngkir, bukan 'subdistrict_id'.
+// Deskripsi: Versi lengkap dengan validasi penuh di handleSubmit.
 
 import React, { useState, useEffect, useCallback } from "react";
-import type { Address, FormDataState } from "@/stores/addressStore";
-import { addAddress, updateAddress } from "@/stores/addressStore";
+import { useAppStore } from "@/lib/store";
+import type { Address, FormDataState } from "@/lib/store";
 
 // --- Tipe Data ---
 interface RajaOngkirResult {
-  // PERBAIKAN TIPE: Sesuaikan dengan data log Vercel
-  id: number; // Field ID yang benar (tipe number)
+  id: number;
+  city_id?: string;
+  province_id?: string;
   subdistrict_name: string;
   district_name: string;
   city_name: string;
@@ -30,6 +31,8 @@ const initialFormState: FormDataState = {
   destination_text: "",
   full_address: "",
   postal_code: "",
+  city_id: "",
+  province_id: "",
 };
 
 // --- Komponen React ---
@@ -46,6 +49,9 @@ export default function AddressForm({
   const [isSearching, setIsSearching] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
+  const addAddress = useAppStore((state) => state.addAddress);
+  const updateAddress = useAppStore((state) => state.updateAddress);
+
   useEffect(() => {
     if (isOpen) {
       if (addressToEdit) {
@@ -57,6 +63,8 @@ export default function AddressForm({
           destination_text: addressToEdit.destination_text || "",
           full_address: addressToEdit.full_address || "",
           postal_code: addressToEdit.postal_code || "",
+          province_id: addressToEdit.province_id || "",
+          city_id: addressToEdit.city_id || "",
         });
         setSearchQuery(addressToEdit.destination_text || "");
       } else {
@@ -69,6 +77,7 @@ export default function AddressForm({
     }
   }, [addressToEdit, isOpen]);
 
+  // --- Logika Pencarian Kota RajaOngkir ---
   const performSearch = useCallback(async (query: string) => {
     if (query.length < 3) {
       setSearchResults([]);
@@ -101,6 +110,7 @@ export default function AddressForm({
     return () => clearTimeout(debounceTimer);
   }, [searchQuery, formData.destination_text, performSearch]);
 
+  // --- Event Handlers ---
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
@@ -118,15 +128,13 @@ export default function AddressForm({
 
   const handleCitySelect = (city: RajaOngkirResult) => {
     const fullText = `${city.subdistrict_name}, ${city.district_name}, ${city.city_name}, ${city.province_name}`;
-
     setFormData((prev) => ({
       ...prev,
-      // --- PERBAIKAN UTAMA DI SINI ---
-      // Ganti city.subdistrict_id menjadi city.id (sesuai log Vercel)
-      // Konversi ke String karena ID mungkin bertipe number, sedangkan form state kita string.
       destination: String(city.id),
       destination_text: fullText,
       postal_code: city.zip_code,
+      city_id: city.city_id || "",
+      province_id: city.province_id || "",
     }));
     setSearchQuery(fullText);
     setIsDropdownOpen(false);
@@ -136,11 +144,18 @@ export default function AddressForm({
     setTimeout(() => setIsDropdownOpen(false), 150);
   };
 
+  /**
+   * Menangani submit form utama.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage("");
 
+    // ==================================================================
+    // == PERBAIKAN VALIDASI LENGKAP                                   ==
+    // ==================================================================
+    // 1. Validasi pemilihan destinasi dari dropdown
     if (!formData.destination) {
       setErrorMessage(
         "Kota/Kecamatan harus dipilih dari hasil pencarian dropdown.",
@@ -148,12 +163,16 @@ export default function AddressForm({
       setIsLoading(false);
       return;
     }
+
+    // 2. Validasi field wajib lainnya (Nama, Telepon, Alamat Lengkap)
     if (
       !formData.recipient_name ||
       !formData.recipient_phone ||
       !formData.full_address
     ) {
-      setErrorMessage("Nama, telepon, dan alamat lengkap wajib diisi.");
+      setErrorMessage(
+        "Nama Penerima, Nomor Telepon, dan Alamat Lengkap wajib diisi.",
+      );
       setIsLoading(false);
       return;
     }
@@ -261,7 +280,7 @@ export default function AddressForm({
                   type="text"
                   id="city-search"
                   autoComplete="off"
-                  placeholder="Ketik min. 3 huruf (misal: Bandung)"
+                  placeholder="Ketik min. 3 huruf..."
                   value={searchQuery}
                   onChange={handleSearchInputChange}
                   onFocus={() => setIsDropdownOpen(true)}
@@ -276,7 +295,7 @@ export default function AddressForm({
                       )}
                       {searchResults.map((city) => (
                         <div
-                          key={city.id} // Gunakan city.id sebagai key
+                          key={city.id}
                           onMouseDown={() => handleCitySelect(city)}
                           className="cursor-pointer p-2 hover:bg-orange-100"
                         >
