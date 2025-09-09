@@ -1,7 +1,7 @@
 // File: src/components/AuthMenu.jsx
-// Perbaikan: Menggunakan fungsi getSupabaseBrowserClient() yang aman.
+// Perbaikan: Menggunakan getSupabaseBrowserClient() yang aman.
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 // PERBAIKAN 1: Impor fungsi, bukan konstanta
 import { getSupabaseBrowserClient } from "../lib/supabaseClient.js";
 import { useAuth } from "../lib/authContext.tsx";

@@ -1,5 +1,5 @@
 // File: src/components/AuthForm.jsx
-// Perbaikan: Menggunakan fungsi getSupabaseBrowserClient() yang aman.
+// Perbaikan: Menggunakan getSupabaseBrowserClient() yang aman.
 
 import React, { useEffect } from "react";
 import { Auth } from "@supabase/auth-ui-react";
@@ -42,7 +42,7 @@ const AuthForm = () => {
       }
     });
     return () => subscription.unsubscribe();
-  }, [supabase]); // Tambahkan supabase sebagai dependensi
+  }, [supabase]);
 
   if (isLoading || session) {
     return <p className="text-center text-slate-500">Memverifikasi sesi...</p>;
