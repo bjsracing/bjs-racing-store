@@ -1,19 +1,23 @@
 // File: src/components/CatalogFilter.jsx
-// Perbaikan: Menyesuaikan cara impor dan penggunaan Supabase client agar aman untuk SSR.
+// Perbaikan: Menyesuaikan cara impor dan penggunaan Supabase client agar aman untuk SSR,
+// sambil mempertahankan semua logika filter yang sudah stabil.
 
 import React, { useState, useEffect, useMemo } from "react";
-// PERBAIKAN 1: Impor FUNGSI getSupabaseBrowserClient, bukan konstanta supabase
-import { getSupabaseBrowserClient } from "../lib/supabaseClient.js";
+// PERBAIKAN 1: Impor FUNGSI useAuth dari pusat kontrol sesi kita
+import { useAuth } from "../lib/authContext.tsx";
 import { FiSearch, FiRefreshCw } from "react-icons/fi";
 
 const CatalogFilter = ({ filters, setFilters, filterConfig }) => {
     const [allProducts, setAllProducts] = useState([]);
 
-    // PERBAIKAN 2: Panggil fungsi untuk mendapatkan instance client Supabase yang aman
-    const supabase = getSupabaseBrowserClient();
+    // PERBAIKAN 2: Gunakan hook useAuth untuk mendapatkan client Supabase yang aman
+    const { supabase } = useAuth();
 
     // Ambil SEMUA data produk yang relevan sekali saja untuk mengisi opsi dropdown
     useEffect(() => {
+        // PERBAIKAN 3: Tambahkan guard clause untuk memastikan supabase sudah siap
+        if (!supabase) return;
+
         const fetchAllProductsForFilter = async () => {
             let query = supabase
                 .from("products")
@@ -26,7 +30,7 @@ const CatalogFilter = ({ filters, setFilters, filterConfig }) => {
             setAllProducts(data || []);
         };
         fetchAllProductsForFilter();
-    }, [supabase, filterConfig]); // PERBAIKAN 3: Tambahkan supabase sebagai dependensi
+    }, [supabase, filterConfig]); // PERBAIKAN 4: Tambahkan supabase sebagai dependensi
 
     // LOGIKA CASCADING FILTER (Tidak ada perubahan, sudah benar)
     const options = useMemo(() => {

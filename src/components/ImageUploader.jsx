@@ -1,15 +1,15 @@
 // File: src/components/ImageUploader.jsx
-// Perbaikan: Menyesuaikan cara impor dan penggunaan Supabase client agar aman untuk SSR.
+// Perbaikan: Disesuaikan dengan arsitektur AuthContext yang aman untuk SSR.
 
 import React, { useState, useRef } from "react";
-// PERBAIKAN 1: Impor FUNGSI getSupabaseBrowserClient, bukan konstanta supabase
-import { getSupabaseBrowserClient } from "../lib/supabaseClient.js";
+// PERBAIKAN 1: Impor FUNGSI useAuth dari pusat kontrol sesi kita
+import { useAuth } from "../lib/authContext.tsx";
 import imageCompression from "browser-image-compression";
 import { FiUpload } from "react-icons/fi";
 
-const ImageUploader = ({ productId, onUploadComplete }) => {
-  // PERBAIKAN 2: Panggil fungsi untuk mendapatkan instance client Supabase yang aman
-  const supabase = getSupabaseBrowserClient();
+const ImageUploader = ({ productId }) => {
+  // PERBAIKAN 2: Gunakan hook useAuth untuk mendapatkan client Supabase yang aman
+  const { supabase } = useAuth();
 
   const [mainImage, setMainImage] = useState(null);
   const [swatchImage, setSwatchImage] = useState(null);
@@ -31,6 +31,12 @@ const ImageUploader = ({ productId, onUploadComplete }) => {
   };
 
   const handleUpload = async () => {
+    // PERBAIKAN 3: Tambahkan guard clause untuk memastikan supabase sudah siap
+    if (!supabase) {
+      alert("Koneksi belum siap, silakan coba sesaat lagi.");
+      return;
+    }
+
     if (!mainImage && !swatchImage) {
       alert("Silakan pilih setidaknya satu gambar untuk diupload.");
       return;
@@ -94,6 +100,7 @@ const ImageUploader = ({ productId, onUploadComplete }) => {
     }
   };
 
+  // Render JSX (tidak ada perubahan)
   return (
     <div className="bg-slate-50 border-t-4 border-orange-400 p-4 rounded-b-lg shadow-md mt-8">
       <h3 className="font-bold text-lg text-slate-800 mb-4">

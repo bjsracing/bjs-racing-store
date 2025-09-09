@@ -1,46 +1,47 @@
 // File: src/components/AddToCartButton.jsx
-// Perbaikan: Menambahkan state loading untuk menangani proses penambahan asinkron.
+// Perbaikan Final: Menambahkan state loading dan mengubah `handleAddToCart` menjadi asinkron.
 
 import React, { useState } from "react";
-import { useAppStore } from "../lib/store.ts";
+// PERBAIKAN 1: Menggunakan alias path yang stabil untuk impor store.
+import { useAppStore } from "@/lib/store.ts";
 import id from "../../public/locales/id/common.json";
 import { FiShoppingCart } from "react-icons/fi";
 
 const AddToCartButton = ({ product }) => {
-  // Ambil aksi `addToCart` dari store
   const { addToCart } = useAppStore();
 
-  // State lokal untuk melacak status loading
+  // PERBAIKAN 2: Tambahkan state lokal untuk melacak status loading.
   const [isAdding, setIsAdding] = useState(false);
 
+  // PERBAIKAN 3: Ubah handleAddToCart menjadi fungsi `async`
   const handleAddToCart = async () => {
-    // 1. Cek jika produk valid dan tidak sedang dalam proses penambahan
+    // Mencegah klik ganda saat proses sedang berjalan
     if (!product || isAdding) return;
 
     setIsAdding(true); // Mulai loading
 
     try {
-      // 2. Panggil aksi `addToCart` yang sekarang asinkron
+      // Panggil aksi `addToCart` yang sekarang asinkron dan tunggu hingga selesai
       await addToCart(product, 1);
-      // Ganti alert dengan notifikasi yang lebih modern jika diinginkan
+      // Tampilkan notifikasi HANYA setelah proses server berhasil
       alert(`1 x ${product.nama} berhasil ditambahkan ke keranjang.`);
     } catch (error) {
       console.error("Gagal menambahkan ke keranjang:", error);
       alert("Gagal menambahkan produk ke keranjang. Silakan coba lagi.");
     } finally {
-      setIsAdding(false); // Selesaikan loading
+      setIsAdding(false); // Selesaikan loading, baik berhasil maupun gagal
     }
   };
 
   return (
     <button
       onClick={handleAddToCart}
-      // 3. Nonaktifkan tombol saat proses penambahan berlangsung
+      // PERBAIKAN 4: Nonaktifkan tombol saat proses penambahan berlangsung
       disabled={isAdding}
       className="w-full flex items-center justify-center gap-2 bg-orange-600 hover:bg-green-600 text-white font-bold py-2 rounded-lg transition-all duration-300 disabled:bg-slate-400 disabled:cursor-wait"
     >
       {isAdding ? (
-        // Tampilkan spinner atau teks loading
+        // Tampilan saat loading
         <>
           <svg
             className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"

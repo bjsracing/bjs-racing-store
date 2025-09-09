@@ -1,9 +1,9 @@
 // File: src/components/RelatedProducts.tsx
-// Perbaikan: Diubah ke .tsx dan disesuaikan dengan arsitektur Supabase client yang aman untuk SSR.
+// Perbaikan Final: Disesuaikan dengan arsitektur AuthContext yang aman untuk SSR.
 
 import React, { useState, useEffect } from "react";
-// PERBAIKAN 1: Impor FUNGSI getSupabaseBrowserClient, bukan konstanta supabase
-import { getSupabaseBrowserClient } from "../lib/supabaseClient.js"; 
+// PERBAIKAN 1: Impor FUNGSI useAuth dari pusat kontrol sesi kita
+import { useAuth } from "../lib/authContext.tsx";
 import ProductCard from "./ProductCard.jsx"; // Boleh tetap mengimpor file .jsx
 
 // Definisikan Tipe Data untuk props agar lebih aman
@@ -11,7 +11,8 @@ interface Product {
     id: string;
     merek?: string;
     lini_produk?: string;
-    // tambahkan properti lain jika ada
+    // tambahkan properti lain jika ada, agar bisa di-pass ke ProductCard
+    [key: string]: any;
 }
 
 interface RelatedProductsProps {
@@ -19,18 +20,25 @@ interface RelatedProductsProps {
 }
 
 const RelatedProducts = ({ product }: RelatedProductsProps) => {
-    // PERBAIKAN 2: Panggil fungsi untuk mendapatkan instance client Supabase yang aman
-    const supabase = getSupabaseBrowserClient();
+    // PERBAIKAN 2: Gunakan hook useAuth untuk mendapatkan client Supabase yang aman
+    const { supabase } = useAuth();
 
     const [related, setRelated] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // PERBAIKAN 3: Tambahkan guard clause untuk memastikan supabase sudah siap
+        if (!supabase) {
+            // Jika supabase belum siap, jangan lakukan apa-apa.
+            // useEffect akan berjalan lagi saat supabase tersedia.
+            return;
+        }
+
         const fetchRelated = async () => {
             if (!product.merek || !product.lini_produk) {
                 setLoading(false);
                 return;
-            };
+            }
 
             setLoading(true);
             const { data, error } = await supabase.rpc("get_related_products", {
@@ -47,9 +55,14 @@ const RelatedProducts = ({ product }: RelatedProductsProps) => {
             setLoading(false);
         };
         fetchRelated();
-    }, [product, supabase]); // PERBAIKAN 3: Tambahkan supabase sebagai dependensi
+    }, [product, supabase]); // supabase sekarang menjadi dependensi yang valid
 
-    if (loading) return <p className="text-center text-sm text-slate-500">Memuat produk terkait...</p>;
+    if (loading)
+        return (
+            <p className="text-center text-sm text-slate-500">
+                Memuat produk terkait...
+            </p>
+        );
     if (related.length === 0) return null; // Jangan tampilkan apa pun jika tidak ada produk terkait
 
     return (

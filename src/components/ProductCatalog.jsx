@@ -1,16 +1,16 @@
 // File: src/components/ProductCatalog.jsx
-// Perbaikan: Disesuaikan dengan arsitektur Supabase client yang aman untuk SSR.
+// Perbaikan: Disesuaikan dengan arsitektur AuthContext yang aman untuk SSR.
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-// PERBAIKAN 1: Impor FUNGSI getSupabaseBrowserClient, bukan konstanta supabase
-import { getSupabaseBrowserClient } from "../lib/supabaseClient.js";
+// PERBAIKAN 1: Impor FUNGSI useAuth dari pusat kontrol sesi kita
+import { useAuth } from "../lib/authContext.tsx";
 import CatalogFilter from "./CatalogFilter.jsx";
 import ProductCard from "./ProductCard.jsx";
 import ColorSwatchCard from "./ColorSwatchCard.jsx";
 
 const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
-    // PERBAIKAN 2: Panggil fungsi untuk mendapatkan instance client Supabase yang aman
-    const supabase = getSupabaseBrowserClient();
+    // PERBAIKAN 2: Gunakan hook useAuth untuk mendapatkan client Supabase yang aman
+    const { supabase } = useAuth();
 
     const [allProducts, setAllProducts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -25,6 +25,9 @@ const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
     });
 
     const fetchProducts = useCallback(async () => {
+        // PERBAIKAN 3: Tambahkan guard clause untuk memastikan supabase sudah siap
+        if (!supabase) return;
+
         setLoading(true);
         let sortBy = filters.sort;
         if (filters.price === "terendah") sortBy = "harga_asc";
@@ -50,13 +53,13 @@ const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
         else setAllProducts(data || []);
 
         setLoading(false);
-    }, [filterConfig, filters, supabase]); // PERBAIKAN 3: Tambahkan supabase sebagai dependensi
+    }, [filterConfig, filters, supabase]); // supabase sekarang menjadi dependensi
 
     useEffect(() => {
         fetchProducts();
     }, [fetchProducts]);
 
-    // Logika pengelompokan produk (tidak ada perubahan)
+    // Logika pengelompokan produk (tidak ada perubahan, sudah benar)
     const groupedProducts = useMemo(() => {
         if (cardType !== "colorSwatch") return null;
 
@@ -76,7 +79,7 @@ const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
         }, {});
     }, [allProducts, cardType]);
 
-    // Render JSX (tidak ada perubahan)
+    // Render JSX (tidak ada perubahan, sudah benar)
     return (
         <div>
             <CatalogFilter

@@ -1,18 +1,22 @@
 // File: src/components/ColorCatalogFilter.jsx
-// Perbaikan: Menyesuaikan cara impor dan penggunaan Supabase client agar aman untuk SSR.
+// Perbaikan: Disesuaikan dengan arsitektur AuthContext yang aman untuk SSR.
 
 import React, { useState, useEffect, useMemo } from "react";
-// PERBAIKAN 1: Impor FUNGSI getSupabaseBrowserClient, bukan konstanta supabase
-import { getSupabaseBrowserClient } from "../lib/supabaseClient.js";
+// PERBAIKAN 1: Impor FUNGSI useAuth dari pusat kontrol sesi kita
+import { useAuth } from "../lib/authContext.tsx";
 import { FiSearch, FiRefreshCw } from "react-icons/fi";
 
 const ColorCatalogFilter = ({ filters, setFilters }) => {
     const [allProducts, setAllProducts] = useState([]);
 
-    // PERBAIKAN 2: Panggil fungsi untuk mendapatkan instance client Supabase yang aman
-    const supabase = getSupabaseBrowserClient();
+    // PERBAIKAN 2: Gunakan hook useAuth untuk mendapatkan client Supabase yang aman
+    const { supabase } = useAuth();
 
+    // Ambil SEMUA data produk yang relevan sekali saja untuk mengisi opsi dropdown
     useEffect(() => {
+        // PERBAIKAN 3: Tambahkan guard clause untuk memastikan supabase sudah siap
+        if (!supabase) return;
+
         const fetchAllProductsForFilter = async () => {
             const { data } = await supabase
                 .from("products")
@@ -22,8 +26,9 @@ const ColorCatalogFilter = ({ filters, setFilters }) => {
             setAllProducts(data || []);
         };
         fetchAllProductsForFilter();
-    }, [supabase]); // Tambahkan supabase sebagai dependensi useEffect
+    }, [supabase]); // PERBAIKAN 4: Tambahkan supabase sebagai dependensi
 
+    // LOGIKA CASCADING FILTER (Tidak ada perubahan, sudah benar)
     const options = useMemo(() => {
         const merekOptions = [
             ...new Set(allProducts.map((p) => p.merek).filter(Boolean)),
@@ -58,6 +63,7 @@ const ColorCatalogFilter = ({ filters, setFilters }) => {
         };
     }, [allProducts, filters]);
 
+    // LOGIKA HANDLER (Tidak ada perubahan, sudah benar)
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         if (name === "merek") {
@@ -87,6 +93,7 @@ const ColorCatalogFilter = ({ filters, setFilters }) => {
         });
     };
 
+    // RENDER JSX (Tidak ada perubahan, sudah benar)
     return (
         <div className="bg-white p-4 rounded-lg shadow-sm mb-6 space-y-4">
             <div className="relative">

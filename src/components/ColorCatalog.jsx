@@ -1,12 +1,13 @@
 // File: src/components/ColorCatalog.jsx
-// Perbaikan: Disesuaikan dengan arsitektur Supabase client yang aman untuk SSR.
+// Perbaikan: Disesuaikan dengan arsitektur AuthContext yang aman untuk SSR.
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { getSupabaseBrowserClient } from "../lib/supabaseClient.js";
+// PERBAIKAN 1: Impor FUNGSI useAuth dari pusat kontrol sesi kita
+import { useAuth } from "../lib/authContext.tsx";
 import ColorCatalogFilter from "./ColorCatalogFilter.jsx";
 import ColorSwatchCard from "./ColorSwatchCard.jsx";
 
-// Hook useDebounce dipindahkan ke luar komponen untuk efisiensi.
+// Hook useDebounce (tidak ada perubahan)
 function useDebounce(value, delay) {
     const [debouncedValue, setDebouncedValue] = useState(value);
     useEffect(() => {
@@ -17,7 +18,9 @@ function useDebounce(value, delay) {
 }
 
 const ColorCatalog = () => {
-    const supabase = getSupabaseBrowserClient();
+    // PERBAIKAN 2: Gunakan hook useAuth untuk mendapatkan client Supabase yang aman
+    const { supabase } = useAuth();
+
     const [allProducts, setAllProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({
@@ -29,8 +32,10 @@ const ColorCatalog = () => {
 
     const debouncedSearchTerm = useDebounce(filters.searchTerm, 500);
 
-    // useCallback di sini sudah benar, tetapi dependensinya perlu diperbarui.
     const fetchProducts = useCallback(async () => {
+        // PERBAIKAN 3: Tambahkan guard clause untuk memastikan supabase sudah siap
+        if (!supabase) return;
+
         setLoading(true);
         let query = supabase
             .from("products")
@@ -53,7 +58,6 @@ const ColorCatalog = () => {
 
         if (error) console.error("Gagal memuat produk:", error.message);
         else {
-            // Logika untuk mengambil produk unik dengan color_swatch_url
             const uniqueProducts = new Map();
             (data || []).forEach((p) => {
                 if (!uniqueProducts.has(p.nama) && p.color_swatch_url) {
@@ -68,13 +72,14 @@ const ColorCatalog = () => {
         filters.lini_produk,
         filters.color_variant,
         debouncedSearchTerm,
-        supabase, // Tambahkan supabase sebagai dependensi
+        supabase, // supabase sekarang menjadi dependensi yang valid
     ]);
 
     useEffect(() => {
         fetchProducts();
     }, [fetchProducts]);
 
+    // Logika pengelompokan (tidak ada perubahan)
     const groupedProducts = useMemo(() => {
         return allProducts.reduce((acc, product) => {
             const variant = product.color_variant || "Lainnya";
@@ -84,6 +89,7 @@ const ColorCatalog = () => {
         }, {});
     }, [allProducts]);
 
+    // Render JSX (tidak ada perubahan)
     return (
         <div>
             <ColorCatalogFilter filters={filters} setFilters={setFilters} />

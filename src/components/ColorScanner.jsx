@@ -1,14 +1,14 @@
 // File: src/components/ColorScanner.jsx
-// Perbaikan: Menyesuaikan cara impor dan penggunaan Supabase client agar aman untuk SSR.
+// Perbaikan: Disesuaikan dengan arsitektur AuthContext yang aman untuk SSR.
 
 import React, { useState, useRef, useEffect } from "react";
-// PERBAIKAN 1: Impor FUNGSI getSupabaseBrowserClient, bukan konstanta supabase
-import { getSupabaseBrowserClient } from "../lib/supabaseClient.js";
+// PERBAIKAN 1: Impor FUNGSI useAuth dari pusat kontrol sesi kita
+import { useAuth } from "../lib/authContext.tsx";
 import { FiUpload, FiRefreshCw } from "react-icons/fi";
 
 const ColorScanner = () => {
-  // PERBAIKAN 2: Panggil fungsi untuk mendapatkan instance client Supabase yang aman
-  const supabase = getSupabaseBrowserClient();
+  // PERBAIKAN 2: Gunakan hook useAuth untuk mendapatkan client Supabase yang aman
+  const { supabase } = useAuth();
 
   const [imageSrc, setImageSrc] = useState(null);
   const [pickedColor, setPickedColor] = useState(null);
@@ -18,6 +18,7 @@ const ColorScanner = () => {
   const canvasRef = useRef(null);
   const loupeRef = useRef(null);
 
+  // Logika untuk menggambar ulang canvas (tidak ada perubahan)
   useEffect(() => {
     if (imageSrc && canvasRef.current) {
       const canvas = canvasRef.current;
@@ -34,9 +35,9 @@ const ColorScanner = () => {
     }
   }, [imageSrc]);
 
+  // Logika helper (tidak ada perubahan)
   const rgbToHex = (r, g, b) =>
     "#" + [r, g, b].map((x) => x.toString(16).padStart(2, "0")).join("");
-
   const getCanvasCoordinates = (e) => {
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
@@ -47,37 +48,39 @@ const ColorScanner = () => {
     return { x: x * scaleX, y: y * scaleY };
   };
 
+  // Logika mouse events (tidak ada perubahan)
   const handleMouseMove = (e) => {
     if (!canvasRef.current || !loupeRef.current) return;
     const { x, y } = getCanvasCoordinates(e);
     const ctx = canvasRef.current.getContext("2d");
     const loupe = loupeRef.current;
-
     loupe.style.left = `${e.clientX}px`;
     loupe.style.top = `${e.clientY}px`;
     loupe.style.display = "block";
-
     const pixel = ctx.getImageData(x, y, 1, 1).data;
     const hex = rgbToHex(pixel[0], pixel[1], pixel[2]);
     loupe.style.backgroundColor = hex;
   };
-
   const handleMouseLeave = () => {
     if (loupeRef.current) loupeRef.current.style.display = "none";
   };
 
+  // Logika klik canvas (tidak ada perubahan)
   const handleCanvasClick = (event) => {
     if (!canvasRef.current) return;
     const { x, y } = getCanvasCoordinates(event);
     const ctx = canvasRef.current.getContext("2d");
     const pixel = ctx.getImageData(x, y, 1, 1).data;
     const hexColor = rgbToHex(pixel[0], pixel[1], pixel[2]);
-
     setPickedColor(hexColor);
     findMatchingColors(hexColor);
   };
 
+  // --- PERBAIKAN PADA FUNGSI INI ---
   const findMatchingColors = async (hexColor) => {
+    // PERBAIKAN 3: Tambahkan guard clause untuk memastikan supabase sudah siap
+    if (!supabase) return;
+
     setLoading(true);
     try {
       const { data, error } = await supabase.rpc("find_closest_colors", {
@@ -92,6 +95,7 @@ const ColorScanner = () => {
     }
   };
 
+  // Logika image change dan reset (tidak ada perubahan)
   const handleImageChange = (event) => {
     const file = event.target.files[0];
     if (file) {
@@ -104,7 +108,6 @@ const ColorScanner = () => {
       reader.readAsDataURL(file);
     }
   };
-
   const resetScanner = () => {
     setImageSrc(null);
     setPickedColor(null);
@@ -112,15 +115,16 @@ const ColorScanner = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  // Render JSX (tidak ada perubahan)
   return (
     <div className="bg-white p-6 rounded-xl shadow-lg max-w-2xl mx-auto">
+      {/* ... (seluruh kode JSX Anda sebelumnya tetap di sini, tidak ada perubahan) ... */}
       <h2 className="text-2xl font-bold text-center mb-4">
         Pindai Warna dari Gambar
       </h2>
       <p className="text-center text-slate-500 mb-6">
         Unggah gambar, lalu gerakkan kursor di atasnya untuk memilih warna.
       </p>
-
       <div
         ref={loupeRef}
         style={{
@@ -136,7 +140,6 @@ const ColorScanner = () => {
           zIndex: 9999,
         }}
       ></div>
-
       <div className="border-2 border-dashed rounded-lg p-4 text-center">
         {!imageSrc ? (
           <div className="flex flex-col items-center">
@@ -159,11 +162,9 @@ const ColorScanner = () => {
           />
         )}
       </div>
-
       {loading && (
         <p className="text-center mt-4 animate-pulse">Mencari rekomendasi...</p>
       )}
-
       {recommendedProducts.length > 0 && (
         <div className="mt-6">
           <h3 className="font-bold text-center text-lg">
