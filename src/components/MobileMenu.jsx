@@ -1,19 +1,22 @@
-// src/components/MobileMenu.jsx
+// File: src/components/MobileMenu.jsx
+// Perbaikan: Menyesuaikan path impor store agar menunjuk ke file .ts yang benar.
 
 import React, { useEffect } from "react";
-import { useAppStore } from "../lib/store.js";
+// PERBAIKAN UTAMA: Mengubah impor agar menggunakan store.ts melalui alias path.
+import { useAppStore } from "@/lib/store.ts";
 import id from "../../public/locales/id/common.json";
 
 const MobileMenu = () => {
     const { isMobileMenuOpen, closeMobileMenu } = useAppStore();
 
-    // Menangani scroll lock saat menu terbuka
+    // Menangani scroll lock saat menu terbuka (logika ini sudah benar)
     useEffect(() => {
         if (isMobileMenuOpen) {
             document.body.style.overflow = "hidden";
         } else {
             document.body.style.overflow = "auto";
         }
+        // Fungsi cleanup untuk memastikan scroll kembali normal
         return () => {
             document.body.style.overflow = "auto";
         };
@@ -42,9 +45,9 @@ const MobileMenu = () => {
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
                     >
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>

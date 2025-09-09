@@ -1,12 +1,17 @@
-// src/components/ProductCatalog.jsx (Versi Final yang bisa menangani 2 tampilan)
+// File: src/components/ProductCatalog.jsx
+// Perbaikan: Disesuaikan dengan arsitektur Supabase client yang aman untuk SSR.
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { supabase } from "../lib/supabaseClient";
+// PERBAIKAN 1: Impor FUNGSI getSupabaseBrowserClient, bukan konstanta supabase
+import { getSupabaseBrowserClient } from "../lib/supabaseClient.js";
 import CatalogFilter from "./CatalogFilter.jsx";
 import ProductCard from "./ProductCard.jsx";
 import ColorSwatchCard from "./ColorSwatchCard.jsx";
 
 const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
+    // PERBAIKAN 2: Panggil fungsi untuk mendapatkan instance client Supabase yang aman
+    const supabase = getSupabaseBrowserClient();
+
     const [allProducts, setAllProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({
@@ -45,13 +50,13 @@ const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
         else setAllProducts(data || []);
 
         setLoading(false);
-    }, [filterConfig, filters]);
+    }, [filterConfig, filters, supabase]); // PERBAIKAN 3: Tambahkan supabase sebagai dependensi
 
     useEffect(() => {
         fetchProducts();
     }, [fetchProducts]);
 
-    // Kelompokkan produk untuk tampilan Katalog Warna
+    // Logika pengelompokan produk (tidak ada perubahan)
     const groupedProducts = useMemo(() => {
         if (cardType !== "colorSwatch") return null;
 
@@ -71,6 +76,7 @@ const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
         }, {});
     }, [allProducts, cardType]);
 
+    // Render JSX (tidak ada perubahan)
     return (
         <div>
             <CatalogFilter

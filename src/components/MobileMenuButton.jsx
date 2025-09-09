@@ -1,7 +1,9 @@
-// src/components/MobileMenuButton.jsx
+// File: src/components/MobileMenuButton.jsx
+// Perbaikan: Menyesuaikan path impor store agar menunjuk ke file .ts yang benar.
 
 import React from "react";
-import { useAppStore } from "../lib/store.js";
+// PERBAIKAN UTAMA: Mengubah impor agar menggunakan store.ts melalui alias path.
+import { useAppStore } from "@/lib/store.ts";
 
 const MobileMenuButton = () => {
     const { toggleMobileMenu } = useAppStore();
@@ -15,9 +17,9 @@ const MobileMenuButton = () => {
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
             >
                 <line x1="3" y1="12" x2="21" y2="12"></line>
                 <line x1="3" y1="6" x2="21" y2="6"></line>

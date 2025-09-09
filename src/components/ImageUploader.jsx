@@ -1,11 +1,16 @@
-// src/components/ImageUploader.jsx
+// File: src/components/ImageUploader.jsx
+// Perbaikan: Menyesuaikan cara impor dan penggunaan Supabase client agar aman untuk SSR.
 
-import React, { useState } from "react";
-import { supabase } from "../lib/supabaseClient";
+import React, { useState, useRef } from "react";
+// PERBAIKAN 1: Impor FUNGSI getSupabaseBrowserClient, bukan konstanta supabase
+import { getSupabaseBrowserClient } from "../lib/supabaseClient.js";
 import imageCompression from "browser-image-compression";
 import { FiUpload } from "react-icons/fi";
 
 const ImageUploader = ({ productId, onUploadComplete }) => {
+  // PERBAIKAN 2: Panggil fungsi untuk mendapatkan instance client Supabase yang aman
+  const supabase = getSupabaseBrowserClient();
+
   const [mainImage, setMainImage] = useState(null);
   const [swatchImage, setSwatchImage] = useState(null);
   const [mainImagePreview, setMainImagePreview] = useState(null);
@@ -40,18 +45,18 @@ const ImageUploader = ({ productId, onUploadComplete }) => {
         useWebWorker: true,
       };
 
-      const BUCKET_NAME = "produk-pilok"; // <-- Nama bucket sekarang terpusat
+      const BUCKET_NAME = "produk-pilok";
 
       const uploadFile = async (file, path) => {
         const compressedFile = await imageCompression(file, compressionOptions);
         const { error: uploadError } = await supabase.storage
-          .from(BUCKET_NAME) // <-- Menggunakan nama bucket yang benar
+          .from(BUCKET_NAME)
           .upload(path, compressedFile, { upsert: true });
         if (uploadError) throw uploadError;
 
         const {
           data: { publicUrl },
-        } = supabase.storage.from(BUCKET_NAME).getPublicUrl(path); // <-- Menggunakan nama bucket yang benar
+        } = supabase.storage.from(BUCKET_NAME).getPublicUrl(path);
         return publicUrl;
       };
 
@@ -81,7 +86,6 @@ const ImageUploader = ({ productId, onUploadComplete }) => {
       window.location.reload();
     } catch (error) {
       console.error("Error uploading image:", error);
-      // PERBAIKAN: Menampilkan pesan error yang lebih jelas
       alert(
         `Gagal mengupload gambar: ${error?.message || JSON.stringify(error)}`,
       );
@@ -92,7 +96,6 @@ const ImageUploader = ({ productId, onUploadComplete }) => {
 
   return (
     <div className="bg-slate-50 border-t-4 border-orange-400 p-4 rounded-b-lg shadow-md mt-8">
-      {/* ... (bagian JSX tidak ada perubahan) ... */}
       <h3 className="font-bold text-lg text-slate-800 mb-4">
         Panel Admin: Upload Gambar
       </h3>

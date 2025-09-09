@@ -1,11 +1,16 @@
-// src/components/CatalogFilter.jsx
+// File: src/components/CatalogFilter.jsx
+// Perbaikan: Menyesuaikan cara impor dan penggunaan Supabase client agar aman untuk SSR.
 
 import React, { useState, useEffect, useMemo } from "react";
-import { supabase } from "../lib/supabaseClient";
+// PERBAIKAN 1: Impor FUNGSI getSupabaseBrowserClient, bukan konstanta supabase
+import { getSupabaseBrowserClient } from "../lib/supabaseClient.js";
 import { FiSearch, FiRefreshCw } from "react-icons/fi";
 
 const CatalogFilter = ({ filters, setFilters, filterConfig }) => {
     const [allProducts, setAllProducts] = useState([]);
+
+    // PERBAIKAN 2: Panggil fungsi untuk mendapatkan instance client Supabase yang aman
+    const supabase = getSupabaseBrowserClient();
 
     // Ambil SEMUA data produk yang relevan sekali saja untuk mengisi opsi dropdown
     useEffect(() => {
@@ -21,9 +26,9 @@ const CatalogFilter = ({ filters, setFilters, filterConfig }) => {
             setAllProducts(data || []);
         };
         fetchAllProductsForFilter();
-    }, [filterConfig]);
+    }, [supabase, filterConfig]); // PERBAIKAN 3: Tambahkan supabase sebagai dependensi
 
-    // LOGIKA CASCADING FILTER
+    // LOGIKA CASCADING FILTER (Tidak ada perubahan, sudah benar)
     const options = useMemo(() => {
         const merekOptions = [
             ...new Set(allProducts.map((p) => p.merek).filter(Boolean)),
@@ -69,6 +74,7 @@ const CatalogFilter = ({ filters, setFilters, filterConfig }) => {
         };
     }, [allProducts, filters]);
 
+    // LOGIKA HANDLER (Tidak ada perubahan, sudah benar)
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         if (name === "merek")
@@ -117,6 +123,7 @@ const CatalogFilter = ({ filters, setFilters, filterConfig }) => {
             ukuran: "semua",
         });
 
+    // RENDER JSX (Tidak ada perubahan, sudah benar)
     return (
         <div className="bg-white p-4 rounded-lg shadow-sm mb-6 space-y-4">
             <div className="relative">

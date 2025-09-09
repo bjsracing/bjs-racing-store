@@ -1,19 +1,23 @@
-// src/components/ColorScanner.jsx (Final dengan Pipet Warna Manual yang Stabil)
+// File: src/components/ColorScanner.jsx
+// Perbaikan: Menyesuaikan cara impor dan penggunaan Supabase client agar aman untuk SSR.
 
 import React, { useState, useRef, useEffect } from "react";
-import { supabase } from "../lib/supabaseClient";
+// PERBAIKAN 1: Impor FUNGSI getSupabaseBrowserClient, bukan konstanta supabase
+import { getSupabaseBrowserClient } from "../lib/supabaseClient.js";
 import { FiUpload, FiRefreshCw } from "react-icons/fi";
 
 const ColorScanner = () => {
+  // PERBAIKAN 2: Panggil fungsi untuk mendapatkan instance client Supabase yang aman
+  const supabase = getSupabaseBrowserClient();
+
   const [imageSrc, setImageSrc] = useState(null);
   const [pickedColor, setPickedColor] = useState(null);
   const [recommendedProducts, setRecommendedProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
   const canvasRef = useRef(null);
-  const loupeRef = useRef(null); // Ref untuk "kaca pembesar"
+  const loupeRef = useRef(null);
 
-  // Gambar ulang gambar ke canvas saat imageSrc berubah
   useEffect(() => {
     if (imageSrc && canvasRef.current) {
       const canvas = canvasRef.current;
@@ -21,7 +25,6 @@ const ColorScanner = () => {
       const img = new Image();
       img.src = imageSrc;
       img.onload = () => {
-        // Atur ukuran canvas agar sesuai dengan kontainernya, sambil menjaga rasio aspek gambar
         const maxWidth = canvas.parentElement.clientWidth;
         const scale = maxWidth / img.width;
         canvas.width = maxWidth;
@@ -37,13 +40,10 @@ const ColorScanner = () => {
   const getCanvasCoordinates = (e) => {
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-    // Hitung posisi kursor relatif terhadap canvas yang ditampilkan
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    // Hitung rasio skala antara ukuran asli gambar dan ukuran canvas yang ditampilkan
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    // Dapatkan koordinat piksel yang sebenarnya
     return { x: x * scaleX, y: y * scaleY };
   };
 
@@ -121,7 +121,6 @@ const ColorScanner = () => {
         Unggah gambar, lalu gerakkan kursor di atasnya untuk memilih warna.
       </p>
 
-      {/* Kaca Pembesar (Pipet) */}
       <div
         ref={loupeRef}
         style={{

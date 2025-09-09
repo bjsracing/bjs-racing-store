@@ -1,11 +1,12 @@
-// src/components/ColorCatalog.jsx (Final dengan Debounce)
+// File: src/components/ColorCatalog.jsx
+// Perbaikan: Disesuaikan dengan arsitektur Supabase client yang aman untuk SSR.
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { supabase } from "../lib/supabaseClient";
+import { getSupabaseBrowserClient } from "../lib/supabaseClient.js";
 import ColorCatalogFilter from "./ColorCatalogFilter.jsx";
 import ColorSwatchCard from "./ColorSwatchCard.jsx";
 
-// --- TAMBAHKAN HOOK useDebounce DI SINI ---
+// Hook useDebounce dipindahkan ke luar komponen untuk efisiensi.
 function useDebounce(value, delay) {
     const [debouncedValue, setDebouncedValue] = useState(value);
     useEffect(() => {
@@ -16,6 +17,7 @@ function useDebounce(value, delay) {
 }
 
 const ColorCatalog = () => {
+    const supabase = getSupabaseBrowserClient();
     const [allProducts, setAllProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({
@@ -25,9 +27,9 @@ const ColorCatalog = () => {
         color_variant: "semua",
     });
 
-    // Gunakan debouncedSearchTerm untuk memicu pencarian
-    const debouncedSearchTerm = useDebounce(filters.searchTerm, 500); // Tunggu 500ms
+    const debouncedSearchTerm = useDebounce(filters.searchTerm, 500);
 
+    // useCallback di sini sudah benar, tetapi dependensinya perlu diperbarui.
     const fetchProducts = useCallback(async () => {
         setLoading(true);
         let query = supabase
@@ -41,8 +43,6 @@ const ColorCatalog = () => {
             query = query.eq("lini_produk", filters.lini_produk);
         if (filters.color_variant !== "semua")
             query = query.eq("color_variant", filters.color_variant);
-
-        // Gunakan debouncedSearchTerm di sini
         if (debouncedSearchTerm) {
             query = query.or(
                 `nama.ilike.%${debouncedSearchTerm}%,sku.ilike.%${debouncedSearchTerm}%`,
@@ -53,6 +53,7 @@ const ColorCatalog = () => {
 
         if (error) console.error("Gagal memuat produk:", error.message);
         else {
+            // Logika untuk mengambil produk unik dengan color_swatch_url
             const uniqueProducts = new Map();
             (data || []).forEach((p) => {
                 if (!uniqueProducts.has(p.nama) && p.color_swatch_url) {
@@ -62,12 +63,12 @@ const ColorCatalog = () => {
             setAllProducts(Array.from(uniqueProducts.values()));
         }
         setLoading(false);
-        // PERBAIKAN: Ubah dependency agar hanya bergantung pada filter yang relevan
     }, [
         filters.merek,
         filters.lini_produk,
         filters.color_variant,
         debouncedSearchTerm,
+        supabase, // Tambahkan supabase sebagai dependensi
     ]);
 
     useEffect(() => {
@@ -91,8 +92,11 @@ const ColorCatalog = () => {
                 <p className="text-center py-20">Memuat warna...</p>
             ) : Object.keys(groupedProducts).length > 0 ? (
                 <div className="space-y-12">
-                    {Object.entries(groupedProducts).map(
-                        ([variantName, products]) => (
+                    {Object.entries(groupedProducts)
+                        .sort(([variantA], [variantB]) =>
+                            variantA.localeCompare(variantB),
+                        )
+                        .map(([variantName, products]) => (
                             <div key={variantName}>
                                 <h2 className="text-xl font-bold border-b-2 border-orange-400 pb-2 mb-6">
                                     {variantName}
@@ -107,8 +111,7 @@ const ColorCatalog = () => {
                                     ))}
                                 </div>
                             </div>
-                        ),
-                    )}
+                        ))}
                 </div>
             ) : (
                 <p className="text-center py-20 text-slate-500">

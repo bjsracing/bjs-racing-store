@@ -1,11 +1,13 @@
-// src/components/ColorSimulator.jsx (Final dengan Palet Warna Unik)
+// File: src/components/ColorSimulator.jsx
+// Perbaikan: Disesuaikan dengan arsitektur Supabase client yang aman untuk SSR.
 
 import React, { useState, useEffect, useMemo } from "react";
-import { supabase } from "../lib/supabaseClient";
-import { useAppStore } from "../lib/store";
+// PERBAIKAN 1: Impor FUNGSI getSupabaseBrowserClient, bukan konstanta supabase
+import { getSupabaseBrowserClient } from "../lib/supabaseClient.js";
+import { useAppStore } from "../lib/store.ts";
 import { FiShoppingCart } from "react-icons/fi";
 
-// --- TAMBAHKAN FUNGSI BARU DI SINI ---
+// Fungsi hexToHsl (Tidak ada perubahan)
 const hexToHsl = (hex) => {
   if (!hex) return [0, 0, 0];
   let r = 0,
@@ -48,6 +50,9 @@ const hexToHsl = (hex) => {
 };
 
 const ColorSimulator = ({ initialProductId }) => {
+  // PERBAIKAN 2: Panggil fungsi untuk mendapatkan instance client Supabase yang aman
+  const supabase = getSupabaseBrowserClient();
+
   const [objects, setObjects] = useState([]);
   const [allColorProducts, setAllColorProducts] = useState([]);
   const [simulationVariants, setSimulationVariants] = useState([]);
@@ -83,17 +88,16 @@ const ColorSimulator = ({ initialProductId }) => {
       setLoading(false);
     };
     fetchInitialData();
-  }, []);
+  }, [supabase]); // PERBAIKAN 3: Tambahkan supabase sebagai dependensi
 
-  // 2. Atur state awal setelah semua data siap
+  // Logika lainnya di bawah ini tidak diubah karena sudah stabil.
+  // ... (useEffect, useMemo, handlers, dan JSX tetap sama)
+
   useEffect(() => {
-    if (loading) return; // Jangan lakukan apa-apa jika data belum siap
-
+    if (loading) return;
     if (!selectedObjectModel && objects.length > 0) {
       setSelectedObjectModel(objects[0]);
     }
-
-    // Hanya atur produk awal jika belum pernah diatur
     if (!selectedColorProduct) {
       const product =
         allColorProducts.find((p) => p.id === initialProductId) ||
@@ -107,19 +111,13 @@ const ColorSimulator = ({ initialProductId }) => {
     }
   }, [loading, initialProductId, allColorProducts, objects]);
 
-  // 3. LOGIKA UTAMA: Tentukan URL gambar yang akan ditampilkan.
-  //    useEffect ini akan berjalan setiap kali objek atau warna berubah.
   useEffect(() => {
     if (!selectedObjectModel || !selectedColorProduct) return;
-
-    // Cari di dalam data varian yang cocok dengan pilihan saat ini
     const match = simulationVariants.find(
       (v) =>
         v.product_id === selectedColorProduct.id &&
         v.simulation_object_id === selectedObjectModel.id,
     );
-
-    // Jika ada yang cocok, gunakan URL-nya. Jika tidak, gunakan gambar dasar objek.
     setSimulationImageUrl(
       match ? match.colored_image_url : selectedObjectModel.base_image_url,
     );
@@ -129,6 +127,7 @@ const ColorSimulator = ({ initialProductId }) => {
     () => [...new Set(allColorProducts.map((p) => p.merek).filter(Boolean))],
     [allColorProducts],
   );
+
   const productLinesByBrand = useMemo(() => {
     if (!selectedBrand) return [];
     return productLines.filter((line) => line.brand_name === selectedBrand);
@@ -150,7 +149,6 @@ const ColorSimulator = ({ initialProductId }) => {
     ];
   }, [allColorProducts, selectedBrand, selectedLine]);
 
-  // --- PERBAIKAN LOGIKA PALET WARNA DI SINI ---
   const colorPalette = useMemo(() => {
     if (!selectedBrand || !selectedLine || !selectedVariant) return [];
     const filteredProducts = allColorProducts.filter(
@@ -160,7 +158,6 @@ const ColorSimulator = ({ initialProductId }) => {
         p.color_variant === selectedVariant &&
         p.color_swatch_url,
     );
-
     const uniqueColors = new Map();
     filteredProducts.forEach((p) => {
       const existing = uniqueColors.get(p.nama);
@@ -171,17 +168,13 @@ const ColorSimulator = ({ initialProductId }) => {
         uniqueColors.set(p.nama, p);
       }
     });
-
-    // --- PERBAIKAN PENGURUTAN DI SINI ---
     const sortedColors = Array.from(uniqueColors.values()).sort((a, b) => {
       const [h1, s1, l1] = hexToHsl(a.color_hex);
       const [h2, s2, l2] = hexToHsl(b.color_hex);
-      // Urutkan berdasarkan Hue, lalu Lightness, lalu Saturation
       if (h1 !== h2) return h1 - h2;
       if (l1 !== l2) return l1 - l2;
       return s1 - s2;
     });
-
     return sortedColors;
   }, [
     allColorProducts,
@@ -198,28 +191,21 @@ const ColorSimulator = ({ initialProductId }) => {
 
   const availableSizes = useMemo(() => {
     if (!selectedColorProduct) return [];
-
-    // 1. Cari semua varian produk berdasarkan NAMA, MEREK, dan LINI PRODUK yang sama
     const productVariants = allColorProducts.filter(
       (p) =>
         p.nama === selectedColorProduct.nama &&
         p.merek === selectedColorProduct.merek &&
         p.lini_produk === selectedColorProduct.lini_produk,
     );
-
-    // 2. Dari situ, ambil hanya yang statusnya 'Aktif' dan stoknya > 0
     const inStockVariants = productVariants.filter(
       (p) => p.stok > 0 && p.status === "Aktif",
     );
-
-    // 3. Buat daftar ukuran unik beserta stoknya
     const uniqueSizes = new Map();
     inStockVariants.forEach((p) => {
       if (!uniqueSizes.has(p.ukuran)) {
         uniqueSizes.set(p.ukuran, { size: p.ukuran, stock: p.stok });
       }
     });
-
     return Array.from(uniqueSizes.values());
   }, [allColorProducts, selectedColorProduct]);
 
@@ -249,7 +235,7 @@ const ColorSimulator = ({ initialProductId }) => {
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
-      {/* Kolom Kiri */}
+      {/* Kolom Kiri - Filter */}
       <div className="w-full lg:w-1/4 bg-white p-4 rounded-xl shadow-lg h-fit">
         <h3 className="text-lg font-bold mb-4">Filter Warna</h3>
         <div className="space-y-4">
@@ -322,7 +308,7 @@ const ColorSimulator = ({ initialProductId }) => {
         </div>
       </div>
 
-      {/* Kolom Tengah */}
+      {/* Kolom Tengah - Simulator */}
       <div className="w-full lg:w-1/2 space-y-6">
         <div className="aspect-video bg-white rounded-xl shadow-lg flex items-center justify-center p-4">
           <img
@@ -376,7 +362,7 @@ const ColorSimulator = ({ initialProductId }) => {
         )}
       </div>
 
-      {/* Kolom Kanan */}
+      {/* Kolom Kanan - Detail Produk */}
       <div className="w-full lg:w-1/4">
         {selectedColorProduct && (
           <div className="bg-white p-6 rounded-xl shadow-lg h-full flex flex-col">
@@ -391,7 +377,6 @@ const ColorSimulator = ({ initialProductId }) => {
                   {selectedColorProduct.sku || selectedColorProduct.kode}
                 </span>
               </h3>
-
               <div className="mt-4 pt-4 border-t">
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Pilih Ukuran (Stok Tersedia)
@@ -402,21 +387,9 @@ const ColorSimulator = ({ initialProductId }) => {
                       <button
                         key={item.size}
                         onClick={() => setSelectedSize(item.size)}
-                        // Tombol akan disabled jika stok 0
                         disabled={item.stock === 0}
-                        className={`px-3 py-1.5 text-sm font-semibold rounded-lg border-2 
-                            ${
-                              selectedSize === item.size
-                                ? "bg-slate-800 text-white border-slate-800"
-                                : "bg-white text-slate-600 border-slate-200"
-                            }
-                            ${
-                              item.stock === 0
-                                ? "bg-slate-100 text-slate-400 border-slate-100 cursor-not-allowed"
-                                : "hover:border-slate-400"
-                            }`}
+                        className={`px-3 py-1.5 text-sm font-semibold rounded-lg border-2 ${selectedSize === item.size ? "bg-slate-800 text-white border-slate-800" : "bg-white text-slate-600 border-slate-200"} ${item.stock === 0 ? "bg-slate-100 text-slate-400 border-slate-100 cursor-not-allowed" : "hover:border-slate-400"}`}
                       >
-                        {/* Tampilkan ukuran dan stok */}
                         <div>{item.size}</div>
                         <div
                           className={`text-xs font-normal opacity-75 ${item.stock === 0 ? "" : "mt-1"}`}
@@ -432,7 +405,6 @@ const ColorSimulator = ({ initialProductId }) => {
                   )}
                 </div>
               </div>
-
               {selectedColorProduct.specifications && (
                 <div className="mt-4 pt-4 border-t">
                   <h4 className="font-semibold mb-2">Spesifikasi:</h4>
@@ -449,7 +421,6 @@ const ColorSimulator = ({ initialProductId }) => {
                 </div>
               )}
             </div>
-
             <div className="mt-6 pt-4 border-t">
               <button
                 onClick={handleAddToCart}
