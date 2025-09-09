@@ -1,5 +1,8 @@
 ---
-// src/components/Header.astro
+// File: src/components/Header.astro
+// PERBAIKAN DIAGNOSTIK: Mengomentari komponen React untuk mengisolasi masalah crash server.
+// Ini adalah langkah tes, bukan perbaikan final.
+
 import CartIcon from './CartIcon.jsx';
 import AuthMenu from './AuthMenu.jsx';
 import MobileMenu from './MobileMenu.jsx';
@@ -22,7 +25,7 @@ const navLinks = [
             BJS RACING <span class="text-orange-500">STORE</span> 
         </a>
         
-        {/* ✅ PERBAIKAN: Kembali ke md: breakpoint */}
+        {/* Navigasi Desktop */}
         <nav class="hidden md:flex items-center space-x-4 mobile:space-x-6 tablet:space-x-8">
             {navLinks.map(link => ( 
                 <a href={link.path} class="font-semibold text-slate-600 hover:text-orange-500 transition-colors text-sm mobile:text-base">
@@ -31,23 +34,25 @@ const navLinks = [
             ))} 
         </nav>
         
-        {/* ✅ PERBAIKAN: Kembali ke md: breakpoint */}
+        {/* --- TES ISOLASI: Komponen dinonaktifkan sementara --- */}
         <div class="hidden md:flex items-center gap-4 mobile:gap-5 tablet:gap-6">
-            <CartIcon client:visible />
-            <AuthMenu client:load />
+            {/* Kita nonaktifkan sementara komponen interaktif ini.
+              Jika halaman berhasil dimuat setelah ini, maka kita tahu 
+              masalahnya ada di salah satu dari file-file ini. */}
+            {/* <CartIcon client:visible /> */}
+            {/* <AuthMenu client:load /> */}
         </div>
         
-        {/* ✅ PERBAIKAN: Kembali ke md: breakpoint */}
         <div class="md:hidden">
-            <MobileMenuButton client:load />
+            {/* <MobileMenuButton client:load /> */}
         </div>
     </div>
 </header>
 
-<MobileMenu client:load />
+{/* <MobileMenu client:load /> */}
 
 <script>
-    // Script tetap sama
+    // Script scroll tetap sama, tidak ada perubahan di sini.
     function handleHeaderScroll() {
         const header = document.querySelector('header');
         if (window.scrollY > 10) {
