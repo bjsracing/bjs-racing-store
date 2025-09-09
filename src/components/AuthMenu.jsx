@@ -1,25 +1,23 @@
 // File: src/components/AuthMenu.jsx
-// Perbaikan: Refactor total untuk menggunakan hook useAuth() dari AuthContext,
-// menghilangkan semua logika state management lokal.
+// Perbaikan: Menggunakan fungsi getSupabaseBrowserClient() yang aman.
 
-import React from "react";
-// 1. Impor custom hook `useAuth` yang baru kita buat
+import React, { useState, useEffect } from "react";
+// PERBAIKAN 1: Impor fungsi, bukan konstanta
+import { getSupabaseBrowserClient } from "../lib/supabaseClient.js";
 import { useAuth } from "../lib/authContext.tsx";
 import id from "../../public/locales/id/common.json";
-import { supabase } from "../lib/supabaseClient.js"; // Tetap diperlukan untuk signOut
 
 const AuthMenu = () => {
-    // 2. Gunakan hook `useAuth` untuk mendapatkan data sesi dan status loading
     const { session, isLoading } = useAuth();
 
-    // Fungsi logout tetap sederhana
+    // PERBAIKAN 2: Panggil fungsi untuk mendapatkan client Supabase
+    const supabase = getSupabaseBrowserClient();
+
     const handleLogout = async () => {
         await supabase.auth.signOut();
-        // Arahkan ke halaman utama, AuthProvider akan menangani sisa perubahan state
         window.location.href = "/";
     };
 
-    // 3. Tampilkan status loading saat AuthProvider sedang memvalidasi sesi
     if (isLoading) {
         return (
             <div className="text-sm font-semibold text-slate-400 animate-pulse">
@@ -28,7 +26,6 @@ const AuthMenu = () => {
         );
     }
 
-    // 4. Tampilkan tombol Login jika tidak ada sesi
     if (!session) {
         return (
             <a
@@ -40,7 +37,6 @@ const AuthMenu = () => {
         );
     }
 
-    // 5. Tampilkan email pengguna dan tombol Logout jika ada sesi
     return (
         <div className="flex items-center gap-3">
             <a
