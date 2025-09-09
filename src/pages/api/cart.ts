@@ -1,10 +1,8 @@
 // File: src/pages/api/cart.ts
-// Perbaikan Final: Menambahkan Tipe Data eksplisit untuk mengatasi semua error TypeScript.
+// Perbaikan: Menambahkan logging diagnostik mendalam untuk melacak sesi dan profil.
 
-import type { APIRoute, APIContext } from "astro"; // PERBAIKAN: Impor APIContext
+import type { APIRoute, APIContext } from "astro";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
-
-// --- Fungsi Helper ---
 
 function createSupabaseClient(cookies: APIContext["cookies"]) {
     return createServerClient(
@@ -26,47 +24,77 @@ function createSupabaseClient(cookies: APIContext["cookies"]) {
     );
 }
 
+// --- FUNGSI DENGAN DEBUGGING ---
 async function getCustomerIdFromSession(
     supabase: ReturnType<typeof createSupabaseClient>,
-): Promise<string> {
+): Promise<string | null> {
+    console.log("[DEBUG /api/cart] Memulai getCustomerIdFromSession...");
+
     const {
         data: { user },
+        error: userError,
     } = await supabase.auth.getUser();
-    if (!user) throw new Error("Otentikasi diperlukan.");
+    if (userError) {
+        console.error(
+            "[DEBUG /api/cart] Error saat supabase.auth.getUser():",
+            userError.message,
+        );
+        return null;
+    }
+    if (!user) {
+        console.warn(
+            "[DEBUG /api/cart] Tidak ada sesi pengguna yang ditemukan oleh supabase.auth.getUser().",
+        );
+        return null;
+    }
+    console.log(
+        `[DEBUG /api/cart] Sesi pengguna ditemukan. User ID: ${user.id}`,
+    );
 
-    const { data: customerData, error } = await supabase
+    const { data: customerData, error: customerError } = await supabase
         .from("customers")
         .select("id")
         .eq("auth_user_id", user.id)
         .maybeSingle();
 
-    if (error)
-        throw new Error(`Database error saat mencari profil: ${error.message}`);
-    if (!customerData)
-        throw new Error(
-            "Profil pelanggan tidak ditemukan untuk pengguna yang login.",
+    if (customerError) {
+        console.error(
+            "[DEBUG /api/cart] Terjadi error saat query ke tabel customers:",
+            customerError.message,
         );
+        return null;
+    }
 
+    if (!customerData) {
+        console.warn(
+            `[DEBUG /api/cart] Query ke tabel customers berhasil, namun tidak ada profil ditemukan untuk user ID: ${user.id}`,
+        );
+        return null;
+    }
+
+    console.log(
+        `[DEBUG /api/cart] Profil pelanggan ditemukan. Customer ID: ${customerData.id}`,
+    );
     return customerData.id;
 }
 
-// =================================================================
-// == FUNGSI GET: Mengambil isi keranjang belanja pengguna        ==
-// =================================================================
-// PERBAIKAN: Tambahkan tipe APIContext ke parameter
 export const GET: APIRoute = async ({ cookies }: APIContext) => {
     const supabase = createSupabaseClient(cookies);
     try {
+        console.log("[DEBUG /api/cart] Menerima request GET...");
         const customerId = await getCustomerIdFromSession(supabase);
+
+        if (!customerId) {
+            // Ini adalah penanganan race condition. Kembalikan keranjang kosong jika profil belum siap.
+            console.warn(
+                "[DEBUG /api/cart] Gagal mendapatkan customerId, mengembalikan keranjang kosong.",
+            );
+            return new Response(JSON.stringify([]), { status: 200 });
+        }
 
         const { data: cartItems, error } = await supabase
             .from("cart_items")
-            .select(
-                `
-        quantity,
-        product:products (*)
-      `,
-            )
+            .select("quantity, product:products (*)")
             .eq("customer_id", customerId);
 
         if (error) throw error;
@@ -75,14 +103,13 @@ export const GET: APIRoute = async ({ cookies }: APIContext) => {
             ...item.product,
             quantity: item.quantity,
         }));
-
         return new Response(JSON.stringify(formattedCart), { status: 200 });
     } catch (error) {
         const errorMessage =
             error instanceof Error
                 ? error.message
                 : "Gagal mengambil data keranjang.";
-        console.error("Error di GET /api/cart:", errorMessage);
+        console.error("Error fatal di GET /api/cart:", errorMessage);
         return new Response(JSON.stringify({ message: errorMessage }), {
             status: 500,
         });
