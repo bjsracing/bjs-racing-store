@@ -1,11 +1,16 @@
-// src/components/ColorCatalogFilter.jsx
+// File: src/components/ColorCatalogFilter.jsx
+// Perbaikan: Menyesuaikan cara impor dan penggunaan Supabase client agar aman untuk SSR.
 
 import React, { useState, useEffect, useMemo } from "react";
-import { supabase } from "../lib/supabaseClient";
+// PERBAIKAN 1: Impor FUNGSI getSupabaseBrowserClient, bukan konstanta supabase
+import { getSupabaseBrowserClient } from "../lib/supabaseClient.js";
 import { FiSearch, FiRefreshCw } from "react-icons/fi";
 
 const ColorCatalogFilter = ({ filters, setFilters }) => {
     const [allProducts, setAllProducts] = useState([]);
+
+    // PERBAIKAN 2: Panggil fungsi untuk mendapatkan instance client Supabase yang aman
+    const supabase = getSupabaseBrowserClient();
 
     useEffect(() => {
         const fetchAllProductsForFilter = async () => {
@@ -17,7 +22,7 @@ const ColorCatalogFilter = ({ filters, setFilters }) => {
             setAllProducts(data || []);
         };
         fetchAllProductsForFilter();
-    }, []);
+    }, [supabase]); // Tambahkan supabase sebagai dependensi useEffect
 
     const options = useMemo(() => {
         const merekOptions = [
