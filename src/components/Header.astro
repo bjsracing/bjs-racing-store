@@ -1,7 +1,6 @@
 ---
 // File: src/components/Header.astro
-// PERBAIKAN DIAGNOSTIK: Mengomentari komponen React untuk mengisolasi masalah crash server.
-// Ini adalah langkah tes, bukan perbaikan final.
+// PERBAIKAN DIAGNOSTIK 2: Mengaktifkan kembali AuthMenu untuk tes isolasi.
 
 import CartIcon from './CartIcon.jsx';
 import AuthMenu from './AuthMenu.jsx';
@@ -34,15 +33,16 @@ const navLinks = [
             ))} 
         </nav>
         
-        {/* --- TES ISOLASI: Komponen dinonaktifkan sementara --- */}
+        {/* --- TES ISOLASI: AuthMenu sekarang AKTIF --- */}
         <div class="hidden md:flex items-center gap-4 mobile:gap-5 tablet:gap-6">
-            {/* Kita nonaktifkan sementara komponen interaktif ini.
-              Jika halaman berhasil dimuat setelah ini, maka kita tahu 
-              masalahnya ada di salah satu dari file-file ini. */}
+            {/* CartIcon masih dinonaktifkan untuk tes ini */}
             {/* <CartIcon client:visible /> */}
-            {/* <AuthMenu client:load /> */}
+
+            {/* AuthMenu diaktifkan kembali. */}
+            <AuthMenu client:load />
         </div>
         
+        {/* Tombol menu mobile masih dinonaktifkan */}
         <div class="md:hidden">
             {/* <MobileMenuButton client:load /> */}
         </div>
