@@ -1,44 +1,49 @@
 // File: src/components/AuthMenu.jsx
-// Perbaikan: Menambahkan pemanggilan fetchCart() saat sesi login terdeteksi.
+// Perbaikan Final: Menggunakan supabase.auth.getUser() untuk memastikan sesi
+// divalidasi server sebelum mengambil data keranjang, mengatasi race condition.
 
 import React, { useState, useEffect } from "react";
-import { supabase } from "../lib/supabaseClient";
+import { supabase } from "../lib/supabaseClient.js";
 import id from "../../public/locales/id/common.json";
-import { useAppStore } from "../lib/store.ts";
+// Gunakan alias path yang stabil untuk impor store
+import { useAppStore } from "@/lib/store.ts";
 
 const AuthMenu = () => {
     const [session, setSession] = useState(null);
-
-    // Ambil aksi `fetchCart` dari store Zustand
     const fetchCart = useAppStore((state) => state.fetchCart);
 
     useEffect(() => {
-        // Ambil sesi awal saat komponen dimuat
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session);
-            // Jika ada sesi saat halaman dimuat, langsung ambil data keranjang
-            if (session) {
+        // --- PERBAIKAN UTAMA: Gunakan getUser() untuk sinkronisasi dengan server ---
+        const checkUserSession = async () => {
+            // Cek sesi awal dengan metode yang divalidasi server
+            const {
+                data: { user },
+            } = await supabase.auth.getUser();
+            setSession(user ? { user } : null); // Simpan sesi jika user ditemukan
+
+            // Jika ada pengguna yang valid, ambil data keranjang
+            if (user) {
                 fetchCart();
             }
-        });
+        };
 
-        // Dengarkan perubahan status autentikasi
+        checkUserSession(); // Jalankan pengecekan awal saat komponen dimuat
+
+        // Listener tetap diperlukan untuk menangani login/logout secara real-time
         const {
             data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
-            setSession(session);
-            // Jika event-nya adalah SIGNED_IN (login berhasil),
-            // ambil data keranjang dari database.
-            if (session) {
+        } = supabase.auth.onAuthStateChange((_event, newSession) => {
+            setSession(newSession);
+            // Jika ada sesi baru (login), ambil keranjang.
+            // Jika tidak ada (logout), state keranjang akan dikosongkan oleh komponen lain.
+            if (newSession) {
                 fetchCart();
             }
         });
 
-        // Hentikan langganan saat komponen dilepas
         return () => subscription.unsubscribe();
-    }, [fetchCart]); // Tambahkan fetchCart sebagai dependensi
+    }, [fetchCart]);
 
-    // Tampilan jika pengguna belum login
     if (!session) {
         return (
             <a
@@ -50,14 +55,12 @@ const AuthMenu = () => {
         );
     }
 
-    // Fungsi logout tetap sama, tanpa clearCart()
     const handleLogout = async () => {
         await supabase.auth.signOut();
-        // Arahkan ke halaman utama, yang akan secara otomatis membersihkan state non-persisten
+        // Redirect ke halaman utama. State non-persisten akan otomatis di-reset.
         window.location.href = "/";
     };
 
-    // Tampilan jika pengguna sudah login
     return (
         <div className="flex items-center gap-3">
             <a
