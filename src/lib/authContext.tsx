@@ -1,6 +1,6 @@
 // File: src/lib/authContext.tsx
-// Perbaikan Final: Mengubah .then() menjadi async/await di dalam useEffect
-// untuk memastikan tipe data session terbaca dengan benar oleh TypeScript.
+// Deskripsi: Pusat kontrol (React Context) untuk mengelola sesi autentikasi pengguna
+// di seluruh aplikasi secara terpusat dan reaktif.
 
 import React, {
   createContext,
@@ -9,12 +9,16 @@ import React, {
   useContext,
   type ReactNode,
 } from "react";
-import { getSupabaseBrowserClient } from "./supabaseClient.js";
 import { useAppStore } from "./store.ts";
-import type { Session, AuthChangeEvent } from "@supabase/supabase-js";
+import type {
+  Session,
+  AuthChangeEvent,
+  SupabaseClient,
+} from "@supabase/supabase-js";
 
 // 1. Mendefinisikan "bentuk" data yang akan dibagikan oleh context
 interface AuthContextType {
+  supabase: SupabaseClient | null;
   session: Session | null;
   isLoading: boolean;
 }
@@ -24,74 +28,66 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // 3. Membuat komponen "Provider"
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [supabase, setSupabase] = useState<SupabaseClient | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const fetchCart = useAppStore((state) => state.fetchCart);
-  const supabase = getSupabaseBrowserClient();
 
   useEffect(() => {
-    console.log(
-      "[DEBUG AuthContext] Memulai pengecekan sesi dan memasang listener...",
-    );
+    // Fungsi ini HANYA akan berjalan di browser.
+    const initializeSupabase = async () => {
+      console.log(
+        "[DEBUG AuthContext] Berjalan di browser. Mengimpor createBrowserClient...",
+      );
+      const { createBrowserClient } = await import("@supabase/ssr");
 
-    // --- PERBAIKAN UTAMA DI SINI ---
-    // Menggunakan fungsi async untuk menangani pengecekan sesi awal.
-    // Ini lebih mudah dibaca dan memberikan type inference yang lebih baik.
-    const checkInitialSession = async () => {
-      // getSession() mengembalikan { data: { session }, error }
+      const supabaseClient = createBrowserClient(
+        import.meta.env.PUBLIC_SUPABASE_URL!,
+        import.meta.env.PUBLIC_SUPABASE_ANON_KEY!,
+      );
+
+      setSupabase(supabaseClient);
+
       const {
         data: { session },
-      } = await supabase.auth.getSession();
+      } = await supabaseClient.auth.getSession();
       setSession(session);
-      setIsLoading(false); // Pengecekan awal selesai, loading dihentikan
+      setIsLoading(false);
 
       if (session) {
         console.log(
-          "[DEBUG AuthContext] Sesi awal ditemukan. Mengambil data keranjang...",
+          "[DEBUG AuthContext] Sesi awal ditemukan. Mengambil keranjang...",
         );
         fetchCart();
-      } else {
-        console.log("[DEBUG AuthContext] Tidak ada sesi awal yang ditemukan.");
       }
+
+      const {
+        data: { subscription },
+      } = supabaseClient.auth.onAuthStateChange(
+        (_event: AuthChangeEvent, session: Session | null) => {
+          setSession(session);
+          if (_event === "SIGNED_IN") {
+            fetchCart();
+          }
+        },
+      );
+
+      return () => {
+        subscription.unsubscribe();
+      };
     };
 
-    checkInitialSession();
-    // --- AKHIR PERBAIKAN ---
+    if (typeof window !== "undefined") {
+      initializeSupabase();
+    }
+  }, [fetchCart]);
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(
-      (_event: AuthChangeEvent, session: Session | null) => {
-        console.log(
-          `[DEBUG AuthContext] Status autentikasi berubah. Event: ${_event}`,
-        );
-        setSession(session);
-
-        if (_event === "SIGNED_IN") {
-          console.log(
-            "[DEBUG AuthContext] Pengguna berhasil SIGNED_IN. Mengambil data keranjang...",
-          );
-          fetchCart();
-        }
-
-        if (_event === "SIGNED_OUT") {
-          console.log("[DEBUG AuthContext] Pengguna berhasil SIGNED_OUT.");
-        }
-      },
-    );
-
-    return () => {
-      console.log("[DEBUG AuthContext] Membersihkan listener autentikasi.");
-      subscription.unsubscribe();
-    };
-  }, [fetchCart, supabase]);
-
-  const value = { session, isLoading };
+  const value = { supabase, session, isLoading };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// 4. Membuat "custom hook"
+// 4. Membuat "custom hook" untuk mempermudah akses
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
