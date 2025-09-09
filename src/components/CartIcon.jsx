@@ -1,14 +1,17 @@
 // File: src/components/CartIcon.jsx
-// Perbaikan: Menggunakan alias path '@/' untuk impor yang stabil dan mengatasi error build R2.
+// Perbaikan: Menambahkan pengecekan status loading untuk mencegah "flash" notifikasi.
 
 import React from "react";
-// PERBAIKAI UTAMA: Gunakan alias path '@/' yang sudah dikonfigurasi di tsconfig.json.
-// Ini adalah cara yang paling stabil untuk impor.
-import { useAppStore } from "@/lib/store.ts";
+// Pastikan path impor sudah benar (menggunakan .ts)
+import { useAppStore } from "../lib/store.ts";
 
 const CartIcon = () => {
-  const items = useAppStore((state) => state.items);
-  // Menambahkan fallback '|| 0' untuk memastikan quantity selalu berupa angka dan mencegah error
+  // PERBAIKAN: Ambil items dan isLoadingCart dari store
+  const { items, isLoadingCart } = useAppStore((state) => ({
+    items: state.items,
+    isLoadingCart: state.isLoadingCart,
+  }));
+
   const totalItems = items.reduce(
     (total, item) => total + (item.quantity || 0),
     0,
@@ -35,7 +38,8 @@ const CartIcon = () => {
         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
       </svg>
 
-      {totalItems > 0 && (
+      {/* PERBAIKAN: Hanya tampilkan notifikasi jika loading sudah selesai dan ada item */}
+      {!isLoadingCart && totalItems > 0 && (
         <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
           {totalItems}
         </span>

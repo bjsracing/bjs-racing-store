@@ -1,23 +1,25 @@
 // File: src/components/AuthMenu.jsx
-// Perbaikan: Menambahkan pemanggilan clearCart() saat logout.
+// Perbaikan: Menambahkan pemanggilan fetchCart() saat sesi login terdeteksi.
 
 import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 import id from "../../public/locales/id/common.json";
-
-// 1. Impor store Zustand Anda (pastikan path dan ekstensi .ts benar)
 import { useAppStore } from "../lib/store.ts";
 
 const AuthMenu = () => {
     const [session, setSession] = useState(null);
 
-    // 2. Ambil aksi `clearCart` dari store Zustand
-    const { clearCart } = useAppStore();
+    // Ambil aksi `fetchCart` dari store Zustand
+    const fetchCart = useAppStore((state) => state.fetchCart);
 
     useEffect(() => {
-        // Ambil sesi awal
+        // Ambil sesi awal saat komponen dimuat
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
+            // Jika ada sesi saat halaman dimuat, langsung ambil data keranjang
+            if (session) {
+                fetchCart();
+            }
         });
 
         // Dengarkan perubahan status autentikasi
@@ -25,11 +27,16 @@ const AuthMenu = () => {
             data: { subscription },
         } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session);
+            // Jika event-nya adalah SIGNED_IN (login berhasil),
+            // ambil data keranjang dari database.
+            if (session) {
+                fetchCart();
+            }
         });
 
         // Hentikan langganan saat komponen dilepas
         return () => subscription.unsubscribe();
-    }, []);
+    }, [fetchCart]); // Tambahkan fetchCart sebagai dependensi
 
     // Tampilan jika pengguna belum login
     if (!session) {
@@ -43,18 +50,10 @@ const AuthMenu = () => {
         );
     }
 
-    /**
-     * Menangani proses logout:
-     * 1. Membersihkan keranjang belanja dari localStorage.
-     * 2. Melakukan sign out dari Supabase.
-     * 3. Mengarahkan pengguna ke halaman utama.
-     */
+    // Fungsi logout tetap sama, tanpa clearCart()
     const handleLogout = async () => {
-        // 3. Panggil clearCart() SEBELUM proses sign out
-        clearCart();
-
-        // Lanjutkan proses logout seperti biasa
         await supabase.auth.signOut();
+        // Arahkan ke halaman utama, yang akan secara otomatis membersihkan state non-persisten
         window.location.href = "/";
     };
 

@@ -1,28 +1,59 @@
-// src/components/ProductDetailView.jsx (Versi Final dengan Stok Dinamis)
+// File: src/components/ProductDetailView.tsx
+// Perbaikan: Melengkapi Tipe Data, mengembalikan UI rating, dan memperbaiki tipe fungsi.
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useAppStore } from "../lib/store.js";
+// PERBAIKAN 1: Path impor menunjuk ke file .ts dan menggunakan alias path
+import { useAppStore } from "@/lib/store.ts";
+// PERBAIKAN 2: Mengembalikan FiStar karena akan digunakan lagi
 import { FiShoppingCart, FiStar, FiEye, FiPlus, FiMinus } from "react-icons/fi";
 import ProductInfoTabs from "./ProductInfoTabs.jsx";
 
-const ProductDetailView = ({ initialProduct, allProductVariants }) => {
-    // State untuk produk yang sedang ditampilkan (bisa berubah saat ukuran dipilih)
-    const [product, setProduct] = useState(initialProduct);
+// PERBAIKAN 3: Melengkapi Tipe Data 'Product' agar sesuai dengan penggunaan
+interface Product {
+    id: string;
+    nama: string;
+    harga_jual: number;
+    harga_coret?: number;
+    stok: number;
+    stok_min: number;
+    merek: string;
+    ukuran: string;
+    sku: string;
+    lini_produk?: string;
+    rating?: number;
+    jumlah_ulasan?: number;
+    total_terjual?: number;
+    kategori: string;
+    berat_gram: number;
+    image_url: string; // Menambahkan image_url
+    status: string; // Menambahkan status
+}
+
+interface ProductDetailViewProps {
+    initialProduct: Product;
+    allProductVariants: Product[];
+}
+
+const ProductDetailView = ({
+    initialProduct,
+    allProductVariants,
+}: ProductDetailViewProps) => {
+    const [product, setProduct] = useState<Product>(initialProduct);
     const [quantity, setQuantity] = useState(1);
     const [selectedSize, setSelectedSize] = useState(initialProduct.ukuran);
+    const [isAdding, setIsAdding] = useState(false);
     const { addToCart } = useAppStore();
 
-    const formatRupiah = (number) =>
+    // PERBAIKAN 4: Menghapus type annotation yang terlalu ketat
+    const formatRupiah = (number: number | undefined) =>
         new Intl.NumberFormat("id-ID", {
             style: "currency",
             currency: "IDR",
             minimumFractionDigits: 0,
         }).format(number || 0);
 
-    // PERBAIKAN UTAMA: Logika untuk mencari ukuran yang tersedia
     const availableSizes = useMemo(() => {
         if (!initialProduct) return [];
-        // Cari semua varian produk berdasarkan NAMA, MEREK, dan LINI PRODUK yang sama
         return allProductVariants
             .filter(
                 (p) =>
@@ -36,12 +67,10 @@ const ProductDetailView = ({ initialProduct, allProductVariants }) => {
             .filter(
                 (value, index, self) =>
                     self.findIndex((t) => t.size === value.size) === index,
-            ); // Ambil unik
+            );
     }, [initialProduct, allProductVariants]);
 
-    // PERBAIKAN UTAMA: useEffect untuk memperbarui produk saat ukuran berubah
     useEffect(() => {
-        // Cari varian produk yang cocok dengan ukuran yang baru dipilih
         const newProductVariant = allProductVariants.find(
             (p) =>
                 p.ukuran === selectedSize &&
@@ -49,17 +78,15 @@ const ProductDetailView = ({ initialProduct, allProductVariants }) => {
                 p.merek === initialProduct.merek &&
                 p.lini_produk === initialProduct.lini_produk,
         );
-
         if (newProductVariant) {
-            setProduct(newProductVariant); // Update produk yang ditampilkan
-            // Reset kuantitas jika melebihi stok ukuran baru
+            setProduct(newProductVariant);
             if (quantity > newProductVariant.stok) {
                 setQuantity(1);
             }
         }
-    }, [selectedSize, allProductVariants, initialProduct]);
+    }, [selectedSize, allProductVariants, initialProduct, quantity]);
 
-    const handleQuantityChange = (amount) => {
+    const handleQuantityChange = (amount: number) => {
         const newQuantity = Math.max(
             1,
             Math.min(product.stok, quantity + amount),
@@ -67,25 +94,24 @@ const ProductDetailView = ({ initialProduct, allProductVariants }) => {
         setQuantity(newQuantity);
     };
 
-    const handleAddToCart = () => {
-        addToCart(product, quantity);
-        alert(
-            `${quantity} x ${product.nama} (${product.ukuran}) berhasil ditambahkan.`,
-        );
+    const handleAddToCart = async () => {
+        if (isAdding) return;
+        setIsAdding(true);
+        try {
+            await addToCart(product, quantity);
+            alert(
+                `${quantity} x ${product.nama} (${product.ukuran}) berhasil ditambahkan.`,
+            );
+        } catch (error) {
+            console.error("Gagal menambahkan ke keranjang:", error);
+            alert("Gagal menambahkan produk. Silakan coba lagi.");
+        } finally {
+            setIsAdding(false);
+        }
     };
 
-    // Logika untuk Badges
-    const isLowStock = product.stok > 0 && product.stok <= product.stok_min;
     const hasDiscount =
         product.harga_coret && product.harga_coret > product.harga_jual;
-    const discountPercentage = hasDiscount
-        ? Math.round(
-              ((product.harga_coret - product.harga_jual) /
-                  product.harga_coret) *
-                  100,
-          )
-        : 0;
-    const isBestSeller = product.total_terjual > 50;
 
     return (
         <div className="space-y-6">
@@ -105,6 +131,8 @@ const ProductDetailView = ({ initialProduct, allProductVariants }) => {
                     </p>
                 )}
             </div>
+
+            {/* PERBAIKAN 5: Mengembalikan UI Rating */}
             <div className="flex items-center gap-4 text-sm text-slate-500">
                 <div className="flex items-center gap-1">
                     <span className="font-bold text-orange-500">
@@ -129,6 +157,7 @@ const ProductDetailView = ({ initialProduct, allProductVariants }) => {
                     Terjual
                 </div>
             </div>
+
             <div className="bg-slate-50 p-4 rounded-lg">
                 {hasDiscount && (
                     <p className="text-base text-slate-400 line-through">
@@ -167,6 +196,7 @@ const ProductDetailView = ({ initialProduct, allProductVariants }) => {
                         ))}
                     </div>
                 </div>
+
                 <div className="flex items-center justify-between">
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -193,23 +223,52 @@ const ProductDetailView = ({ initialProduct, allProductVariants }) => {
                             </button>
                         </div>
                     </div>
-                    {/* PERBAIKAN: Stok dinamis sekarang akan selalu akurat */}
                     <p className="text-sm text-slate-500 self-end">
                         Stok Tersedia:{" "}
                         <span className="font-bold">{product.stok}</span>
                     </p>
                 </div>
+
                 <div className="mt-4">
                     <button
                         onClick={handleAddToCart}
-                        disabled={availableSizes.length === 0}
-                        className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg transition-colors disabled:bg-slate-400"
+                        disabled={availableSizes.length === 0 || isAdding}
+                        className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg transition-colors disabled:bg-slate-400 disabled:cursor-wait"
                     >
-                        <FiShoppingCart />
-                        <span>Tambah ke Keranjang</span>
+                        {isAdding ? (
+                            <>
+                                <svg
+                                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <circle
+                                        className="opacity-25"
+                                        cx="12"
+                                        cy="12"
+                                        r="10"
+                                        stroke="currentColor"
+                                        strokeWidth="4"
+                                    ></circle>
+                                    <path
+                                        className="opacity-75"
+                                        fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                    ></path>
+                                </svg>
+                                <span>Menambahkan...</span>
+                            </>
+                        ) : (
+                            <>
+                                <FiShoppingCart />
+                                <span>Tambah ke Keranjang</span>
+                            </>
+                        )}
                     </button>
                 </div>
             </div>
+
             <ProductInfoTabs product={product} />
         </div>
     );
