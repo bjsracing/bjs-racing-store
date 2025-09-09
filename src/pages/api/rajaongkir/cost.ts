@@ -1,5 +1,5 @@
 // File: src/pages/api/rajaongkir/cost.ts
-// Versi Final dengan perbaikan struktur payload dan logging diagnostik.
+// Perbaikan Final: Disesuaikan 100% dengan dokumentasi RajaOngkir Starter API.
 
 import type { APIRoute } from "astro";
 
@@ -19,64 +19,62 @@ export const POST: APIRoute = async ({ request }) => {
 
     if (!origin || !destination || !weight || !courier) {
       return new Response(
-        JSON.stringify({ message: "Data input tidak lengkap." }),
+        JSON.stringify({
+          message:
+            "Parameter origin, destination, weight, dan courier wajib diisi.",
+        }),
         { status: 400 },
       );
     }
 
-    // Buat objek payload internal yang akan dikirim
-    const rajaOngkirPayload = {
-      Origin: origin,
-      Destination: destination,
-      weight: weight,
-      courier: courier.toLowerCase(),
-    };
+    // --- PERBAIKAN 1: Gunakan URLSearchParams untuk format x-www-form-urlencoded ---
+    const urlencoded = new URLSearchParams();
+    urlencoded.append("origin", origin);
+    urlencoded.append("destination", destination);
+    urlencoded.append("weight", String(weight));
+    urlencoded.append("courier", courier.toLowerCase());
 
-    // Kirim permintaan ke server RajaOngkir
     const response = await fetch(
       "https://rajaongkir.komerce.id/api/v1/calculate/domestic-cost",
       {
-        method: "POST",
+        method: "POST", // Metode yang benar adalah POST
         headers: {
+          // --- PERBAIKAN 2: Gunakan header yang benar ---
           key: apiKey,
-          "content-type": "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
         },
-        // Bungkus payload di dalam objek "data"
-        body: JSON.stringify({ data: rajaOngkirPayload }),
+        body: urlencoded, // Kirim body dalam format form-urlencoded
       },
     );
 
-    // Ambil respons dalam format JSON
     const result = await response.json();
 
-    // Cek jika respons TIDAK berhasil (status bukan 2xx)
-    if (!response.ok) {
-      // --- FUNGSI DEBUGGING 1: Log error spesifik dari RajaOngkir ---
+    if (!response.ok || result.meta.status !== "success") {
       console.error(
-        "RajaOngkir API Error Response:",
+        "RajaOngkir Cost API Error:",
         JSON.stringify(result, null, 2),
       );
       const errorMessage =
-        result?.meta?.message || "Terjadi kesalahan dari API RajaOngkir.";
+        result?.meta?.message ||
+        "Gagal menghitung ongkos kirim dari RajaOngkir.";
       return new Response(JSON.stringify({ message: errorMessage }), {
-        status: response.status,
+        status: result.meta.code || 500,
       });
     }
 
-    // Jika berhasil, kembalikan data ongkos kirim
+    // Kembalikan data dari properti 'data'
     return new Response(JSON.stringify(result.data || []), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    // --- FUNGSI DEBUGGING 2: Log error umum (jaringan, dll) ---
     console.error("Gagal memproses permintaan ongkos kirim:", error);
     return new Response(
       JSON.stringify({
         message:
           error instanceof Error
             ? error.message
-            : "Gagal menghitung ongkos kirim.",
+            : "Terjadi kesalahan pada server.",
       }),
       { status: 500 },
     );

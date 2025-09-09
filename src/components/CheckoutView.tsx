@@ -1,31 +1,40 @@
 // File: src/components/CheckoutView.tsx
-// Komponen React untuk menangani seluruh logika checkout.
+// Perbaikan Final: Disesuaikan untuk mem-parsing dan menampilkan
+// struktur respons dari API RajaOngkir Starter.
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useAppStore } from "@/lib/store.ts"; // Pastikan ekstensi file .ts disertakan jika diperlukan
-import type { Address } from "@/lib/store.ts"; // Impor tipe data dari store Zustand
+import { useAppStore } from "../lib/store.ts";
+import type { Address } from "../lib/store.ts";
 
-// Tipe data untuk hasil ongkos kirim dari RajaOngkir
-interface ShippingCost {
-  service: string;
-  description: string;
-  cost: {
-    value: number;
-    etd: string; // Estimasi Waktu Tiba
-    note: string;
-  }[];
+// --- PERBAIKAN 1: Tipe data baru untuk hasil ongkos kirim ---
+// Disesuaikan dengan struktur respons dari API Starter RajaOngkir
+interface ShippingService {
+  name: string; // Nama kurir (e.g., "JNE")
+  code: string; // Kode kurir (e.g., "jne")
+  service: string; // Nama layanan (e.g., "REG")
+  description: string; // Deskripsi layanan
+  cost: number; // Biaya pengiriman
+  etd: string; // Estimasi Waktu Tiba
 }
 
-// Opsi kurir yang tersedia (sesuai permintaan Anda: JNE, J&T, SiCepat, GoSend)
+// --- PERBAIKAN 2: Daftar kurir yang didukung oleh paket Starter ---
 const courierOptions = [
   { code: "jne", name: "JNE" },
-  { code: "jnt", name: "J&T" },
   { code: "sicepat", name: "SiCepat" },
-  { code: "gosend", name: "GoSend Instant" },
+  { code: "jnt", name: "J&T Express" },
+  { code: "sap", name: "SAP Express" },
+  { code: "ninja", name: "Ninja Xpress" },
+  { code: "ide", name: "ID Express" },
+  { code: "tiki", name: "TIKI" },
+  { code: "wahana", name: "Wahana Express" },
+  { code: "pos", name: "POS Indonesia" },
+  { code: "sentral", name: "Sentral Cargo" },
+  { code: "lion", name: "Lion Parcel" },
+  { code: "rex", name: "Royal Express Asia" },
 ];
 
 export default function CheckoutView() {
-  // --- Mengambil State dan Aksi dari Zustand Store ---
+  // --- State dari Zustand Store ---
   const items = useAppStore((state) => state.items);
   const addresses = useAppStore((state) => state.addresses);
   const fetchAddresses = useAppStore((state) => state.fetchAddresses);
@@ -33,12 +42,14 @@ export default function CheckoutView() {
     (state) => state.calculateTotalWeight,
   );
 
-  // --- State Lokal untuk Komponen Checkout ---
+  // --- State Lokal Komponen ---
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
     null,
   );
   const [selectedCourier, setSelectedCourier] = useState<string>("");
-  const [shippingCosts, setShippingCosts] = useState<ShippingCost[]>([]);
+  const [shippingServices, setShippingServices] = useState<ShippingService[]>(
+    [],
+  ); // State untuk menampung daftar layanan
   const [selectedShipping, setSelectedShipping] = useState<{
     service: string;
     cost: number;
@@ -46,7 +57,7 @@ export default function CheckoutView() {
   const [isLoadingCosts, setIsLoadingCosts] = useState(false);
   const [error, setError] = useState("");
 
-  // --- Kalkulasi Memoized (untuk performa) ---
+  // --- Kalkulasi Memoized ---
   const totalWeight = useMemo(
     () => calculateTotalWeight(),
     [items, calculateTotalWeight],
@@ -64,7 +75,6 @@ export default function CheckoutView() {
     [subtotal, selectedShipping],
   );
 
-  // Fungsi format mata uang
   const formatRupiah = (number: number) =>
     new Intl.NumberFormat("id-ID", {
       style: "currency",
@@ -72,14 +82,12 @@ export default function CheckoutView() {
       minimumFractionDigits: 0,
     }).format(number || 0);
 
-  // --- Efek Samping (Side Effects) ---
+  // --- Efek Samping ---
 
-  // 1. Ambil daftar alamat saat komponen pertama kali dimuat
   useEffect(() => {
     fetchAddresses();
   }, [fetchAddresses]);
 
-  // 2. Set alamat utama sebagai pilihan default saat data alamat dimuat
   useEffect(() => {
     if (addresses.length > 0 && !selectedAddressId) {
       const primaryAddress =
@@ -88,11 +96,10 @@ export default function CheckoutView() {
     }
   }, [addresses, selectedAddressId]);
 
-  // 3. Hitung ongkos kirim setiap kali alamat atau kurir yang dipilih berubah
   useEffect(() => {
     const fetchShippingCosts = async () => {
       if (!selectedAddressId || !selectedCourier || totalWeight === 0) {
-        setShippingCosts([]);
+        setShippingServices([]);
         setSelectedShipping(null);
         return;
       }
@@ -100,6 +107,7 @@ export default function CheckoutView() {
       setIsLoadingCosts(true);
       setError("");
       setSelectedShipping(null);
+      setShippingServices([]);
 
       const selectedAddress = addresses.find(
         (addr) => addr.id === selectedAddressId,
@@ -111,8 +119,8 @@ export default function CheckoutView() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            origin: "65100", // ID Asal Pengiriman Anda (sesuai konfirmasi sebelumnya)
-            destination: selectedAddress.destination, // ID Destinasi dari alamat
+            origin: "65100", // ID Asal Pengiriman Anda
+            destination: selectedAddress.destination,
             weight: totalWeight,
             courier: selectedCourier,
           }),
@@ -122,11 +130,11 @@ export default function CheckoutView() {
         if (!response.ok)
           throw new Error(result.message || "Gagal menghitung ongkos kirim.");
 
-        // Asumsi data yang relevan ada di result[0].costs
-        setShippingCosts(result[0]?.costs || []);
+        // --- PERBAIKAN 3: Menyimpan hasil ke state yang benar ---
+        setShippingServices(result || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Terjadi kesalahan.");
-        setShippingCosts([]);
+        setShippingServices([]);
       } finally {
         setIsLoadingCosts(false);
       }
@@ -135,12 +143,10 @@ export default function CheckoutView() {
     fetchShippingCosts();
   }, [selectedAddressId, selectedCourier, totalWeight, addresses]);
 
-  // --- Render Komponen ---
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       {/* Kolom Kiri: Alamat & Pengiriman */}
       <div className="lg:col-span-2 space-y-6">
-        {/* Pilihan Alamat Pengiriman */}
         <div className="bg-white p-6 rounded-xl shadow-md">
           <h2 className="text-xl font-bold mb-4">Alamat Pengiriman</h2>
           <div className="space-y-3">
@@ -169,10 +175,7 @@ export default function CheckoutView() {
                 </label>
               ))
             ) : (
-              <p className="text-sm text-gray-500">
-                Anda belum memiliki alamat. Silakan tambahkan alamat di halaman
-                akun Anda.
-              </p>
+              <p className="text-sm text-gray-500">Memuat alamat...</p>
             )}
             <a
               href="/akun"
@@ -183,7 +186,6 @@ export default function CheckoutView() {
           </div>
         </div>
 
-        {/* Pilihan Metode Pengiriman */}
         <div className="bg-white p-6 rounded-xl shadow-md">
           <h2 className="text-xl font-bold mb-4">Metode Pengiriman</h2>
           <select
@@ -207,10 +209,11 @@ export default function CheckoutView() {
           )}
           {error && <p className="text-sm text-red-500 mt-4">{error}</p>}
 
-          {shippingCosts.length > 0 && (
+          {/* --- PERBAIKAN 4: Render hasil ongkir dari array tunggal --- */}
+          {shippingServices.length > 0 && (
             <div className="mt-4 space-y-2">
               <p className="text-sm font-medium">Pilih Layanan Pengiriman:</p>
-              {shippingCosts.map((service) => (
+              {shippingServices.map((service) => (
                 <label
                   key={service.service}
                   className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500"
@@ -221,21 +224,20 @@ export default function CheckoutView() {
                     onChange={() =>
                       setSelectedShipping({
                         service: service.service,
-                        cost: service.cost[0].value,
+                        cost: service.cost,
                       })
                     }
                     className="flex-shrink-0"
                   />
-                  <div className="ml-3 flex-grows flex justify-between w-full text-sm flex-wrap gap-2">
+                  <div className="ml-3 flex-grow flex justify-between w-full text-sm flex-wrap gap-2">
                     <div>
-                      <p className="font-semibold">{service.service}</p>
-                      <p className="text-gray-500">
-                        {service.description} (Estimasi {service.cost[0].etd}{" "}
-                        hari)
+                      <p className="font-semibold">
+                        {service.service} ({service.description})
                       </p>
+                      <p className="text-gray-500">Estimasi {service.etd}</p>
                     </div>
                     <p className="font-bold whitespace-nowrap">
-                      {formatRupiah(service.cost[0].value)}
+                      {formatRupiah(service.cost)}
                     </p>
                   </div>
                 </label>
