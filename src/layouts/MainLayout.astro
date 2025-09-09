@@ -51,8 +51,8 @@ const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
   </head>
   <body class="bg-slate-100 text-slate-800 text-sm mobile:text-base tablet:text-lg">
 
-    {/* 3. Bungkus seluruh konten aplikasi dengan AuthProvider */}
-    {/* Direktif 'client:load' sangat penting agar logika auth berjalan di browser. */}
+    {/* --- PERBAIKAN UTAMA DI SINI --- */}
+    {/* AuthProvider sekarang membungkus semua elemen di dalam body. */}
     <AuthProvider client:load>
       <Header />
       
