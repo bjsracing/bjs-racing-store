@@ -1,5 +1,5 @@
 // File: src/pages/api/cart.ts
-// Perbaikan: Menambahkan logging diagnostik mendalam untuk melacak sesi dan profil.
+// Perbaikan: Membuat API lebih toleran terhadap race condition.
 
 import type { APIRoute, APIContext } from "astro";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
@@ -24,71 +24,41 @@ function createSupabaseClient(cookies: APIContext["cookies"]) {
     );
 }
 
-// --- FUNGSI DENGAN DEBUGGING ---
+// Fungsi ini sekarang mengembalikan string customerId atau null jika tidak ditemukan
 async function getCustomerIdFromSession(
     supabase: ReturnType<typeof createSupabaseClient>,
 ): Promise<string | null> {
-    console.log("[DEBUG /api/cart] Memulai getCustomerIdFromSession...");
-
     const {
         data: { user },
-        error: userError,
     } = await supabase.auth.getUser();
-    if (userError) {
-        console.error(
-            "[DEBUG /api/cart] Error saat supabase.auth.getUser():",
-            userError.message,
-        );
-        return null;
-    }
-    if (!user) {
-        console.warn(
-            "[DEBUG /api/cart] Tidak ada sesi pengguna yang ditemukan oleh supabase.auth.getUser().",
-        );
-        return null;
-    }
-    console.log(
-        `[DEBUG /api/cart] Sesi pengguna ditemukan. User ID: ${user.id}`,
-    );
+    if (!user) return null;
 
-    const { data: customerData, error: customerError } = await supabase
+    const { data: customerData, error } = await supabase
         .from("customers")
         .select("id")
         .eq("auth_user_id", user.id)
         .maybeSingle();
 
-    if (customerError) {
+    if (error) {
         console.error(
-            "[DEBUG /api/cart] Terjadi error saat query ke tabel customers:",
-            customerError.message,
+            "Database error saat mencari profil di /api/cart:",
+            error.message,
         );
         return null;
     }
 
-    if (!customerData) {
-        console.warn(
-            `[DEBUG /api/cart] Query ke tabel customers berhasil, namun tidak ada profil ditemukan untuk user ID: ${user.id}`,
-        );
-        return null;
-    }
-
-    console.log(
-        `[DEBUG /api/cart] Profil pelanggan ditemukan. Customer ID: ${customerData.id}`,
-    );
-    return customerData.id;
+    return customerData?.id || null;
 }
 
+// --- FUNGSI GET (Mengambil Keranjang) ---
 export const GET: APIRoute = async ({ cookies }: APIContext) => {
     const supabase = createSupabaseClient(cookies);
     try {
-        console.log("[DEBUG /api/cart] Menerima request GET...");
         const customerId = await getCustomerIdFromSession(supabase);
 
+        // --- PERBAIKAN UTAMA: Jaring Pengaman ---
+        // Jika tidak ada customerId, kembalikan keranjang kosong daripada error.
         if (!customerId) {
-            // Ini adalah penanganan race condition. Kembalikan keranjang kosong jika profil belum siap.
-            console.warn(
-                "[DEBUG /api/cart] Gagal mendapatkan customerId, mengembalikan keranjang kosong.",
-            );
             return new Response(JSON.stringify([]), { status: 200 });
         }
 
@@ -109,23 +79,26 @@ export const GET: APIRoute = async ({ cookies }: APIContext) => {
             error instanceof Error
                 ? error.message
                 : "Gagal mengambil data keranjang.";
-        console.error("Error fatal di GET /api/cart:", errorMessage);
+        console.error("Error di GET /api/cart:", errorMessage);
         return new Response(JSON.stringify({ message: errorMessage }), {
             status: 500,
         });
     }
 };
 
-// =================================================================
-// == FUNGSI POST: Menambah item baru / update kuantitas item     ==
-// =================================================================
-// PERBAIKAN: Tambahkan tipe APIContext ke parameter
+// --- FUNGSI POST, PATCH, DELETE (Memerlukan customerId yang valid) ---
+// (Implementasi lengkap dari Turn 126, sekarang menggunakan fungsi helper yang lebih aman)
+
 export const POST: APIRoute = async ({ request, cookies }: APIContext) => {
     const supabase = createSupabaseClient(cookies);
     try {
         const customerId = await getCustomerIdFromSession(supabase);
-        const { product_id, quantity } = await request.json();
+        if (!customerId)
+            throw new Error(
+                "Tidak dapat memproses keranjang karena profil pelanggan tidak ditemukan.",
+            );
 
+        const { product_id, quantity } = await request.json();
         if (!product_id || !quantity || quantity <= 0) {
             return new Response(
                 JSON.stringify({
@@ -135,36 +108,13 @@ export const POST: APIRoute = async ({ request, cookies }: APIContext) => {
             );
         }
 
-        const { data: existingItem, error: selectError } = await supabase
-            .from("cart_items")
-            .select("id, quantity")
-            .eq("customer_id", customerId)
-            .eq("product_id", product_id)
-            .maybeSingle();
+        const { error } = await supabase.rpc("upsert_cart_item", {
+            p_customer_id: customerId,
+            p_product_id: product_id,
+            p_quantity: quantity,
+        });
 
-        if (selectError) throw selectError;
-
-        if (existingItem) {
-            const newQuantity = existingItem.quantity + quantity;
-            const { error: updateError } = await supabase
-                .from("cart_items")
-                .update({
-                    quantity: newQuantity,
-                    updated_at: new Date().toISOString(),
-                })
-                .eq("id", existingItem.id);
-            if (updateError) throw updateError;
-        } else {
-            const { error: insertError } = await supabase
-                .from("cart_items")
-                .insert({
-                    customer_id: customerId,
-                    product_id: product_id,
-                    quantity: quantity,
-                });
-            if (insertError) throw insertError;
-        }
-
+        if (error) throw error;
         return new Response(
             JSON.stringify({ message: "Item berhasil diproses." }),
             { status: 200 },
@@ -181,16 +131,16 @@ export const POST: APIRoute = async ({ request, cookies }: APIContext) => {
     }
 };
 
-// =================================================================
-// == FUNGSI PATCH: Mengubah kuantitas item secara spesifik       ==
-// =================================================================
-// PERBAIKAN: Tambahkan tipe APIContext ke parameter
 export const PATCH: APIRoute = async ({ request, cookies }: APIContext) => {
     const supabase = createSupabaseClient(cookies);
     try {
         const customerId = await getCustomerIdFromSession(supabase);
-        const { product_id, quantity } = await request.json();
+        if (!customerId)
+            throw new Error(
+                "Tidak dapat mengubah keranjang karena profil pelanggan tidak ditemukan.",
+            );
 
+        const { product_id, quantity } = await request.json();
         if (!product_id || !quantity || quantity <= 0) {
             return new Response(
                 JSON.stringify({
@@ -210,7 +160,6 @@ export const PATCH: APIRoute = async ({ request, cookies }: APIContext) => {
             .eq("product_id", product_id);
 
         if (error) throw error;
-
         return new Response(
             JSON.stringify({ message: "Kuantitas berhasil diperbarui." }),
             { status: 200 },
@@ -227,16 +176,16 @@ export const PATCH: APIRoute = async ({ request, cookies }: APIContext) => {
     }
 };
 
-// =================================================================
-// == FUNGSI DELETE: Menghapus satu item dari keranjang           ==
-// =================================================================
-// PERBAIKAN: Tambahkan tipe APIContext ke parameter
 export const DELETE: APIRoute = async ({ request, cookies }: APIContext) => {
     const supabase = createSupabaseClient(cookies);
     try {
         const customerId = await getCustomerIdFromSession(supabase);
-        const { product_id } = await request.json();
+        if (!customerId)
+            throw new Error(
+                "Tidak dapat menghapus item karena profil pelanggan tidak ditemukan.",
+            );
 
+        const { product_id } = await request.json();
         if (!product_id) {
             return new Response(
                 JSON.stringify({ message: "Product ID diperlukan." }),
@@ -251,7 +200,6 @@ export const DELETE: APIRoute = async ({ request, cookies }: APIContext) => {
             .eq("product_id", product_id);
 
         if (error) throw error;
-
         return new Response(
             JSON.stringify({ message: "Item berhasil dihapus." }),
             { status: 200 },
