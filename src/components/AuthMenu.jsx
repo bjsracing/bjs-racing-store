@@ -1,49 +1,34 @@
 // File: src/components/AuthMenu.jsx
-// Perbaikan Final: Menggunakan supabase.auth.getUser() untuk memastikan sesi
-// divalidasi server sebelum mengambil data keranjang, mengatasi race condition.
+// Perbaikan: Refactor total untuk menggunakan hook useAuth() dari AuthContext,
+// menghilangkan semua logika state management lokal.
 
-import React, { useState, useEffect } from "react";
-import { supabase } from "../lib/supabaseClient.js";
+import React from "react";
+// 1. Impor custom hook `useAuth` yang baru kita buat
+import { useAuth } from "../lib/authContext.tsx";
 import id from "../../public/locales/id/common.json";
-// Gunakan alias path yang stabil untuk impor store
-import { useAppStore } from "@/lib/store.ts";
+import { supabase } from "../lib/supabaseClient.js"; // Tetap diperlukan untuk signOut
 
 const AuthMenu = () => {
-    const [session, setSession] = useState(null);
-    const fetchCart = useAppStore((state) => state.fetchCart);
+    // 2. Gunakan hook `useAuth` untuk mendapatkan data sesi dan status loading
+    const { session, isLoading } = useAuth();
 
-    useEffect(() => {
-        // --- PERBAIKAN UTAMA: Gunakan getUser() untuk sinkronisasi dengan server ---
-        const checkUserSession = async () => {
-            // Cek sesi awal dengan metode yang divalidasi server
-            const {
-                data: { user },
-            } = await supabase.auth.getUser();
-            setSession(user ? { user } : null); // Simpan sesi jika user ditemukan
+    // Fungsi logout tetap sederhana
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        // Arahkan ke halaman utama, AuthProvider akan menangani sisa perubahan state
+        window.location.href = "/";
+    };
 
-            // Jika ada pengguna yang valid, ambil data keranjang
-            if (user) {
-                fetchCart();
-            }
-        };
+    // 3. Tampilkan status loading saat AuthProvider sedang memvalidasi sesi
+    if (isLoading) {
+        return (
+            <div className="text-sm font-semibold text-slate-400 animate-pulse">
+                Memuat...
+            </div>
+        );
+    }
 
-        checkUserSession(); // Jalankan pengecekan awal saat komponen dimuat
-
-        // Listener tetap diperlukan untuk menangani login/logout secara real-time
-        const {
-            data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, newSession) => {
-            setSession(newSession);
-            // Jika ada sesi baru (login), ambil keranjang.
-            // Jika tidak ada (logout), state keranjang akan dikosongkan oleh komponen lain.
-            if (newSession) {
-                fetchCart();
-            }
-        });
-
-        return () => subscription.unsubscribe();
-    }, [fetchCart]);
-
+    // 4. Tampilkan tombol Login jika tidak ada sesi
     if (!session) {
         return (
             <a
@@ -55,17 +40,12 @@ const AuthMenu = () => {
         );
     }
 
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
-        // Redirect ke halaman utama. State non-persisten akan otomatis di-reset.
-        window.location.href = "/";
-    };
-
+    // 5. Tampilkan email pengguna dan tombol Logout jika ada sesi
     return (
         <div className="flex items-center gap-3">
             <a
                 href="/akun"
-                className="text-sm font-semibold text-slate-600 hover:text-orange-500"
+                className="text-sm font-semibold text-slate-600 hover:text-orange-500 truncate max-w-[150px]"
             >
                 {session.user.email}
             </a>

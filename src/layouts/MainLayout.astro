@@ -1,8 +1,14 @@
 ---
+// File: src/layouts/MainLayout.astro
+// Perbaikan: Membungkus seluruh layout dengan AuthProvider untuk manajemen sesi terpusat.
+
+// 1. Impor komponen layout dan AuthProvider yang baru
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import { AuthProvider } from '../lib/authContext.tsx'; // Menggunakan path relatif
 
-const { session } = Astro.locals;
+// 2. Hapus logika sesi lama. Ini sekarang akan ditangani oleh AuthProvider di sisi klien.
+// const { session } = Astro.locals; // <-- Baris ini dihapus
 
 interface Props {
   title: string;
@@ -10,7 +16,7 @@ interface Props {
 
 const { title } = Astro.props;
 
-// Daftar semua ukuran ikon yang diperlukan
+// Daftar ikon (tetap sama)
 const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
 ---
 
@@ -44,15 +50,20 @@ const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
     <meta name="generator" content={Astro.generator} />
   </head>
   <body class="bg-slate-100 text-slate-800 text-sm mobile:text-base tablet:text-lg">
-    <Header session={session} />
-    
-    <main class="min-h-screen container mx-auto px-3 mobile:px-4 tablet:px-6 desktop:px-8 py-4">
-      <slot />
-    </main>
 
-    <Footer />
+    {/* 3. Bungkus seluruh konten aplikasi dengan AuthProvider */}
+    {/* Direktif 'client:load' sangat penting agar logika auth berjalan di browser. */}
+    <AuthProvider client:load>
+      <Header />
+      
+      <main class="min-h-screen container mx-auto px-3 mobile:px-4 tablet:px-6 desktop:px-8 py-4">
+        <slot />
+      </main>
+
+      <Footer />
+    </AuthProvider>
     
-    {/* PWA Registration Script */}
+    {/* PWA Registration Script dan semua skrip lainnya tetap sama */}
     <script>
 // ✅ DEBOUNCE FUNCTION UNTUK PERFORMANCE
 function debounce(func, wait) {
