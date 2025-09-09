@@ -1,30 +1,47 @@
 ---
-// src/pages/products/[id].astro (Versi Final dengan Semua Komponen Lengkap)
+// File: src/pages/products/[id].astro
+// Perbaikan Final: Menggunakan createServerClient untuk data fetching di server
+// dan memperbarui impor komponen ke versi .tsx.
+
 export const prerender = false;
 
 import MainLayout from '../../layouts/MainLayout.astro';
-import { supabase } from '../../lib/supabaseClient';
-import PurchasePanel from '../../components/PurchasePanel.jsx';
-import ProductInfoTabs from '../../components/ProductInfoTabs.jsx';
-import ImageUploader from '../../components/ImageUploader.jsx';
+// PERBAIKAN 1: Impor createServerClient untuk penggunaan di server
+import { createServerClient, type CookieOptions } from '@supabase/ssr'; 
+
+// PERBAIKAN 2: Impor komponen versi .tsx yang sudah diperbarui
+import PurchasePanel from '../../components/PurchasePanel.tsx';
+import ProductInfoTabs from '../../components/ProductInfoTabs.tsx';
+import ImageUploader from '../../components/ImageUploader.jsx'; // Asumsi file ini belum diubah ke .tsx
 import { FiStar, FiEye } from 'react-icons/fi';
 
 const { id } = Astro.params;
-const { session } = Astro.locals;
+const { session, cookies } = Astro.locals; // Ambil cookies untuk server client
+
+// PERBAIKAN 3: Inisialisasi Supabase Server Client
+const supabase = createServerClient(
+    import.meta.env.PUBLIC_SUPABASE_URL!,
+    import.meta.env.PUBLIC_SUPABASE_ANON_KEY!,
+    {
+        cookies: {
+            get(key: string) { return cookies.get(key)?.value; },
+            set(key: string, value: string, options: CookieOptions) { cookies.set(key, value, options); },
+            remove(key: string, options: CookieOptions) { cookies.delete(key, options); },
+        },
+    }
+);
 
 let product = null;
-let allProducts = []; // Akan berisi semua varian ukuran dari produk ini
+let allProducts = [];
 let isAdmin = false;
 
 if (id) {
-    // 1. Ambil data produk yang sedang dilihat
+    // Logika pengambilan data tetap sama, tetapi sekarang menggunakan server client yang benar
     const { data: initialProduct } = await supabase.from('products').select('*').eq('id', id).single();
     product = initialProduct;
 
-    // 2. Ambil semua varian produk (berdasarkan nama & merek) untuk dikirim ke panel pembelian
     if (product) {
-// Kode Baru
-const { data: variants } = await supabase.rpc('search_active_products', { search_term: product.nama });
+        const { data: variants } = await supabase.rpc('search_active_products', { search_term: product.nama });
         allProducts = variants || [];
     }
 }
@@ -38,7 +55,6 @@ if (!product) { return Astro.redirect('/404'); }
 
 const formatRupiah = (number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number || 0);
 
-// Logika untuk Badges
 const isLowStock = product.stok > 0 && product.stok <= product.stok_min;
 const hasDiscount = product.harga_coret && product.harga_coret > product.harga_jual;
 const discountPercentage = hasDiscount ? Math.round(((product.harga_coret - product.harga_jual) / product.harga_coret) * 100) : 0;
@@ -59,14 +75,12 @@ const isBestSeller = product.total_terjual > 50;
                     {isLowStock && <div class="bg-yellow-400 text-yellow-900 text-sm font-bold px-3 py-1 rounded">STOK TERAKHIR</div>}
                 </div>
                 
-                {product.color_swatch_url && ( <div class="absolute bottom-8 left-8
-w-28 h-28 rounded-full shadow-lg shadow-slate-1000 overflow-hidden"><img src={product.color_swatch_url} alt={`Warna ${product.nama}`} class="w-full h-full object-cover rounded-full" /></div> )}
+                {product.color_swatch_url && ( <div class="absolute bottom-8 left-8 w-28 h-28 rounded-full shadow-lg shadow-slate-1000 overflow-hidden"><img src={product.color_swatch_url} alt={`Warna ${product.nama}`} class="w-full h-full object-cover rounded-full" /></div> )}
             </div>
 
             {/* --- KOLOM KANAN: INFO & AKSI --- */}
             <div class="space-y-2">
                 <div>
-
                     <h1 class="text-4xl font-bold mt-1">{product.sku} - {product.nama}</h1>
                     {product.lini_produk && <p class="text-lg text-blue-600 font-semibold uppercase tracking-wider">{product.lini_produk}</p>}
                 </div>
@@ -81,11 +95,10 @@ w-28 h-28 rounded-full shadow-lg shadow-slate-1000 overflow-hidden"><img src={pr
                 </div>
                 
                 <a href={`/simulator?product_id=${product.id}`}
-   class="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
->
-    <FiEye />
-    <span>Coba Warna di Garasi Virtual</span>
-</a>
+                    class="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                    <FiEye />
+                    <span>Coba Warna di Garasi Virtual</span>
+                </a>
                 
                 <PurchasePanel client:only="react" initialProduct={product} allProductVariants={allProducts} />
                 
