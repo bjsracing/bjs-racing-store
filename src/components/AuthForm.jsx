@@ -1,4 +1,5 @@
-// src/components/AuthForm.jsx
+// File: src/components/AuthForm.jsx
+// Perbaikan: Mengembalikan logika smart redirect untuk mencegah race condition.
 
 import React, { useEffect } from "react";
 import { Auth } from "@supabase/auth-ui-react";
@@ -13,7 +14,7 @@ const AuthForm = () => {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       // Hanya jalankan jika event adalah SIGNED_IN dan ada sesi
       if (event === "SIGNED_IN" && session) {
-        // --- LOGIKA BARU DITAMBAHKAN DI SINI ---
+        // --- LOGIKA KUNCI UNTUK MENCEGAH RACE CONDITION ---
         // Cek apakah profil pelanggan sudah ada di database kita
         const { data: customerProfile, error } = await supabase
           .from("customers")
@@ -29,19 +30,18 @@ const AuthForm = () => {
         }
 
         if (customerProfile) {
-          // PROFIL DITEMUKAN: Ini pengguna lama yang login
-          // Arahkan langsung ke halaman akun utama
-          console.log("Profil ditemukan, mengarahkan ke /akun");
-          window.location.href = "/akun";
+          // PROFIL DITEMUKAN: Pengguna lama yang login
+          // Arahkan langsung ke halaman akun
+          const redirectUrl =
+            new URLSearchParams(window.location.search).get("redirect") ||
+            "/akun";
+          window.location.href = redirectUrl;
         } else {
-          // PROFIL TIDAK DITEMUKAN: Ini pengguna baru yang mendaftar
+          // PROFIL TIDAK DITEMUKAN: Pengguna baru yang mendaftar
           // Arahkan ke halaman untuk melengkapi profil
-          console.log(
-            "Profil tidak ditemukan, mengarahkan ke /akun/lengkapi-profil",
-          );
           window.location.href = "/akun/lengkapi-profil";
         }
-        // --- AKHIR DARI LOGIKA BARU ---
+        // --- AKHIR DARI LOGIKA KUNCI ---
       }
     });
 

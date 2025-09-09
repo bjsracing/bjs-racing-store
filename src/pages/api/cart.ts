@@ -1,14 +1,11 @@
 // File: src/pages/api/cart.ts
-// Deskripsi: API Backend untuk mengelola keranjang belanja pengguna yang disimpan di database.
+// Perbaikan Final: Menambahkan Tipe Data eksplisit untuk mengatasi semua error TypeScript.
 
-import type { APIRoute, APIContext } from "astro";
+import type { APIRoute, APIContext } from "astro"; // PERBAIKAN: Impor APIContext
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
-// --- Fungsi Helper (DRY - Don't Repeat Yourself) ---
+// --- Fungsi Helper ---
 
-/**
- * Membuat instance Supabase server client.
- */
 function createSupabaseClient(cookies: APIContext["cookies"]) {
     return createServerClient(
         import.meta.env.PUBLIC_SUPABASE_URL!,
@@ -29,11 +26,7 @@ function createSupabaseClient(cookies: APIContext["cookies"]) {
     );
 }
 
-/**
- * Mengambil customer_id dari pengguna yang sedang login.
- * Melempar error jika tidak ada sesi atau profil customer tidak ditemukan.
- */
-async function getCustomerId(
+async function getCustomerIdFromSession(
     supabase: ReturnType<typeof createSupabaseClient>,
 ): Promise<string> {
     const {
@@ -45,10 +38,14 @@ async function getCustomerId(
         .from("customers")
         .select("id")
         .eq("auth_user_id", user.id)
-        .single();
+        .maybeSingle();
 
-    if (error || !customerData)
-        throw new Error("Profil pelanggan tidak ditemukan.");
+    if (error)
+        throw new Error(`Database error saat mencari profil: ${error.message}`);
+    if (!customerData)
+        throw new Error(
+            "Profil pelanggan tidak ditemukan untuk pengguna yang login.",
+        );
 
     return customerData.id;
 }
@@ -56,33 +53,24 @@ async function getCustomerId(
 // =================================================================
 // == FUNGSI GET: Mengambil isi keranjang belanja pengguna        ==
 // =================================================================
-export const GET: APIRoute = async ({ cookies }) => {
+// PERBAIKAN: Tambahkan tipe APIContext ke parameter
+export const GET: APIRoute = async ({ cookies }: APIContext) => {
     const supabase = createSupabaseClient(cookies);
     try {
-        const customerId = await getCustomerId(supabase);
+        const customerId = await getCustomerIdFromSession(supabase);
 
-        // Ambil item keranjang dan gabungkan dengan detail produknya
         const { data: cartItems, error } = await supabase
             .from("cart_items")
             .select(
                 `
         quantity,
-        product:products (
-          id,
-          nama,
-          harga_jual,
-          image_url,
-          berat_gram,
-          merek,
-          ukuran
-        )
+        product:products (*)
       `,
             )
             .eq("customer_id", customerId);
 
         if (error) throw error;
 
-        // Ubah struktur data agar cocok dengan state di frontend
         const formattedCart = cartItems.map((item) => ({
             ...item.product,
             quantity: item.quantity,
@@ -90,96 +78,96 @@ export const GET: APIRoute = async ({ cookies }) => {
 
         return new Response(JSON.stringify(formattedCart), { status: 200 });
     } catch (error) {
-        return new Response(
-            JSON.stringify({
-                message:
-                    error instanceof Error
-                        ? error.message
-                        : "Gagal mengambil data keranjang.",
-            }),
-            { status: 500 },
-        );
+        const errorMessage =
+            error instanceof Error
+                ? error.message
+                : "Gagal mengambil data keranjang.";
+        console.error("Error di GET /api/cart:", errorMessage);
+        return new Response(JSON.stringify({ message: errorMessage }), {
+            status: 500,
+        });
     }
 };
 
 // =================================================================
 // == FUNGSI POST: Menambah item baru / update kuantitas item     ==
 // =================================================================
-export const POST: APIRoute = async ({ request, cookies }) => {
+// PERBAIKAN: Tambahkan tipe APIContext ke parameter
+export const POST: APIRoute = async ({ request, cookies }: APIContext) => {
     const supabase = createSupabaseClient(cookies);
     try {
-        const customerId = await getCustomerId(supabase);
+        const customerId = await getCustomerIdFromSession(supabase);
         const { product_id, quantity } = await request.json();
 
         if (!product_id || !quantity || quantity <= 0) {
             return new Response(
                 JSON.stringify({
-                    message: "Product ID dan kuantitas yang valid diperlukan.",
+                    message: "Product ID dan kuantitas valid diperlukan.",
                 }),
                 { status: 400 },
             );
         }
 
-        // Gunakan upsert untuk menambah item baru atau menambah kuantitas jika sudah ada.
-        // Catatan: Ini memerlukan sedikit trik karena upsert Supabase tidak bisa "increment" secara native.
-        // Kita akan melakukan ini dalam sebuah RPC function untuk atomicity.
+        const { data: existingItem, error: selectError } = await supabase
+            .from("cart_items")
+            .select("id, quantity")
+            .eq("customer_id", customerId)
+            .eq("product_id", product_id)
+            .maybeSingle();
 
-        // Pertama, buat fungsi RPC di Supabase SQL Editor:
-        /* CREATE OR REPLACE FUNCTION upsert_cart_item(
-            p_customer_id UUID,
-            p_product_id UUID,
-            p_quantity INT
-        )
-        RETURNS VOID AS $$
-        BEGIN
-            INSERT INTO public.cart_items (customer_id, product_id, quantity)
-            VALUES (p_customer_id, p_product_id, p_quantity)
-            ON CONFLICT (customer_id, product_id)
-            DO UPDATE SET quantity = cart_items.quantity + p_quantity;
-        END;
-        $$ LANGUAGE plpgsql;
-        */
+        if (selectError) throw selectError;
 
-        const { error } = await supabase.rpc("upsert_cart_item", {
-            p_customer_id: customerId,
-            p_product_id: product_id,
-            p_quantity: quantity,
-        });
-
-        if (error) throw error;
+        if (existingItem) {
+            const newQuantity = existingItem.quantity + quantity;
+            const { error: updateError } = await supabase
+                .from("cart_items")
+                .update({
+                    quantity: newQuantity,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq("id", existingItem.id);
+            if (updateError) throw updateError;
+        } else {
+            const { error: insertError } = await supabase
+                .from("cart_items")
+                .insert({
+                    customer_id: customerId,
+                    product_id: product_id,
+                    quantity: quantity,
+                });
+            if (insertError) throw insertError;
+        }
 
         return new Response(
-            JSON.stringify({
-                message: "Item berhasil ditambahkan ke keranjang.",
-            }),
+            JSON.stringify({ message: "Item berhasil diproses." }),
             { status: 200 },
         );
     } catch (error) {
-        return new Response(
-            JSON.stringify({
-                message:
-                    error instanceof Error
-                        ? error.message
-                        : "Gagal memproses item keranjang.",
-            }),
-            { status: 500 },
-        );
+        const errorMessage =
+            error instanceof Error
+                ? error.message
+                : "Gagal memproses item keranjang.";
+        console.error("Error di POST /api/cart:", errorMessage);
+        return new Response(JSON.stringify({ message: errorMessage }), {
+            status: 500,
+        });
     }
 };
 
 // =================================================================
 // == FUNGSI PATCH: Mengubah kuantitas item secara spesifik       ==
 // =================================================================
-export const PATCH: APIRoute = async ({ request, cookies }) => {
+// PERBAIKAN: Tambahkan tipe APIContext ke parameter
+export const PATCH: APIRoute = async ({ request, cookies }: APIContext) => {
     const supabase = createSupabaseClient(cookies);
     try {
-        const customerId = await getCustomerId(supabase);
+        const customerId = await getCustomerIdFromSession(supabase);
         const { product_id, quantity } = await request.json();
 
         if (!product_id || !quantity || quantity <= 0) {
             return new Response(
                 JSON.stringify({
-                    message: "Product ID dan kuantitas yang valid diperlukan.",
+                    message: "Product ID dan kuantitas valid diperlukan.",
                 }),
                 { status: 400 },
             );
@@ -187,7 +175,10 @@ export const PATCH: APIRoute = async ({ request, cookies }) => {
 
         const { error } = await supabase
             .from("cart_items")
-            .update({ quantity: quantity })
+            .update({
+                quantity: quantity,
+                updated_at: new Date().toISOString(),
+            })
             .eq("customer_id", customerId)
             .eq("product_id", product_id);
 
@@ -198,25 +189,25 @@ export const PATCH: APIRoute = async ({ request, cookies }) => {
             { status: 200 },
         );
     } catch (error) {
-        return new Response(
-            JSON.stringify({
-                message:
-                    error instanceof Error
-                        ? error.message
-                        : "Gagal memperbarui kuantitas.",
-            }),
-            { status: 500 },
-        );
+        const errorMessage =
+            error instanceof Error
+                ? error.message
+                : "Gagal memperbarui kuantitas.";
+        console.error("Error di PATCH /api/cart:", errorMessage);
+        return new Response(JSON.stringify({ message: errorMessage }), {
+            status: 500,
+        });
     }
 };
 
 // =================================================================
 // == FUNGSI DELETE: Menghapus satu item dari keranjang           ==
 // =================================================================
-export const DELETE: APIRoute = async ({ request, cookies }) => {
+// PERBAIKAN: Tambahkan tipe APIContext ke parameter
+export const DELETE: APIRoute = async ({ request, cookies }: APIContext) => {
     const supabase = createSupabaseClient(cookies);
     try {
-        const customerId = await getCustomerId(supabase);
+        const customerId = await getCustomerIdFromSession(supabase);
         const { product_id } = await request.json();
 
         if (!product_id) {
@@ -235,20 +226,15 @@ export const DELETE: APIRoute = async ({ request, cookies }) => {
         if (error) throw error;
 
         return new Response(
-            JSON.stringify({
-                message: "Item berhasil dihapus dari keranjang.",
-            }),
+            JSON.stringify({ message: "Item berhasil dihapus." }),
             { status: 200 },
         );
     } catch (error) {
-        return new Response(
-            JSON.stringify({
-                message:
-                    error instanceof Error
-                        ? error.message
-                        : "Gagal menghapus item.",
-            }),
-            { status: 500 },
-        );
+        const errorMessage =
+            error instanceof Error ? error.message : "Gagal menghapus item.";
+        console.error("Error di DELETE /api/cart:", errorMessage);
+        return new Response(JSON.stringify({ message: errorMessage }), {
+            status: 500,
+        });
     }
 };
