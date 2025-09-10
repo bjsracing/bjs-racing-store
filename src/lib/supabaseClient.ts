@@ -1,8 +1,17 @@
 // src/lib/supabaseClient.ts
+import { createBrowserClient, createServerClient } from "@supabase/ssr";
+import type { APIContext } from "astro";
 
-import { createBrowserClient } from "@supabase/ssr";
-
-export const supabase = createBrowserClient(
-  import.meta.env.PUBLIC_SUPABASE_URL,
-  import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
-);
+export const supabase = (context: APIContext) => {
+  return createServerClient(
+    import.meta.env.PUBLIC_SUPABASE_URL,
+    import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        get: (key) => context.cookies.get(key)?.value,
+        set: (key, value, options) => context.cookies.set(key, value, options),
+        remove: (key, options) => context.cookies.delete(key, options),
+      },
+    },
+  );
+};
