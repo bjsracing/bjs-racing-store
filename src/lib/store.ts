@@ -114,7 +114,7 @@ export const useAppStore = create<StoreState>()(
       } = await supabase.auth.getUser();
       if (!user) {
         console.error("[DEBUG-STORE] User not logged in. Aborting addToCart.");
-        return;
+        throw new Error("NOT_AUTHENTICATED");
       }
 
       try {

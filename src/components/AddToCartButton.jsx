@@ -20,6 +20,14 @@ const AddToCartButton = ({ product }) => {
       alert(`1 x ${product.nama} berhasil ditambahkan ke keranjang.`);
     } catch (error) {
       console.error("Gagal menambahkan produk ke keranjang:", error);
+      
+      // ✅ Perbaikan: Handle error khusus untuk user yang belum login
+      if (error.message === "NOT_AUTHENTICATED") {
+        alert("Anda harus login terlebih dahulu untuk menambahkan produk ke keranjang.");
+        window.location.href = "/login";
+        return;
+      }
+      
       alert("Gagal menambahkan produk ke keranjang. Silakan coba lagi.");
     }
   };
