@@ -1,5 +1,4 @@
----
-// src/pages/pilok.astro
+// src/pages/pilok.astro (Diperbaiki)
 import MainLayout from '../layouts/MainLayout.astro';
 import ProductCatalog from '../components/ProductCatalog.jsx';
 import id from '../../public/locales/id/common.json';
@@ -18,6 +17,12 @@ const filterConfig = {
         <h1 class="text-2xl font-bold mb-1">{id.product_page.pilok_title}</h1>
         <p class="text-sm text-slate-500 mb-6">{id.product_page.pilok_subtitle}</p>
         
-        <ProductCatalog client:only="react" filterConfig={filterConfig} cardType="product" />
+        {/*
+          PERBAIKAN UTAMA:
+          Ganti 'client:only' menjadi 'client:visible'.
+          Ini akan merender produk di server (baik untuk SEO) dan hanya
+          memuat JavaScript saat komponen terlihat oleh pengguna (baik untuk performa).
+        */}
+        <ProductCatalog client:visible filterConfig={filterConfig} cardType="product" />
     </div>
 </MainLayout>

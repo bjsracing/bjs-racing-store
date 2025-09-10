@@ -1,10 +1,14 @@
 ---
-// File: src/components/Header.astro
-// PERBAIKAN FINAL: Memisahkan struktur (Astro) dan interaktivitas (React).
+// File: src/components/Header.astro (Diperbaiki)
+// Menghubungkan data sesi dari server (Astro) ke klien (React).
 
-import HeaderActions from './HeaderActions.tsx'; // Komponen interaktif untuk desktop
-import MobileNav from './MobileNav.tsx';       // Komponen interaktif untuk mobile
+import HeaderActions from './HeaderActions.tsx';
+import MobileNav from './MobileNav.tsx';
 import id from '../../public/locales/id/common.json';
+
+// 1. Ambil data sesi dari server Astro.
+// 'session' akan berisi data pengguna jika login, atau 'null' jika tidak.
+const { session } = Astro.locals;
 
 const navLinks = [
   { name: id.nav.home, path: "/" },
@@ -30,17 +34,19 @@ const navLinks = [
         </nav>
         
         <div class="hidden md:flex">
-            <HeaderActions client:load />
+            {/* 2. Teruskan 'session' dari server sebagai prop 'initialSession' */}
+            <HeaderActions initialSession={session} client:load />
         </div>
         
         <div class="md:hidden">
-            <MobileNav navLinks={navLinks} client:load />
+            {/* 3. Lakukan hal yang sama untuk komponen navigasi mobile */}
+            <MobileNav navLinks={navLinks} initialSession={session} client:load />
         </div>
     </div>
 </header>
 
 <script>
-    // Script scroll ini sudah benar dan bisa dipertahankan.
+    // Script scroll Anda tidak perlu diubah dan bisa tetap di sini.
     function handleHeaderScroll() {
         const header = document.querySelector('header');
         if (window.scrollY > 10) {
@@ -65,6 +71,6 @@ const navLinks = [
     document.addEventListener('DOMContentLoaded', () => {
         const debouncedScroll = debounce(handleHeaderScroll, 15);
         window.addEventListener('scroll', debouncedScroll);
-        handleHeaderScroll(); // Panggil sekali saat load untuk state awal
+        handleHeaderScroll();
     });
 </script>

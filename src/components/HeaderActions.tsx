@@ -1,12 +1,19 @@
-// File: src/components/HeaderActions.tsx (File Baru)
+// File: src/components/HeaderActions.tsx (Diperbaiki)
 import React from "react";
-import { AuthProvider } from "../lib/authContext"; // Pastikan path ini benar
+import { AuthProvider } from "../lib/authContext";
 import AuthMenu from "./AuthMenu";
 import CartIcon from "./CartIcon";
+import type { Session } from "@supabase/supabase-js"; // Impor tipe Session
 
-export default function HeaderActions() {
+// Definisikan tipe untuk props yang diterima dari Astro
+interface Props {
+  initialSession: Session | null;
+}
+
+export default function HeaderActions({ initialSession }: Props) {
   return (
-    <AuthProvider>
+    // 'initialSession' dari server sekarang disuntikkan ke dalam AuthProvider
+    <AuthProvider initialSession={initialSession}>
       <div className="flex items-center gap-4 mobile:gap-5 tablet:gap-6">
         <CartIcon />
         <AuthMenu />

@@ -1,24 +1,17 @@
----
-// File: src/pages/products/[id].astro
-// Perbaikan Final: Menggunakan createServerClient untuk data fetching di server
-// dan memperbarui impor komponen ke versi .tsx.
+// File: src/pages/products/[id].astro (Diperbaiki)
 
 export const prerender = false;
 
 import MainLayout from '../../layouts/MainLayout.astro';
-// PERBAIKAN 1: Impor createServerClient untuk penggunaan di server
-import { createServerClient, type CookieOptions } from '@supabase/ssr'; 
-
-// PERBAIKAN 2: Impor komponen versi .tsx yang sudah diperbarui
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import PurchasePanel from '../../components/PurchasePanel.tsx';
 import ProductInfoTabs from '../../components/ProductInfoTabs.tsx';
-import ImageUploader from '../../components/ImageUploader.jsx'; // Asumsi file ini belum diubah ke .tsx
+import ImageUploader from '../../components/ImageUploader.jsx';
 import { FiStar, FiEye } from 'react-icons/fi';
 
 const { id } = Astro.params;
-const { session, cookies } = Astro.locals; // Ambil cookies untuk server client
+const { session, cookies } = Astro.locals;
 
-// PERBAIKAN 3: Inisialisasi Supabase Server Client
 const supabase = createServerClient(
     import.meta.env.PUBLIC_SUPABASE_URL!,
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY!,
@@ -36,7 +29,6 @@ let allProducts = [];
 let isAdmin = false;
 
 if (id) {
-    // Logika pengambilan data tetap sama, tetapi sekarang menggunakan server client yang benar
     const { data: initialProduct } = await supabase.from('products').select('*').eq('id', id).single();
     product = initialProduct;
 
@@ -100,7 +92,11 @@ const isBestSeller = product.total_terjual > 50;
                     <span>Coba Warna di Garasi Virtual</span>
                 </a>
                 
-                <PurchasePanel client:only="react" initialProduct={product} allProductVariants={allProducts} />
+                {/* PERBAIKAN UTAMA:
+                  Ganti 'client:only' menjadi 'client:load' agar panel pembelian
+                  langsung terlihat dan menjadi interaktif tanpa jeda.
+                */}
+                <PurchasePanel client:load initialProduct={product} allProductVariants={allProducts} />
                 
                 <ProductInfoTabs client:load product={product} />
             </div>

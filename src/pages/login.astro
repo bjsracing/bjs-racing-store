@@ -1,18 +1,20 @@
----
-// File: src/pages/login.astro
-// Perbaikan: Menggunakan alias path untuk impor yang lebih konsisten dan stabil.
+// File: src/pages/login.astro (Diperbaiki)
 
-// PERBAIKAN: Ubah path relatif menjadi alias path.
 import MainLayout from '@/layouts/MainLayout.astro';
 import AuthForm from '@/components/AuthForm.jsx';
 ---
 
 <MainLayout title="Login / Daftar - BJS RACING STORE">
-    <div class="container mx-auto px-4 py-16">
-        <h1 class="text-3xl font-bold text-center mb-8">Akun Saya</h1>
+    <div class="container mx-auto px-4 py-16 flex flex-col items-center">
+        <div class="w-full max-w-md">
+            <h1 class="text-3xl font-bold text-center mb-8">Akun Saya</h1>
 
-        {/* Logika render tetap sama, tidak ada perubahan di sini. */}
-        <AuthForm client:only="react" />
+            {/* PERBAIKAN UTAMA: 
+              Ganti 'client:only' menjadi 'client:load'.
+              Form akan dirender di server dan menjadi interaktif di klien.
+            */}
+            <AuthForm client:load />
 
+        </div>
     </div>
 </MainLayout>

@@ -1,15 +1,23 @@
-// File: src/components/ColorScanner.jsx
-// Perbaikan: Disesuaikan dengan arsitektur AuthContext yang aman untuk SSR.
+// File: src/components/ColorScanner.jsx (Diperbaiki & Dibuat Mandiri)
 
-import React, { useState, useRef, useEffect } from "react";
-// PERBAIKAN 1: Impor FUNGSI useAuth dari pusat kontrol sesi kita
-import { useAuth } from "../lib/authContext.tsx";
+import React, { useState, useRef, useEffect, useMemo } from "react";
+// PERBAIKAN 1: Impor 'createBrowserClient' untuk membuat koneksi Supabase sendiri
+import { createBrowserClient } from "@supabase/ssr";
 import { FiUpload, FiRefreshCw } from "react-icons/fi";
 
 const ColorScanner = () => {
-  // PERBAIKAN 2: Gunakan hook useAuth untuk mendapatkan client Supabase yang aman
-  const { supabase } = useAuth();
+  // PERBAIKAN 2: Buat instance Supabase client khusus untuk komponen ini.
+  // 'useMemo' memastikan client hanya dibuat sekali selama komponen hidup.
+  const supabase = useMemo(
+    () =>
+      createBrowserClient(
+        import.meta.env.PUBLIC_SUPABASE_URL,
+        import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+      ),
+    [],
+  );
 
+  // Semua state dan ref Anda yang lain sudah benar
   const [imageSrc, setImageSrc] = useState(null);
   const [pickedColor, setPickedColor] = useState(null);
   const [recommendedProducts, setRecommendedProducts] = useState([]);
@@ -18,7 +26,7 @@ const ColorScanner = () => {
   const canvasRef = useRef(null);
   const loupeRef = useRef(null);
 
-  // Logika untuk menggambar ulang canvas (tidak ada perubahan)
+  // Semua logika useEffect dan helper Anda sudah benar dan tidak perlu diubah...
   useEffect(() => {
     if (imageSrc && canvasRef.current) {
       const canvas = canvasRef.current;
@@ -35,7 +43,6 @@ const ColorScanner = () => {
     }
   }, [imageSrc]);
 
-  // Logika helper (tidak ada perubahan)
   const rgbToHex = (r, g, b) =>
     "#" + [r, g, b].map((x) => x.toString(16).padStart(2, "0")).join("");
   const getCanvasCoordinates = (e) => {
@@ -48,7 +55,6 @@ const ColorScanner = () => {
     return { x: x * scaleX, y: y * scaleY };
   };
 
-  // Logika mouse events (tidak ada perubahan)
   const handleMouseMove = (e) => {
     if (!canvasRef.current || !loupeRef.current) return;
     const { x, y } = getCanvasCoordinates(e);
@@ -65,7 +71,6 @@ const ColorScanner = () => {
     if (loupeRef.current) loupeRef.current.style.display = "none";
   };
 
-  // Logika klik canvas (tidak ada perubahan)
   const handleCanvasClick = (event) => {
     if (!canvasRef.current) return;
     const { x, y } = getCanvasCoordinates(event);
@@ -76,11 +81,9 @@ const ColorScanner = () => {
     findMatchingColors(hexColor);
   };
 
-  // --- PERBAIKAN PADA FUNGSI INI ---
+  // PERBAIKAN 3: Fungsi ini sekarang menggunakan client supabase yang dibuat di atas.
+  // Tidak ada perubahan lain yang diperlukan di sini.
   const findMatchingColors = async (hexColor) => {
-    // PERBAIKAN 3: Tambahkan guard clause untuk memastikan supabase sudah siap
-    if (!supabase) return;
-
     setLoading(true);
     try {
       const { data, error } = await supabase.rpc("find_closest_colors", {
@@ -95,7 +98,6 @@ const ColorScanner = () => {
     }
   };
 
-  // Logika image change dan reset (tidak ada perubahan)
   const handleImageChange = (event) => {
     const file = event.target.files[0];
     if (file) {
@@ -115,10 +117,9 @@ const ColorScanner = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Render JSX (tidak ada perubahan)
+  // Seluruh kode JSX Anda sudah benar dan tidak perlu diubah
   return (
     <div className="bg-white p-6 rounded-xl shadow-lg max-w-2xl mx-auto">
-      {/* ... (seluruh kode JSX Anda sebelumnya tetap di sini, tidak ada perubahan) ... */}
       <h2 className="text-2xl font-bold text-center mb-4">
         Pindai Warna dari Gambar
       </h2>

@@ -1,6 +1,6 @@
-// File: src/lib/authContext.tsx
-// Deskripsi: Pusat kontrol (React Context) untuk mengelola sesi autentikasi pengguna
-// di seluruh aplikasi secara terpusat dan reaktif.
+// File: src/lib/authContext.tsx (Diperbaiki & Dioptimalkan untuk SSR)
+// Deskripsi: Mengelola sesi autentikasi dengan menerima sesi awal dari server
+// untuk menghilangkan "flicker" dan meningkatkan performa.
 
 import React, {
   createContext,
@@ -9,85 +9,80 @@ import React, {
   useContext,
   type ReactNode,
 } from "react";
-import { useAppStore } from "./store.ts";
+import { useAppStore } from "./store"; // Asumsi path ini benar
 import type {
   Session,
   AuthChangeEvent,
   SupabaseClient,
 } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 
-// 1. Mendefinisikan "bentuk" data yang akan dibagikan oleh context
+// 1. Definisikan tipe data yang akan dibagikan (tetap sama)
 interface AuthContextType {
-  supabase: SupabaseClient | null;
+  supabase: SupabaseClient; // Supabase client sekarang tidak akan pernah null di sisi klien
   session: Session | null;
-  isLoading: boolean;
 }
 
-// 2. Membuat React Context
+// 2. Definisikan tipe untuk props Provider
+// Kita tambahkan 'initialSession' yang akan kita dapatkan dari server
+interface AuthProviderProps {
+  children: ReactNode;
+  initialSession: Session | null;
+}
+
+// 3. Buat React Context
+// Kita bisa beri nilai default yang lebih informatif untuk debugging
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// 3. Membuat komponen "Provider"
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [supabase, setSupabase] = useState<SupabaseClient | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+// 4. Buat komponen "Provider" yang sudah dioptimalkan
+export const AuthProvider = ({
+  children,
+  initialSession,
+}: AuthProviderProps) => {
+  // Inisialisasi Supabase client hanya sekali dan langsung disimpan di state.
+  // Ini aman karena AuthProvider hanya akan dirender di client-side "island".
+  const [supabase] = useState(() =>
+    createBrowserClient(
+      import.meta.env.PUBLIC_SUPABASE_URL!,
+      import.meta.env.PUBLIC_SUPABASE_ANON_KEY!,
+    ),
+  );
+
+  // Inisialisasi state 'session' dengan data yang dikirim dari server!
+  const [session, setSession] = useState<Session | null>(initialSession);
   const fetchCart = useAppStore((state) => state.fetchCart);
 
   useEffect(() => {
-    // Fungsi ini HANYA akan berjalan di browser.
-    const initializeSupabase = async () => {
-      console.log(
-        "[DEBUG AuthContext] Berjalan di browser. Mengimpor createBrowserClient...",
-      );
-      const { createBrowserClient } = await import("@supabase/ssr");
+    // Listener ini akan menjaga sesi tetap sinkron jika ada perubahan
+    // (misalnya, pengguna logout di tab lain).
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      (_event: AuthChangeEvent, currentSession: Session | null) => {
+        setSession(currentSession);
 
-      const supabaseClient = createBrowserClient(
-        import.meta.env.PUBLIC_SUPABASE_URL!,
-        import.meta.env.PUBLIC_SUPABASE_ANON_KEY!,
-      );
+        // Ambil keranjang jika pengguna baru saja login
+        if (_event === "SIGNED_IN" && currentSession) {
+          console.log(
+            "[DEBUG AuthContext] Pengguna SIGNED_IN. Mengambil keranjang...",
+          );
+          fetchCart();
+        }
+      },
+    );
 
-      setSupabase(supabaseClient);
-
-      const {
-        data: { session },
-      } = await supabaseClient.auth.getSession();
-      setSession(session);
-      setIsLoading(false);
-
-      if (session) {
-        console.log(
-          "[DEBUG AuthContext] Sesi awal ditemukan. Mengambil keranjang...",
-        );
-        fetchCart();
-      }
-
-      const {
-        data: { subscription },
-      } = supabaseClient.auth.onAuthStateChange(
-        (_event: AuthChangeEvent, session: Session | null) => {
-          setSession(session);
-          if (_event === "SIGNED_IN") {
-            fetchCart();
-          }
-        },
-      );
-
-      return () => {
-        subscription.unsubscribe();
-      };
+    // Fungsi cleanup untuk berhenti mendengarkan saat komponen dilepas
+    return () => {
+      subscription.unsubscribe();
     };
+  }, [supabase, fetchCart]); // 'supabase' dan 'fetchCart' dimasukkan sebagai dependensi
 
-    if (typeof window !== "undefined") {
-      initializeSupabase();
-    }
-  }, [fetchCart]);
-
-  const value = { supabase, session, isLoading };
+  const value = { supabase, session };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// 4. Membuat "custom hook" untuk mempermudah akses
+// 5. Buat "custom hook" (tidak ada perubahan di sini)
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
