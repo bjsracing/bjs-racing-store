@@ -1,11 +1,9 @@
 ---
 // File: src/components/Header.astro
-// PERBAIKAN DIAGNOSTIK 2: Mengaktifkan kembali AuthMenu untuk tes isolasi.
+// PERBAIKAN FINAL: Memisahkan struktur (Astro) dan interaktivitas (React).
 
-import CartIcon from './CartIcon.jsx';
-import AuthMenu from './AuthMenu.jsx';
-import MobileMenu from './MobileMenu.jsx';
-import MobileMenuButton from './MobileMenuButton.jsx';
+import HeaderActions from './HeaderActions.tsx'; // Komponen interaktif untuk desktop
+import MobileNav from './MobileNav.tsx';       // Komponen interaktif untuk mobile
 import id from '../../public/locales/id/common.json';
 
 const navLinks = [
@@ -19,12 +17,10 @@ const navLinks = [
 ---
 <header class="bg-white text-slate-800 shadow-sm sticky top-0 z-50">
     <div class="container mx-auto px-3 mobile:px-4 tablet:px-6 flex justify-between items-center py-3 mobile:py-4">
-        {/* Logo */}
         <a href="/" class="text-lg mobile:text-xl tablet:text-2xl font-bold text-slate-900"> 
             BJS RACING <span class="text-orange-500">STORE</span> 
         </a>
         
-        {/* Navigasi Desktop */}
         <nav class="hidden md:flex items-center space-x-4 mobile:space-x-6 tablet:space-x-8">
             {navLinks.map(link => ( 
                 <a href={link.path} class="font-semibold text-slate-600 hover:text-orange-500 transition-colors text-sm mobile:text-base">
@@ -33,32 +29,24 @@ const navLinks = [
             ))} 
         </nav>
         
-        {/* --- TES ISOLASI: AuthMenu sekarang AKTIF --- */}
-        <div class="hidden md:flex items-center gap-4 mobile:gap-5 tablet:gap-6">
-            {/* CartIcon masih dinonaktifkan untuk tes ini */}
-            {/* <CartIcon client:visible /> */}
-
-            {/* AuthMenu diaktifkan kembali. */}
-            <AuthMenu client:load />
+        <div class="hidden md:flex">
+            <HeaderActions client:load />
         </div>
         
-        {/* Tombol menu mobile masih dinonaktifkan */}
         <div class="md:hidden">
-            {/* <MobileMenuButton client:load /> */}
+            <MobileNav navLinks={navLinks} client:load />
         </div>
     </div>
 </header>
 
-{/* <MobileMenu client:load /> */}
-
 <script>
-    // Script scroll tetap sama, tidak ada perubahan di sini.
+    // Script scroll ini sudah benar dan bisa dipertahankan.
     function handleHeaderScroll() {
         const header = document.querySelector('header');
         if (window.scrollY > 10) {
-            header.classList.add('bg-white/80', 'backdrop-blur-md', 'shadow-sm');
+            header.classList.add('bg-white/80', 'backdrop-blur-md');
         } else {
-            header.classList.remove('bg-white/80', 'backdrop-blur-md', 'shadow-sm');
+            header.classList.remove('bg-white/80', 'backdrop-blur-md');
         }
     }
     
@@ -75,8 +63,8 @@ const navLinks = [
     }
     
     document.addEventListener('DOMContentLoaded', () => {
-        const debouncedScroll = debounce(handleHeaderScroll, 25);
+        const debouncedScroll = debounce(handleHeaderScroll, 15);
         window.addEventListener('scroll', debouncedScroll);
-        handleHeaderScroll();
+        handleHeaderScroll(); // Panggil sekali saat load untuk state awal
     });
 </script>

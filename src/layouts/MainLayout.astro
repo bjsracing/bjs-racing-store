@@ -1,23 +1,15 @@
 ---
 // File: src/layouts/MainLayout.astro
-// Perbaikan: Membungkus seluruh layout dengan AuthProvider untuk manajemen sesi terpusat.
+// Versi Lengkap dan Utuh (Sesuai Permintaan)
 
-// 1. Impor komponen layout dan AuthProvider yang baru
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-import { AuthProvider } from '../lib/authContext.tsx'; // Menggunakan path relatif
-
-// 2. Hapus logika sesi lama. Ini sekarang akan ditangani oleh AuthProvider di sisi klien.
-// const { session } = Astro.locals; // <-- Baris ini dihapus
 
 interface Props {
   title: string;
 }
 
 const { title } = Astro.props;
-
-// Daftar ikon (tetap sama)
-const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
 ---
 
 <!doctype html>
@@ -35,7 +27,7 @@ const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
-    {/* PWA Tags - HARUS ADA */}
+    {/* PWA Tags */}
     <link rel="manifest" href="/manifest.json" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -51,19 +43,14 @@ const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
   </head>
   <body class="bg-slate-100 text-slate-800 text-sm mobile:text-base tablet:text-lg">
 
-    {/* --- PERBAIKAN UTAMA DI SINI --- */}
-    {/* AuthProvider sekarang membungkus semua elemen di dalam body. */}
-    <AuthProvider client:load>
-      <Header />
-      
-      <main class="min-h-screen container mx-auto px-3 mobile:px-4 tablet:px-6 desktop:px-8 py-4">
-        <slot />
-      </main>
-
-      <Footer />
-    </AuthProvider>
+    <Header />
     
-    {/* PWA Registration Script dan semua skrip lainnya tetap sama */}
+    <main class="min-h-screen container mx-auto px-3 mobile:px-4 tablet:px-6 desktop:px-8 py-4">
+      <slot />
+    </main>
+
+    <Footer />
+    
     <script>
 // ✅ DEBOUNCE FUNCTION UNTUK PERFORMANCE
 function debounce(func, wait) {
@@ -85,7 +72,7 @@ function detectDeviceCapabilities() {
   const isAndroid = /Android/.test(userAgent);
   const isMobile = /Mobile/.test(userAgent) || window.innerWidth < 768;
   const isTablet = /iPad|Android.*Tablet|Tablet/.test(userAgent) || 
-                  (window.innerWidth >= 768 && window.innerWidth <= 1024);
+                   (window.innerWidth >= 768 && window.innerWidth <= 1024);
   const isDesktop = !isMobile && !isTablet;
   const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   const isLandscape = window.matchMedia("(orientation: landscape)").matches;
@@ -236,8 +223,8 @@ window.isTablet = function() {
 window.isDesktop = function() {
   return window.deviceInfo?.isDesktop || false;
 };
-</script>
-<script is:inline src="//cdn.jsdelivr.net/npm/eruda"></script>
+    </script>
+    <script is:inline src="//cdn.jsdelivr.net/npm/eruda"></script>
     <script is:inline>eruda.init();</script>
   </body>
 </html>
