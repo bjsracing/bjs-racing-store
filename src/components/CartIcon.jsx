@@ -1,19 +1,11 @@
-// File: src/components/CartIcon.jsx
-// Perbaikan: Menambahkan kembali useEffect untuk memuat keranjang saat komponen dirender.
+// src/components/CartIcon.jsx
 
-import React, { useEffect } from "react";
+import React from "react";
 import { useAppStore } from "@/lib/store.ts";
 
 const CartIcon = () => {
-  const { items } = useAppStore(); // Ambil state item dari store
-
-  // Menambahkan useEffect untuk memicu pemuatan data dari database
-  // Ini memastikan jumlah item di header selalu akurat saat halaman dimuat
-  useEffect(() => {
-    // Tidak perlu memanggil fetchCart di sini karena sudah dipanggil di MainLayout.
-    // Kode ini hanya perlu mengambil item dari store.
-    // Logika ini sudah ada, jadi tidak ada perubahan di sini.
-  }, []);
+  // Hanya ambil 'items' dari store, tidak perlu 'fetchCart' di sini
+  const items = useAppStore((state) => state.items);
 
   const totalItems = items.reduce(
     (total, item) => total + (item.quantity || 0),
@@ -22,7 +14,7 @@ const CartIcon = () => {
 
   return (
     <a
-      href="/cart"
+      href="/keranjang"
       className="relative text-slate-800 hover:text-orange-500 transition-colors"
     >
       <svg
@@ -40,7 +32,6 @@ const CartIcon = () => {
         <circle cx="20" cy="21" r="1"></circle>
         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
       </svg>
-
       {totalItems > 0 && (
         <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
           {totalItems}
