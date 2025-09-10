@@ -2,7 +2,8 @@
 import { createBrowserClient, createServerClient } from "@supabase/ssr";
 import type { APIContext } from "astro";
 
-export const supabase = (context: APIContext) => {
+// Fungsi untuk membuat klien sisi server. Ini akan dipanggil di middleware.
+export function supabaseServerClient(context: APIContext) {
   return createServerClient(
     import.meta.env.PUBLIC_SUPABASE_URL,
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
@@ -14,4 +15,10 @@ export const supabase = (context: APIContext) => {
       },
     },
   );
-};
+}
+
+// Klien sisi klien (browser)
+export const supabase = createBrowserClient(
+  import.meta.env.PUBLIC_SUPABASE_URL,
+  import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+);

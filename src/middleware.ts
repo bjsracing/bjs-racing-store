@@ -1,13 +1,13 @@
 // src/middleware.ts
 import { defineMiddleware, sequence } from "astro:middleware";
-import { createServerClient } from "@supabase/ssr";
+import { supabaseServerClient } from "./lib/supabaseClient.ts";
 
 // Tambahkan definisi locals. Supabase menyediakan ini sebagai template
 declare global {
   namespace App {
     interface Locals {
-      supabase: ReturnType<typeof createServerClient>;
-      session: any | null; // Atur tipe data session yang sesuai
+      supabase: ReturnType<typeof supabaseServerClient>;
+      session: any | null;
     }
   }
 }
@@ -17,19 +17,8 @@ const protectedRoutes = ["/cart", "/checkout", "/akun"];
 const authRoutes = ["/login", "/register"];
 
 const authMiddleware = defineMiddleware(async (context, next) => {
-  // ✅ PERBAIKAN: Menggunakan format TIGA ARGUMEN yang benar
-  // Ini akan menyelesaikan error 'Expected 3 arguments, but got 1.'
-  context.locals.supabase = createServerClient(
-    import.meta.env.PUBLIC_SUPABASE_URL,
-    import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
-    {
-      cookies: {
-        get: (key) => context.cookies.get(key)?.value,
-        set: (key, value, options) => context.cookies.set(key, value, options),
-        remove: (key, options) => context.cookies.delete(key, options),
-      },
-    },
-  );
+  // ✅ PERBAIKAN: Menggunakan fungsi helper dari supabaseClient.ts
+  context.locals.supabase = supabaseServerClient(context);
 
   const {
     data: { session },
@@ -48,5 +37,4 @@ const authMiddleware = defineMiddleware(async (context, next) => {
   return next();
 });
 
-// Menggunakan `sequence` untuk mengekspor middleware.
 export const onRequest = sequence(authMiddleware);
