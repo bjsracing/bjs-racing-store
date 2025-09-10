@@ -4,7 +4,7 @@
 import MainLayout from '@/layouts/MainLayout.astro';
 import AddressSection from '@/components/AddressSection.tsx';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { supabase } from '@/lib/supabaseClient.js';
+import { supabase } from '@/lib/supabaseClient.ts';
 import { useAppStore } from '@/lib/store.ts';
 
 let pageError: string | null = null;

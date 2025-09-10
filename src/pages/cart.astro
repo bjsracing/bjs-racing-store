@@ -2,45 +2,37 @@
 // src/pages/cart.astro
 import MainLayout from '../layouts/MainLayout.astro';
 import CartView from '../components/CartView.jsx';
-import { supabase } from '../lib/supabaseClient.js';
-import { useAppStore } from '../lib/store.ts';
-
-// Mengatur client:load agar script ini berjalan setelah halaman selesai dimuat.
-const { data: { user } } = await supabase.auth.getUser();
 ---
 
 <MainLayout title="Keranjang Belanja - BJS RACING STORE">
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold mb-8">Keranjang Belanja</h1>
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-8">Keranjang Belanja</h1>
 
-        <CartView client:only="react" />
+        <CartView client:only="react" />
 
-    </div>
+    </div>
 </MainLayout>
 
 <script>
-    import { useAppStore } from '../lib/store.ts';
-    import { supabase } from '../lib/supabaseClient.js';
+    import { useAppStore } from '../lib/store.ts';
+    import { supabase } from '../lib/supabaseClient.ts'; // Perbaikan di sini
 
-    // Menggunakan client:load agar kode JavaScript ini dijalankan di browser
-    document.addEventListener('astro:page-load', async () => {
-        const { fetchCart, clearCart } = useAppStore.getState();
+    document.addEventListener('astro:page-load', async () => {
+        const { fetchCart, clearCart } = useAppStore.getState();
 
-        // Mendengarkan perubahan status otentikasi
-        supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN') {
-                console.log('User logged in. Fetching cart...');
-                fetchCart();
-            } else if (event === 'SIGNED_OUT') {
-                console.log('User logged out. Clearing local cart...');
-                clearCart();
-            }
-        });
+        // Mendengarkan perubahan status otentikasi
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN') {
+                fetchCart();
+            } else if (event === 'SIGNED_OUT') {
+                clearCart();
+            }
+        });
 
-        // Panggil fetchCart secara langsung saat halaman dimuat jika user sudah login
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            fetchCart();
-        }
-    });
+        // Panggil fetchCart secara langsung saat halaman dimuat jika user sudah login
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+                fetchCart();
+        }
+    });
 </script>

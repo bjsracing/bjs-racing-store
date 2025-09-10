@@ -2,7 +2,7 @@
 
 import React, { useEffect } from "react";
 import { useAppStore } from "../lib/store.ts";
-import { supabase } from "../lib/supabaseClient.js";
+import { supabase } from "../lib/supabaseClient.ts";
 
 const CartView = () => {
   // Ambil state dan fungsi dari store Zustand
