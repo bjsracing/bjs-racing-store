@@ -6,12 +6,17 @@ import id from "../../public/locales/id/common.json";
 import { FiShoppingCart } from "react-icons/fi";
 
 const AddToCartButton = ({ product }) => {
-  const { addToCart } = useAppStore();
+  // ✅ Perbaikan: Ambil juga fetchCart dari store
+  const { addToCart, fetchCart } = useAppStore();
 
   const handleAddToCart = async () => {
     try {
-      // Panggil fungsi addToCart yang sudah diperbarui di store
+      // Panggil fungsi addToCart untuk menambahkan/memperbarui produk di database
       await addToCart(product, 1);
+
+      // ✅ Perbaikan: Panggil fetchCart untuk memperbarui state lokal dari database
+      await fetchCart();
+
       alert(`1 x ${product.nama} berhasil ditambahkan ke keranjang.`);
     } catch (error) {
       console.error("Gagal menambahkan produk ke keranjang:", error);

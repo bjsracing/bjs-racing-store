@@ -1,6 +1,6 @@
 // src/lib/store.ts
 import { create } from "zustand";
-import { supabase } from "./supabaseClient";
+import { supabase } from "./supabaseClient.ts";
 
 // ==================================================================
 // == DEFINISI TIPE DATA (TYPESCRIPT)                            ==
@@ -97,7 +97,7 @@ export const useAppStore = create<StoreState>()((set, get) => ({
     set({ items: cartItems as CartItem[] });
   },
 
-  addToCart: async (productToAdd: Product, quantity: number) => {
+  addToCart: async (productToAdd, quantity) => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -106,39 +106,39 @@ export const useAppStore = create<StoreState>()((set, get) => ({
       return;
     }
 
-    const { data, error } = await supabase
-      .from("cart_items")
-      .insert({
+    // ✅ Perbaikan: Menggunakan upsert untuk memperbarui atau menambah item
+    const { error } = await supabase.from("cart_items").upsert(
+      {
         customer_id: user.id,
         product_id: productToAdd.id,
         quantity,
-      })
-      .select()
-      .single();
+      },
+      { onConflict: "customer_id, product_id" },
+    );
 
     if (error) {
       console.error("Error adding to cart:", error);
       return;
     }
 
-    set((state) => {
-      const existingItem = state.items.find(
-        (item) => item.id === productToAdd.id,
-      );
-      if (existingItem) {
-        return {
-          items: state.items.map((item) =>
-            item.id === productToAdd.id
-              ? { ...item, quantity: item.quantity + quantity }
-              : item,
-          ),
-        };
-      } else {
-        return {
-          items: [...state.items, { ...productToAdd, quantity }],
-        };
-      }
-    });
+    // Update state lokal
+    const existingItem = get().items.find(
+      (item) => item.id === productToAdd.id,
+    );
+
+    if (existingItem) {
+      set((state) => ({
+        items: state.items.map((item) =>
+          item.id === productToAdd.id
+            ? { ...item, quantity: item.quantity + quantity }
+            : item,
+        ),
+      }));
+    } else {
+      set((state) => ({
+        items: [...state.items, { ...productToAdd, quantity }],
+      }));
+    }
   },
 
   removeFromCart: async (productId: string) => {
