@@ -1,52 +1,15 @@
 ---
 // src/pages/cart.astro
+
 import MainLayout from '../layouts/MainLayout.astro';
 import CartView from '../components/CartView.jsx';
-import { supabase } from '../lib/supabaseClient.ts';
-
-// --- SERVER-SIDE: Verifikasi Sesi Pengguna ---
-// Ini akan dijalankan sebelum halaman dikirim ke browser.
-const { data: { user } } = await supabase.auth.getUser();
-
-// Jika pengguna tidak terautentikasi, alihkan mereka ke halaman login.
-if (!user) {
-    return Astro.redirect('/login');
-}
+// Perbaikan: Hapus semua impor dan logika otentikasi
+// di bagian ini. Middleware sudah menanganinya.
 ---
 
 <MainLayout title="Keranjang Belanja - BJS RACING STORE">
     <div class="container mx-auto px-4 py-8">
         <h1 class="text-3xl font-bold mb-8">Keranjang Belanja</h1>
-
         <CartView client:only="react" />
-
     </div>
 </MainLayout>
-
-<script>
-    import { useAppStore } from '../lib/store.ts';
-    import { supabase } from '../lib/supabaseClient.ts';
-
-    // Skrip ini hanya berjalan jika pengguna sudah terautentikasi.
-    document.addEventListener('astro:page-load', async () => {
-        const { fetchCart, clearCart } = useAppStore.getState();
-
-        // Mendengarkan perubahan status otentikasi
-        // Ini memastikan keranjang tetap sinkron jika pengguna logout dari halaman ini.
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN') {
-                fetchCart();
-            } else if (event === 'SIGNED_OUT') {
-                clearCart();
-            }
-        });
-        
-        // Panggil fetchCart secara langsung saat halaman dimuat
-        fetchCart();
-
-        // Membersihkan listener saat halaman di-unload
-        return () => {
-            subscription?.unsubscribe();
-        };
-    });
-</script>
