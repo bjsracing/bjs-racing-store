@@ -1,15 +1,9 @@
 // File: src/pages/api/addresses.ts
-// Perbaikan Final: Kode lengkap dengan implementasi PUT/DELETE, dan logika toleran
-// untuk mengatasi race condition saat mengambil data.
 
 import type { APIRoute, APIContext } from "astro";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
-// --- Fungsi Helper ---
-
-/**
- * Membuat instance Supabase server client.
- */
+// Fungsi helper untuk inisialisasi Supabase Client
 function createSupabaseClient(cookies: APIContext["cookies"]) {
   return createServerClient(
     import.meta.env.PUBLIC_SUPABASE_URL!,
@@ -31,7 +25,7 @@ function createSupabaseClient(cookies: APIContext["cookies"]) {
 }
 
 /**
- * Mengambil customer_id dan objek user, dibuat tangguh terhadap race condition.
+ * Mengambil customer_id dan objek user berdasarkan session yang sedang login.
  */
 async function getCustomerIdAndUser(
   supabase: ReturnType<typeof createSupabaseClient>,
@@ -40,79 +34,40 @@ async function getCustomerIdAndUser(
     data: { user },
     error: userError,
   } = await supabase.auth.getUser();
+
   if (userError) throw new Error(`Authentication error: ${userError.message}`);
   if (!user) throw new Error("Otentikasi diperlukan.");
 
-  // Menggunakan .maybeSingle() untuk mencegah crash jika profil belum siap dibaca.
   const { data: customerData, error: customerError } = await supabase
     .from("customers")
     .select("id")
     .eq("auth_user_id", user.id)
-    .maybeSingle();
+    .single();
 
   if (customerError)
     throw new Error(
-      `Database error saat mencari profil: ${customerError.message}`,
+      `Profil pelanggan tidak ditemukan: ${customerError.message}`,
     );
-  // Jika tidak ada data customer, lempar error yang akan ditangani oleh setiap fungsi API.
-  if (!customerData)
-    throw new Error(
-      "Profil pelanggan tidak ditemukan untuk pengguna yang login.",
-    );
+  if (!customerData) throw new Error("Data profil pelanggan tidak ditemukan.");
 
+  // --- PERBAIKAN 1: Kembalikan objek user bersama customerId ---
   return { customerId: customerData.id, user: user };
 }
 
 // =================================================================
-// == FUNGSI GET: Mengambil daftar alamat                         ==
+// == FUNGSI POST (UNTUK MENYIMPAN ALAMAT BARU)                   ==
 // =================================================================
-export const GET: APIRoute = async ({ cookies }: APIContext) => {
+export const POST: APIRoute = async ({ request, cookies }) => {
   const supabase = createSupabaseClient(cookies);
-  try {
-    const { customerId } = await getCustomerIdAndUser(supabase);
-    const { data: addresses, error } = await supabase
-      .from("customer_addresses")
-      .select("*")
-      .eq("customer_id", customerId)
-      .order("is_primary", { ascending: false });
 
-    if (error) throw error;
-    return new Response(JSON.stringify(addresses), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Gagal mengambil data alamat.";
-    // Jaring Pengaman: Jika error adalah karena profil belum ditemukan (race condition),
-    // kembalikan array kosong agar UI tidak crash.
-    if (errorMessage.includes("Profil pelanggan tidak ditemukan")) {
-      return new Response(JSON.stringify([]), { status: 200 });
-    }
-    console.error("Error di GET /api/addresses:", errorMessage);
-    return new Response(JSON.stringify({ message: errorMessage }), {
-      status: 500,
-    });
-  }
-};
-
-// =================================================================
-// == FUNGSI POST: Menyimpan alamat baru                          ==
-// =================================================================
-export const POST: APIRoute = async ({ request, cookies }: APIContext) => {
-  const supabase = createSupabaseClient(cookies);
   try {
+    // --- PERBAIKAN 2: Tangkap customerId dan user dari fungsi helper ---
     const { customerId, user } = await getCustomerIdAndUser(supabase);
     const formData = await request.json();
 
-    const {
-      recipient_name,
-      recipient_phone,
-      full_address,
-      destination_text,
-      latitude,
-      longitude,
-    } = formData;
+    // Validasi input wajib
+    const { recipient_name, recipient_phone, full_address, destination_text } =
+      formData;
     if (
       !recipient_name ||
       !recipient_phone ||
@@ -129,16 +84,14 @@ export const POST: APIRoute = async ({ request, cookies }: APIContext) => {
       .from("customer_addresses")
       .insert({
         customer_id: customerId,
-        auth_user_id: user.id,
+        auth_user_id: user.id, // <-- Sekarang variabel 'user' sudah dikenali di sini
         label: formData.label,
-        recipient_name,
-        recipient_phone,
-        full_address,
+        recipient_name: formData.recipient_name,
+        recipient_phone: formData.recipient_phone,
+        full_address: formData.full_address,
         destination: formData.destination,
-        destination_text,
+        destination_text: formData.destination_text,
         postal_code: formData.postal_code,
-        latitude,
-        longitude,
       })
       .select()
       .single();
@@ -146,24 +99,27 @@ export const POST: APIRoute = async ({ request, cookies }: APIContext) => {
     if (error) throw error;
     return new Response(JSON.stringify(newAddress), { status: 201 });
   } catch (error) {
-    const errorMessage =
-      error instanceof Error
-        ? error.message
-        : "Terjadi error tidak dikenal saat menyimpan alamat.";
-    console.error("Error di POST /api/addresses:", errorMessage);
-    return new Response(JSON.stringify({ message: errorMessage }), {
-      status: 500,
-    });
+    console.error("Error di POST /api/addresses:", error);
+    return new Response(
+      JSON.stringify({
+        message:
+          error instanceof Error
+            ? error.message
+            : "Terjadi error tidak dikenal.",
+      }),
+      { status: 500 },
+    );
   }
 };
 
 // =================================================================
-// == FUNGSI PUT: Mengubah alamat                                 ==
+// == FUNGSI PUT (UNTUK MENGUBAH ALAMAT)                          ==
 // =================================================================
-export const PUT: APIRoute = async ({ request, cookies }: APIContext) => {
+export const PUT: APIRoute = async ({ request, cookies }) => {
   const supabase = createSupabaseClient(cookies);
+
   try {
-    const { customerId } = await getCustomerIdAndUser(supabase);
+    const { customerId } = await getCustomerIdAndUser(supabase); // Hanya butuh validasi kepemilikan
     const formData = await request.json();
     const { id: addressId, ...updateData } = formData;
 
@@ -178,28 +134,30 @@ export const PUT: APIRoute = async ({ request, cookies }: APIContext) => {
       .from("customer_addresses")
       .update(updateData)
       .eq("id", addressId)
-      .eq("customer_id", customerId)
+      .eq("customer_id", customerId) // Keamanan tambahan level API
       .select()
       .single();
 
     if (error) throw error;
     return new Response(JSON.stringify(data), { status: 200 });
   } catch (error) {
-    const errorMessage =
-      error instanceof Error
-        ? error.message
-        : "Terjadi error tidak dikenal saat mengubah alamat.";
-    console.error("Error di PUT /api/addresses:", errorMessage);
-    return new Response(JSON.stringify({ message: errorMessage }), {
-      status: 500,
-    });
+    console.error("Error di PUT /api/addresses:", error);
+    return new Response(
+      JSON.stringify({
+        message:
+          error instanceof Error
+            ? error.message
+            : "Terjadi error tidak dikenal.",
+      }),
+      { status: 500 },
+    );
   }
 };
 
 // =================================================================
-// == FUNGSI DELETE: Menghapus alamat                             ==
+// == FUNGSI DELETE (UNTUK MENGHAPUS ALAMAT)                      ==
 // =================================================================
-export const DELETE: APIRoute = async ({ request, cookies }: APIContext) => {
+export const DELETE: APIRoute = async ({ request, cookies }) => {
   const supabase = createSupabaseClient(cookies);
   try {
     const { customerId } = await getCustomerIdAndUser(supabase);
@@ -224,13 +182,48 @@ export const DELETE: APIRoute = async ({ request, cookies }: APIContext) => {
       { status: 200 },
     );
   } catch (error) {
-    const errorMessage =
-      error instanceof Error
-        ? error.message
-        : "Terjadi error tidak dikenal saat menghapus alamat.";
-    console.error("Error di DELETE /api/addresses:", errorMessage);
-    return new Response(JSON.stringify({ message: errorMessage }), {
-      status: 500,
+    console.error("Error di DELETE /api/addresses:", error);
+    return new Response(
+      JSON.stringify({
+        message:
+          error instanceof Error
+            ? error.message
+            : "Terjadi error tidak dikenal.",
+      }),
+      { status: 500 },
+    );
+  }
+};
+
+// =================================================================
+// == FUNGSI GET (UNTUK MENGAMBIL DATA)                           ==
+// =================================================================
+export const GET: APIRoute = async ({ cookies }) => {
+  const supabase = createSupabaseClient(cookies);
+  try {
+    const { customerId } = await getCustomerIdAndUser(supabase);
+    const { data: addresses, error: addressesError } = await supabase
+      .from("customer_addresses")
+      .select("*")
+      .eq("customer_id", customerId)
+      .order("is_primary", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    if (addressesError) throw addressesError;
+    return new Response(JSON.stringify(addresses), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
     });
+  } catch (error) {
+    console.error("Error di GET /api/addresses:", error);
+    return new Response(
+      JSON.stringify({
+        message:
+          error instanceof Error
+            ? error.message
+            : "Terjadi error tidak dikenal.",
+      }),
+      { status: 500 },
+    );
   }
 };

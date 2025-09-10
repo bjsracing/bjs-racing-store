@@ -1,20 +1,17 @@
-// File: src/pages/login.astro (Diperbaiki)
-
-import MainLayout from '@/layouts/MainLayout.astro';
-import AuthForm from '@/components/AuthForm.jsx';
+---
+// src/pages/login.astro
+import MainLayout from '../layouts/MainLayout.astro';
+import AuthForm from '../components/AuthForm.jsx';
 ---
 
 <MainLayout title="Login / Daftar - BJS RACING STORE">
-    <div class="container mx-auto px-4 py-16 flex flex-col items-center">
-        <div class="w-full max-w-md">
-            <h1 class="text-3xl font-bold text-center mb-8">Akun Saya</h1>
+    <div class="container mx-auto px-4 py-16">
+        <h1 class="text-3xl font-bold text-center mb-8">Akun Saya</h1>
 
-            {/* PERBAIKAN UTAMA: 
-              Ganti 'client:only' menjadi 'client:load'.
-              Form akan dirender di server dan menjadi interaktif di klien.
-            */}
-            <AuthForm client:load />
+        {/* 'client:load' adalah perintah khusus Astro untuk memberitahu
+          bahwa komponen ini harus dijalankan di browser pengguna.
+        */}
+        <AuthForm client:only="react" />
 
-        </div>
     </div>
 </MainLayout>

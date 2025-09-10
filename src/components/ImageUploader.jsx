@@ -1,16 +1,11 @@
-// File: src/components/ImageUploader.jsx
-// Perbaikan: Disesuaikan dengan arsitektur AuthContext yang aman untuk SSR.
+// src/components/ImageUploader.jsx
 
-import React, { useState, useRef } from "react";
-// PERBAIKAN 1: Impor FUNGSI useAuth dari pusat kontrol sesi kita
-import { useAuth } from "../lib/authContext.tsx";
+import React, { useState } from "react";
+import { supabase } from "../lib/supabaseClient";
 import imageCompression from "browser-image-compression";
 import { FiUpload } from "react-icons/fi";
 
-const ImageUploader = ({ productId }) => {
-  // PERBAIKAN 2: Gunakan hook useAuth untuk mendapatkan client Supabase yang aman
-  const { supabase } = useAuth();
-
+const ImageUploader = ({ productId, onUploadComplete }) => {
   const [mainImage, setMainImage] = useState(null);
   const [swatchImage, setSwatchImage] = useState(null);
   const [mainImagePreview, setMainImagePreview] = useState(null);
@@ -31,12 +26,6 @@ const ImageUploader = ({ productId }) => {
   };
 
   const handleUpload = async () => {
-    // PERBAIKAN 3: Tambahkan guard clause untuk memastikan supabase sudah siap
-    if (!supabase) {
-      alert("Koneksi belum siap, silakan coba sesaat lagi.");
-      return;
-    }
-
     if (!mainImage && !swatchImage) {
       alert("Silakan pilih setidaknya satu gambar untuk diupload.");
       return;
@@ -51,18 +40,18 @@ const ImageUploader = ({ productId }) => {
         useWebWorker: true,
       };
 
-      const BUCKET_NAME = "produk-pilok";
+      const BUCKET_NAME = "produk-pilok"; // <-- Nama bucket sekarang terpusat
 
       const uploadFile = async (file, path) => {
         const compressedFile = await imageCompression(file, compressionOptions);
         const { error: uploadError } = await supabase.storage
-          .from(BUCKET_NAME)
+          .from(BUCKET_NAME) // <-- Menggunakan nama bucket yang benar
           .upload(path, compressedFile, { upsert: true });
         if (uploadError) throw uploadError;
 
         const {
           data: { publicUrl },
-        } = supabase.storage.from(BUCKET_NAME).getPublicUrl(path);
+        } = supabase.storage.from(BUCKET_NAME).getPublicUrl(path); // <-- Menggunakan nama bucket yang benar
         return publicUrl;
       };
 
@@ -92,6 +81,7 @@ const ImageUploader = ({ productId }) => {
       window.location.reload();
     } catch (error) {
       console.error("Error uploading image:", error);
+      // PERBAIKAN: Menampilkan pesan error yang lebih jelas
       alert(
         `Gagal mengupload gambar: ${error?.message || JSON.stringify(error)}`,
       );
@@ -100,9 +90,9 @@ const ImageUploader = ({ productId }) => {
     }
   };
 
-  // Render JSX (tidak ada perubahan)
   return (
     <div className="bg-slate-50 border-t-4 border-orange-400 p-4 rounded-b-lg shadow-md mt-8">
+      {/* ... (bagian JSX tidak ada perubahan) ... */}
       <h3 className="font-bold text-lg text-slate-800 mb-4">
         Panel Admin: Upload Gambar
       </h3>

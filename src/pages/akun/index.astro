@@ -1,59 +1,50 @@
 ---
 // File: src/pages/akun/index.astro
-// Perbaikan Final: Mengaktifkan kembali validasi profil di sisi server
-// untuk memastikan halaman hanya dimuat jika data pengguna sudah siap.
 
 import MainLayout from '@/layouts/MainLayout.astro';
 import AddressSection from '@/components/AddressSection.tsx';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 
 let pageError: string | null = null;
-let showContent = true;
 
 try {
   // --- Validasi Sesi Pengguna ---
-  const { session, cookies } = Astro.locals; 
+  const { session } = Astro.locals; 
 
   if (!session) {
-    // Jika tidak ada sesi, langsung arahkan ke login
-    return Astro.redirect('/login?redirect=/akun');
+    return Astro.redirect('/login');
   }
 
-  // --- PERBAIKAN UTAMA: Validasi Profil Diaktifkan Kembali ---
-  // Kita buat koneksi Supabase di sisi server untuk memeriksa profil
+  // --- VALIDASI PROFIL DINONAKTIFKAN SEMENTARA UNTUK DEBUGGING ---
+  // Kita akan asumsikan profil ada jika sesi ada, untuk menghindari crash loop.
+  // Validasi profil akan kita pindahkan ke client-side jika diperlukan nanti.
+  /*
+  const { cookies } = Astro;
   const supabase = createServerClient(
     import.meta.env.PUBLIC_SUPABASE_URL!,
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(key: string) { return cookies.get(key)?.value; },
-        set(key: string, value: string, options: CookieOptions) { cookies.set(key, value, options); },
-        remove(key: string, options: CookieOptions) { cookies.delete(key, options); },
+        get(key: string) { return cookies?.get(key)?.value; },
+        set(key: string, value: string, options: CookieOptions) { cookies?.set(key, value, options); },
+        remove(key: string, options: CookieOptions) { cookies?.delete(key, options); },
       },
     }
   );
 
-  // Periksa keberadaan profil di database sebelum merender halaman
   const { data: customerProfile, error: profileError } = await supabase
     .from("customers")
-    .select("id", { count: 'exact', head: true }) // Query lebih efisien, hanya cek keberadaan
-    .eq("auth_user_id", session.user.id);
+    .select("id")
+    .eq("auth_user_id", session.user.id)
+    .maybeSingle();
 
-  if (profileError) {
-    // Jika ada error database, lempar untuk ditangani di bawah
-    throw profileError;
-  }
-
-  // Jika hitungan profil adalah 0, berarti profil belum ada.
-  // Arahkan paksa ke halaman lengkapi profil. Ini menyelesaikan race condition.
-  if (customerProfile?.count === 0) {
-    return Astro.redirect('/akun/lengkapi-profil');
-  }
+  if (profileError) throw profileError;
+  if (!customerProfile) return Astro.redirect('/akun/lengkapi-profil');
+  */
 
 } catch (error) {
   console.error("Server-side error in /akun/index.astro:", error.message);
   pageError = error.message || "Terjadi kesalahan saat memverifikasi data pengguna.";
-  showContent = false; // Sembunyikan konten utama jika ada error
 }
 ---
 

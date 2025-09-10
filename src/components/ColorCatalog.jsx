@@ -1,13 +1,11 @@
-// File: src/components/ColorCatalog.jsx
-// Perbaikan: Disesuaikan dengan arsitektur AuthContext yang aman untuk SSR.
+// src/components/ColorCatalog.jsx (Final dengan Debounce)
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-// PERBAIKAN 1: Impor FUNGSI useAuth dari pusat kontrol sesi kita
-import { useAuth } from "../lib/authContext.tsx";
+import { supabase } from "../lib/supabaseClient";
 import ColorCatalogFilter from "./ColorCatalogFilter.jsx";
 import ColorSwatchCard from "./ColorSwatchCard.jsx";
 
-// Hook useDebounce (tidak ada perubahan)
+// --- TAMBAHKAN HOOK useDebounce DI SINI ---
 function useDebounce(value, delay) {
     const [debouncedValue, setDebouncedValue] = useState(value);
     useEffect(() => {
@@ -18,9 +16,6 @@ function useDebounce(value, delay) {
 }
 
 const ColorCatalog = () => {
-    // PERBAIKAN 2: Gunakan hook useAuth untuk mendapatkan client Supabase yang aman
-    const { supabase } = useAuth();
-
     const [allProducts, setAllProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({
@@ -30,12 +25,10 @@ const ColorCatalog = () => {
         color_variant: "semua",
     });
 
-    const debouncedSearchTerm = useDebounce(filters.searchTerm, 500);
+    // Gunakan debouncedSearchTerm untuk memicu pencarian
+    const debouncedSearchTerm = useDebounce(filters.searchTerm, 500); // Tunggu 500ms
 
     const fetchProducts = useCallback(async () => {
-        // PERBAIKAN 3: Tambahkan guard clause untuk memastikan supabase sudah siap
-        if (!supabase) return;
-
         setLoading(true);
         let query = supabase
             .from("products")
@@ -48,6 +41,8 @@ const ColorCatalog = () => {
             query = query.eq("lini_produk", filters.lini_produk);
         if (filters.color_variant !== "semua")
             query = query.eq("color_variant", filters.color_variant);
+
+        // Gunakan debouncedSearchTerm di sini
         if (debouncedSearchTerm) {
             query = query.or(
                 `nama.ilike.%${debouncedSearchTerm}%,sku.ilike.%${debouncedSearchTerm}%`,
@@ -67,19 +62,18 @@ const ColorCatalog = () => {
             setAllProducts(Array.from(uniqueProducts.values()));
         }
         setLoading(false);
+        // PERBAIKAN: Ubah dependency agar hanya bergantung pada filter yang relevan
     }, [
         filters.merek,
         filters.lini_produk,
         filters.color_variant,
         debouncedSearchTerm,
-        supabase, // supabase sekarang menjadi dependensi yang valid
     ]);
 
     useEffect(() => {
         fetchProducts();
     }, [fetchProducts]);
 
-    // Logika pengelompokan (tidak ada perubahan)
     const groupedProducts = useMemo(() => {
         return allProducts.reduce((acc, product) => {
             const variant = product.color_variant || "Lainnya";
@@ -89,7 +83,6 @@ const ColorCatalog = () => {
         }, {});
     }, [allProducts]);
 
-    // Render JSX (tidak ada perubahan)
     return (
         <div>
             <ColorCatalogFilter filters={filters} setFilters={setFilters} />
@@ -98,11 +91,8 @@ const ColorCatalog = () => {
                 <p className="text-center py-20">Memuat warna...</p>
             ) : Object.keys(groupedProducts).length > 0 ? (
                 <div className="space-y-12">
-                    {Object.entries(groupedProducts)
-                        .sort(([variantA], [variantB]) =>
-                            variantA.localeCompare(variantB),
-                        )
-                        .map(([variantName, products]) => (
+                    {Object.entries(groupedProducts).map(
+                        ([variantName, products]) => (
                             <div key={variantName}>
                                 <h2 className="text-xl font-bold border-b-2 border-orange-400 pb-2 mb-6">
                                     {variantName}
@@ -117,7 +107,8 @@ const ColorCatalog = () => {
                                     ))}
                                 </div>
                             </div>
-                        ))}
+                        ),
+                    )}
                 </div>
             ) : (
                 <p className="text-center py-20 text-slate-500">

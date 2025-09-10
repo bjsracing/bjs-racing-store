@@ -1,12 +1,16 @@
 ---
 // File: src/pages/akun/lengkapi-profil.astro
-// Perbaikan: Menambahkan logika polling untuk memastikan profil siap sebelum redirect.
+// Deskripsi: Halaman bagi pengguna baru untuk mengisi data profil (nama, telepon)
+// setelah registrasi.
 
+// 1. IMPORT KOMPONEN LAYOUT (Perbaikan yang hilang)
 import MainLayout from '@/layouts/MainLayout.astro';
 
-// Proteksi Halaman
+// 2. LOGIKA SERVER-SIDE: Perlindungan Halaman
+// Pastikan hanya pengguna yang sudah login yang bisa mengakses halaman ini.
 const { session } = Astro.locals;
 if (!session) {
+  // Jika belum login, tendang kembali ke halaman login.
   return Astro.redirect('/login');
 }
 ---
@@ -30,108 +34,45 @@ if (!session) {
       <button type="submit" id="submit-btn" class="w-full bg-orange-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-600 transition-opacity disabled:opacity-50">
         Simpan Profil & Lanjutkan
       </button>
-      
-      {/* PERBAIKAN: Tambahkan elemen untuk status dan error message */}
-      <p id="form-status" class="text-blue-600 text-sm mt-2 text-center h-4"></p>
-      <p id="form-error" class="text-red-500 text-sm mt-2 text-center h-4"></p>
+      <p id="form-error" class="text-red-500 text-sm mt-2 text-center"></p>
     </form>
   </div>
 </MainLayout>
 
 <script>
-  // Menggunakan form sebagai titik pusat untuk query elemen lainnya
-  const form = document.querySelector<HTMLFormElement>('#profile-form');
-  if (!form) throw new Error("Form tidak ditemukan di halaman ini.");
+  const form = document.getElementById('profile-form') as HTMLFormElement;
+  const errorMsg = document.getElementById('form-error') as HTMLParagraphElement;
+  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
 
-  // Mengambil elemen lain dari dalam form
-  const errorMsg = form.querySelector<HTMLParagraphElement>('#form-error');
-  const statusMsg = form.querySelector<HTMLParagraphElement>('#form-status');
-  const submitBtn = form.querySelector<HTMLButtonElement>('#submit-btn');
-
-  // Pastikan semua elemen yang dibutuhkan ada
-  if (!errorMsg || !statusMsg || !submitBtn) {
-    throw new Error("Elemen form (error, status, atau tombol submit) tidak ditemukan.");
-  }
-  
-  /**
-   * 1. API LOGIC EXTRACTION: Fungsi khusus untuk menyimpan profil
-   */
-  async function saveProfile(data: Record<string, any>): Promise<void> {
-    const response = await fetch('/api/customers', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Gagal menyimpan profil ke server.');
-    }
-  }
-
-  /**
-   * 2. API LOGIC EXTRACTION: Fungsi polling tetap sama, logikanya sudah solid.
-   */
-  function pollForProfile(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      let attempts = 0;
-      const maxAttempts = 10;
-      const interval = 500;
-
-      const checker = setInterval(async () => {
-        attempts++;
-        try {
-          const response = await fetch('/api/profile-check');
-          if (response.ok) {
-            const result = await response.json();
-            if (result.found) {
-              clearInterval(checker);
-              return resolve();
-            }
-          }
-        } catch (err) {
-          console.warn(`Polling attempt ${attempts} gagal, mencoba lagi...`);
-        }
-
-        if (attempts >= maxAttempts) {
-          clearInterval(checker);
-          reject(new Error("Gagal memverifikasi profil setelah disimpan. Silakan coba login kembali."));
-        }
-      }, interval);
-    });
-  }
-  
-  /**
-   * 3. CLEANER EVENT LISTENER: Alur utama menjadi lebih mudah dibaca
-   */
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-
-    // Reset UI state
     errorMsg.textContent = '';
-    statusMsg.textContent = 'Menyimpan...';
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Memproses...';
+    submitBtn.textContent = 'Menyimpan...';
+
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
 
     try {
-      const formData = new FormData(form);
-      const data = Object.fromEntries(formData.entries());
+      const response = await fetch('/api/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
 
-      // Langkah 1: Simpan profil
-      await saveProfile(data);
-      statusMsg.textContent = 'Profil berhasil disimpan. Memverifikasi...';
+      if (!response.ok) {
+        // Baca pesan error yang dikirim oleh server
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Terjadi kesalahan yang tidak diketahui dari server.');
+      }
 
-      // Langkah 2: Tunggu database siap
-      await pollForProfile();
-      statusMsg.textContent = 'Verifikasi berhasil. Mengarahkan...';
-      
-      // Langkah 3: Arahkan ke halaman akun
+      // Jika sukses, arahkan ke halaman akun utama
       window.location.href = '/akun';
 
     } catch (error) {
-      console.error('Gagal dalam proses melengkapi profil:', error);
-      statusMsg.textContent = '';
-      errorMsg.textContent = (error as Error).message;
+      console.error('Gagal membuat profil:', error);
+      errorMsg.textContent = error.message;
+    } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Simpan Profil & Lanjutkan';
     }

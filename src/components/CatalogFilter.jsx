@@ -1,23 +1,14 @@
-// File: src/components/CatalogFilter.jsx
-// Perbaikan: Menyesuaikan cara impor dan penggunaan Supabase client agar aman untuk SSR,
-// sambil mempertahankan semua logika filter yang sudah stabil.
+// src/components/CatalogFilter.jsx
 
 import React, { useState, useEffect, useMemo } from "react";
-// PERBAIKAN 1: Impor FUNGSI useAuth dari pusat kontrol sesi kita
-import { useAuth } from "../lib/authContext.tsx";
+import { supabase } from "../lib/supabaseClient";
 import { FiSearch, FiRefreshCw } from "react-icons/fi";
 
 const CatalogFilter = ({ filters, setFilters, filterConfig }) => {
     const [allProducts, setAllProducts] = useState([]);
 
-    // PERBAIKAN 2: Gunakan hook useAuth untuk mendapatkan client Supabase yang aman
-    const { supabase } = useAuth();
-
     // Ambil SEMUA data produk yang relevan sekali saja untuk mengisi opsi dropdown
     useEffect(() => {
-        // PERBAIKAN 3: Tambahkan guard clause untuk memastikan supabase sudah siap
-        if (!supabase) return;
-
         const fetchAllProductsForFilter = async () => {
             let query = supabase
                 .from("products")
@@ -30,9 +21,9 @@ const CatalogFilter = ({ filters, setFilters, filterConfig }) => {
             setAllProducts(data || []);
         };
         fetchAllProductsForFilter();
-    }, [supabase, filterConfig]); // PERBAIKAN 4: Tambahkan supabase sebagai dependensi
+    }, [filterConfig]);
 
-    // LOGIKA CASCADING FILTER (Tidak ada perubahan, sudah benar)
+    // LOGIKA CASCADING FILTER
     const options = useMemo(() => {
         const merekOptions = [
             ...new Set(allProducts.map((p) => p.merek).filter(Boolean)),
@@ -78,7 +69,6 @@ const CatalogFilter = ({ filters, setFilters, filterConfig }) => {
         };
     }, [allProducts, filters]);
 
-    // LOGIKA HANDLER (Tidak ada perubahan, sudah benar)
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         if (name === "merek")
@@ -127,7 +117,6 @@ const CatalogFilter = ({ filters, setFilters, filterConfig }) => {
             ukuran: "semua",
         });
 
-    // RENDER JSX (Tidak ada perubahan, sudah benar)
     return (
         <div className="bg-white p-4 rounded-lg shadow-sm mb-6 space-y-4">
             <div className="relative">

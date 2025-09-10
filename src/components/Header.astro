@@ -1,14 +1,10 @@
 ---
-// File: src/components/Header.astro (Diperbaiki)
-// Menghubungkan data sesi dari server (Astro) ke klien (React).
-
-import HeaderActions from './HeaderActions.tsx';
-import MobileNav from './MobileNav.tsx';
+// src/components/Header.astro
+import CartIcon from './CartIcon.jsx';
+import AuthMenu from './AuthMenu.jsx';
+import MobileMenu from './MobileMenu.jsx';
+import MobileMenuButton from './MobileMenuButton.jsx';
 import id from '../../public/locales/id/common.json';
-
-// 1. Ambil data sesi dari server Astro.
-// 'session' akan berisi data pengguna jika login, atau 'null' jika tidak.
-const { session } = Astro.locals;
 
 const navLinks = [
   { name: id.nav.home, path: "/" },
@@ -21,10 +17,12 @@ const navLinks = [
 ---
 <header class="bg-white text-slate-800 shadow-sm sticky top-0 z-50">
     <div class="container mx-auto px-3 mobile:px-4 tablet:px-6 flex justify-between items-center py-3 mobile:py-4">
+        {/* Logo */}
         <a href="/" class="text-lg mobile:text-xl tablet:text-2xl font-bold text-slate-900"> 
             BJS RACING <span class="text-orange-500">STORE</span> 
         </a>
         
+        {/* ✅ PERBAIKAN: Kembali ke md: breakpoint */}
         <nav class="hidden md:flex items-center space-x-4 mobile:space-x-6 tablet:space-x-8">
             {navLinks.map(link => ( 
                 <a href={link.path} class="font-semibold text-slate-600 hover:text-orange-500 transition-colors text-sm mobile:text-base">
@@ -33,26 +31,29 @@ const navLinks = [
             ))} 
         </nav>
         
-        <div class="hidden md:flex">
-            {/* 2. Teruskan 'session' dari server sebagai prop 'initialSession' */}
-            <HeaderActions initialSession={session} client:load />
+        {/* ✅ PERBAIKAN: Kembali ke md: breakpoint */}
+        <div class="hidden md:flex items-center gap-4 mobile:gap-5 tablet:gap-6">
+            <CartIcon client:visible />
+            <AuthMenu client:load />
         </div>
         
+        {/* ✅ PERBAIKAN: Kembali ke md: breakpoint */}
         <div class="md:hidden">
-            {/* 3. Lakukan hal yang sama untuk komponen navigasi mobile */}
-            <MobileNav navLinks={navLinks} initialSession={session} client:load />
+            <MobileMenuButton client:load />
         </div>
     </div>
 </header>
 
+<MobileMenu client:load />
+
 <script>
-    // Script scroll Anda tidak perlu diubah dan bisa tetap di sini.
+    // Script tetap sama
     function handleHeaderScroll() {
         const header = document.querySelector('header');
         if (window.scrollY > 10) {
-            header.classList.add('bg-white/80', 'backdrop-blur-md');
+            header.classList.add('bg-white/80', 'backdrop-blur-md', 'shadow-sm');
         } else {
-            header.classList.remove('bg-white/80', 'backdrop-blur-md');
+            header.classList.remove('bg-white/80', 'backdrop-blur-md', 'shadow-sm');
         }
     }
     
@@ -69,7 +70,7 @@ const navLinks = [
     }
     
     document.addEventListener('DOMContentLoaded', () => {
-        const debouncedScroll = debounce(handleHeaderScroll, 15);
+        const debouncedScroll = debounce(handleHeaderScroll, 25);
         window.addEventListener('scroll', debouncedScroll);
         handleHeaderScroll();
     });

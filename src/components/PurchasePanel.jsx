@@ -1,41 +1,26 @@
-// File: src/components/PurchasePanel.tsx
-// Perbaikan: Diubah ke .tsx, menangani state loading asinkron, dan memperbaiki path impor.
+// src/components/PurchasePanel.jsx (Versi Final dengan Stok Dinamis Akurat)
 
 import React, { useState, useEffect, useMemo } from "react";
-// PERBAIKAN 1: Path impor menunjuk ke file .ts menggunakan alias path.
-import { useAppStore } from "@/lib/store.ts";
+import { useAppStore } from "../lib/store.js";
 import { FiShoppingCart, FiPlus, FiMinus } from "react-icons/fi";
 
-// Definisikan tipe data untuk props agar lebih aman
-interface Product {
-    id: string;
-    nama: string;
-    harga_jual: number;
-    stok: number;
-    merek: string;
-    ukuran: string;
-    lini_produk?: string;
-    status: string;
-    // tambahkan properti lain jika ada
-}
-
-interface PurchasePanelProps {
-    initialProduct: Product;
-    allProductVariants: Product[];
-}
-
-const PurchasePanel = ({
-    initialProduct,
-    allProductVariants,
-}: PurchasePanelProps) => {
-    const [product, setProduct] = useState<Product>(initialProduct);
+const PurchasePanel = ({ initialProduct, allProductVariants }) => {
+    // State untuk produk yang sedang ditampilkan (bisa berubah saat ukuran dipilih)
+    const [product, setProduct] = useState(initialProduct);
     const [quantity, setQuantity] = useState(1);
     const [selectedSize, setSelectedSize] = useState(initialProduct.ukuran);
-    const [isAdding, setIsAdding] = useState(false); // State untuk loading
     const { addToCart } = useAppStore();
+
+    const formatRupiah = (number) =>
+        new Intl.NumberFormat("id-ID", {
+            style: "currency",
+            currency: "IDR",
+            minimumFractionDigits: 0,
+        }).format(number || 0);
 
     const availableSizes = useMemo(() => {
         if (!initialProduct) return [];
+        // Logika ini sudah benar, mencari berdasarkan nama, merek, dan lini produk
         return allProductVariants
             .filter(
                 (p) =>
@@ -52,7 +37,10 @@ const PurchasePanel = ({
             );
     }, [initialProduct, allProductVariants]);
 
+    // --- PERBAIKAN UTAMA DI SINI ---
+    // useEffect untuk memperbarui produk yang ditampilkan saat ukuran berubah
     useEffect(() => {
+        // Cari varian produk yang cocok dengan ukuran yang baru dipilih
         const newProductVariant = allProductVariants.find(
             (p) =>
                 p.ukuran === selectedSize &&
@@ -60,15 +48,17 @@ const PurchasePanel = ({
                 p.merek === initialProduct.merek &&
                 p.lini_produk === initialProduct.lini_produk,
         );
+
         if (newProductVariant) {
-            setProduct(newProductVariant);
+            setProduct(newProductVariant); // Update produk yang ditampilkan (termasuk stoknya)
+            // Reset kuantitas jika melebihi stok ukuran baru
             if (quantity > newProductVariant.stok) {
                 setQuantity(1);
             }
         }
-    }, [selectedSize, allProductVariants, initialProduct, quantity]);
+    }, [selectedSize, allProductVariants, initialProduct]);
 
-    const handleQuantityChange = (amount: number) => {
+    const handleQuantityChange = (amount) => {
         const newQuantity = Math.max(
             1,
             Math.min(product.stok, quantity + amount),
@@ -76,22 +66,11 @@ const PurchasePanel = ({
         setQuantity(newQuantity);
     };
 
-    // PERBAIKAN 2: Ubah handleAddToCart menjadi fungsi asinkron
-    const handleAddToCart = async () => {
-        if (isAdding) return; // Mencegah klik ganda
-        setIsAdding(true);
-
-        try {
-            await addToCart(product, quantity);
-            alert(
-                `${quantity} x ${product.nama} (${product.ukuran}) berhasil ditambahkan.`,
-            );
-        } catch (error) {
-            console.error("Gagal menambahkan ke keranjang:", error);
-            alert("Gagal menambahkan produk. Silakan coba lagi.");
-        } finally {
-            setIsAdding(false);
-        }
+    const handleAddToCart = () => {
+        addToCart(product, quantity);
+        alert(
+            `${quantity} x ${product.nama} (${product.ukuran}) berhasil ditambahkan.`,
+        );
     };
 
     if (!product) return null;
@@ -140,48 +119,20 @@ const PurchasePanel = ({
                         </button>
                     </div>
                 </div>
+                {/* PERBAIKAN: Stok dinamis sekarang akan selalu akurat */}
                 <p className="text-sm text-slate-500 self-end">
                     Stok Tersedia:{" "}
                     <span className="font-bold">{product.stok}</span>
                 </p>
             </div>
             <div className="mt-4">
-                {/* PERBAIKAN 3: Tombol sekarang menangani state loading */}
                 <button
                     onClick={handleAddToCart}
-                    disabled={availableSizes.length === 0 || isAdding}
-                    className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg transition-colors disabled:bg-slate-400 disabled:cursor-wait"
+                    disabled={availableSizes.length === 0}
+                    className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg transition-colors disabled:bg-slate-400"
                 >
-                    {isAdding ? (
-                        <>
-                            <svg
-                                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                            >
-                                <circle
-                                    className="opacity-25"
-                                    cx="12"
-                                    cy="12"
-                                    r="10"
-                                    stroke="currentColor"
-                                    strokeWidth="4"
-                                ></circle>
-                                <path
-                                    className="opacity-75"
-                                    fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                ></path>
-                            </svg>
-                            <span>Menambahkan...</span>
-                        </>
-                    ) : (
-                        <>
-                            <FiShoppingCart />
-                            <span>Tambah ke Keranjang</span>
-                        </>
-                    )}
+                    <FiShoppingCart />
+                    <span>Tambah ke Keranjang</span>
                 </button>
             </div>
         </div>

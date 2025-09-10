@@ -1,34 +1,37 @@
 // File: src/components/AuthMenu.jsx
-// Perbaikan: Refactor total untuk menggunakan hook useAuth() dari AuthContext,
-// menghilangkan semua logika state management lokal.
+// Perbaikan: Menambahkan pemanggilan clearCart() saat logout.
 
-import React from "react";
-// 1. Impor custom hook `useAuth` dari pusat kontrol sesi kita
-import { useAuth } from "../lib/authContext.tsx";
+import React, { useState, useEffect } from "react";
+import { supabase } from "../lib/supabaseClient";
 import id from "../../public/locales/id/common.json";
 
+// 1. Impor store Zustand Anda (pastikan path dan ekstensi .ts benar)
+import { useAppStore } from "../lib/store.ts";
+
 const AuthMenu = () => {
-    // 2. Gunakan hook `useAuth` untuk mendapatkan data sesi, status loading, dan client supabase
-    const { supabase, session, isLoading } = useAuth();
+    const [session, setSession] = useState(null);
 
-    // Fungsi logout sekarang menggunakan client supabase dari context
-    const handleLogout = async () => {
-        if (!supabase) return; // Pengaman jika supabase belum siap
-        await supabase.auth.signOut();
-        // Arahkan ke halaman utama, AuthProvider akan menangani sisa perubahan state
-        window.location.href = "/";
-    };
+    // 2. Ambil aksi `clearCart` dari store Zustand
+    const { clearCart } = useAppStore();
 
-    // 3. Tampilkan status loading saat AuthProvider sedang memvalidasi sesi
-    if (isLoading) {
-        return (
-            <div className="text-sm font-semibold text-slate-400 animate-pulse">
-                Memuat...
-            </div>
-        );
-    }
+    useEffect(() => {
+        // Ambil sesi awal
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setSession(session);
+        });
 
-    // 4. Tampilkan tombol Login jika tidak ada sesi
+        // Dengarkan perubahan status autentikasi
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, session) => {
+            setSession(session);
+        });
+
+        // Hentikan langganan saat komponen dilepas
+        return () => subscription.unsubscribe();
+    }, []);
+
+    // Tampilan jika pengguna belum login
     if (!session) {
         return (
             <a
@@ -40,12 +43,27 @@ const AuthMenu = () => {
         );
     }
 
-    // 5. Tampilkan email pengguna dan tombol Logout jika ada sesi
+    /**
+     * Menangani proses logout:
+     * 1. Membersihkan keranjang belanja dari localStorage.
+     * 2. Melakukan sign out dari Supabase.
+     * 3. Mengarahkan pengguna ke halaman utama.
+     */
+    const handleLogout = async () => {
+        // 3. Panggil clearCart() SEBELUM proses sign out
+        clearCart();
+
+        // Lanjutkan proses logout seperti biasa
+        await supabase.auth.signOut();
+        window.location.href = "/";
+    };
+
+    // Tampilan jika pengguna sudah login
     return (
         <div className="flex items-center gap-3">
             <a
                 href="/akun"
-                className="text-sm font-semibold text-slate-600 hover:text-orange-500 truncate max-w-[150px]"
+                className="text-sm font-semibold text-slate-600 hover:text-orange-500"
             >
                 {session.user.email}
             </a>

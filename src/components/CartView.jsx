@@ -1,16 +1,11 @@
 // File: src/components/CartView.jsx
-// Perbaikan: Menambahkan state loading untuk fetch awal dan interaksi per item.
+// Perbaikan: Tombol "Lanjut ke Checkout" diubah menjadi tag <a> untuk navigasi.
 
-import React, { useState } from "react";
-import { useAppStore } from "../lib/store.ts";
+import React from "react";
+import { useAppStore } from "../lib/store.ts"; // Pastikan impor dari file .ts jika store sudah diganti namanya
 
 const CartView = () => {
-  // Ambil state dan aksi dari store Zustand
-  const { items, removeFromCart, updateQuantity, isLoadingCart } =
-    useAppStore();
-
-  // State lokal untuk melacak item mana yang sedang diupdate
-  const [updatingItemId, setUpdatingItemId] = useState(null);
+  const { items, removeFromCart, updateQuantity } = useAppStore();
 
   const subtotal = items.reduce(
     (total, item) => total + (item.quantity || 0) * (item.harga_jual || 0),
@@ -25,41 +20,6 @@ const CartView = () => {
     }).format(number || 0);
   };
 
-  // --- Handler Asinkron untuk Aksi Keranjang ---
-  const handleUpdateQuantity = async (itemId, newQuantity) => {
-    setUpdatingItemId(itemId);
-    try {
-      await updateQuantity(itemId, newQuantity);
-    } catch (error) {
-      console.error("Gagal update kuantitas:", error);
-      alert("Gagal memperbarui kuantitas. Silakan coba lagi.");
-    } finally {
-      setUpdatingItemId(null);
-    }
-  };
-
-  const handleRemoveItem = async (itemId) => {
-    setUpdatingItemId(itemId);
-    try {
-      await removeFromCart(itemId);
-    } catch (error) {
-      console.error("Gagal menghapus item:", error);
-      alert("Gagal menghapus item. Silakan coba lagi.");
-    } finally {
-      setUpdatingItemId(null);
-    }
-  };
-
-  // --- Tampilan Loading Awal ---
-  if (isLoadingCart) {
-    return (
-      <div className="text-center py-20">
-        <p className="text-slate-500">Memuat keranjang belanja Anda...</p>
-      </div>
-    );
-  }
-
-  // --- Tampilan Keranjang Kosong ---
   if (items.length === 0) {
     return (
       <div className="text-center py-20">
@@ -70,7 +30,7 @@ const CartView = () => {
           Mari jelajahi produk kami dan temukan yang Anda butuhkan!
         </p>
         <a
-          href="/pilok"
+          href="/pilok" // Arahkan ke halaman produk utama
           className="mt-6 inline-block bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
         >
           Mulai Belanja
@@ -79,19 +39,16 @@ const CartView = () => {
     );
   }
 
-  // --- Tampilan Utama Keranjang ---
   return (
     <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
       <div className="space-y-4">
         {items.map((item) => {
           const quantity = item.quantity || 0;
-          const isUpdating = updatingItemId === item.id;
           return (
             <div
               key={item.id}
-              className={`flex flex-col sm:flex-row items-center gap-4 border-b pb-4 last:border-b-0 transition-opacity ${isUpdating ? "opacity-50" : "opacity-100"}`}
+              className="flex flex-col sm:flex-row items-center gap-4 border-b pb-4 last:border-b-0"
             >
-              {/* Detail Produk */}
               <div className="w-20 h-20 bg-slate-100 rounded-md flex-shrink-0">
                 <img
                   src={item.image_url}
@@ -99,6 +56,7 @@ const CartView = () => {
                   className="w-full h-full object-contain"
                 />
               </div>
+
               <div className="flex-grow text-center sm:text-left">
                 <p className="font-semibold text-slate-800">{item.nama}</p>
                 <p className="text-sm text-slate-500">
@@ -109,40 +67,38 @@ const CartView = () => {
                 </p>
               </div>
 
-              {/* Kontrol Kuantitas */}
               <div className="flex items-center gap-2 border rounded-md p-1">
                 <button
-                  onClick={() => handleUpdateQuantity(item.id, quantity - 1)}
-                  disabled={isUpdating}
-                  className="w-8 h-8 flex items-center justify-center text-slate-600 hover:bg-slate-100 rounded disabled:cursor-not-allowed"
+                  onClick={() => updateQuantity(item.id, quantity - 1)}
+                  className="w-8 h-8 flex items-center justify-center text-slate-600 hover:bg-slate-100 rounded"
                 >
                   -
                 </button>
                 <input
                   type="number"
                   value={quantity}
-                  readOnly
+                  onChange={(e) =>
+                    updateQuantity(item.id, parseInt(e.target.value, 10) || 1)
+                  }
                   className="w-12 text-center font-semibold border-none focus:ring-0 bg-transparent"
                 />
                 <button
-                  onClick={() => handleUpdateQuantity(item.id, quantity + 1)}
-                  disabled={isUpdating}
-                  className="w-8 h-8 flex items-center justify-center text-slate-600 hover:bg-slate-100 rounded disabled:cursor-not-allowed"
+                  onClick={() => updateQuantity(item.id, quantity + 1)}
+                  className="w-8 h-8 flex items-center justify-center text-slate-600 hover:bg-slate-100 rounded"
                 >
                   +
                 </button>
               </div>
 
-              {/* Subtotal Item & Tombol Hapus */}
               <div className="text-right flex-shrink-0 w-28">
                 <p className="font-bold text-lg">
                   {formatRupiah(quantity * item.harga_jual)}
                 </p>
               </div>
+
               <button
-                onClick={() => handleRemoveItem(item.id)}
-                disabled={isUpdating}
-                className="text-slate-400 hover:text-red-500 transition-colors disabled:cursor-not-allowed"
+                onClick={() => removeFromCart(item.id)}
+                className="text-slate-400 hover:text-red-500 transition-colors"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -164,7 +120,6 @@ const CartView = () => {
         })}
       </div>
 
-      {/* Ringkasan & Checkout */}
       <div className="mt-8 flex flex-col sm:flex-row justify-end">
         <div className="w-full max-w-sm">
           <div className="flex justify-between text-lg">
@@ -176,6 +131,8 @@ const CartView = () => {
           <p className="text-xs text-slate-400 text-right mt-1">
             Pajak dan ongkos kirim dihitung saat checkout.
           </p>
+
+          {/* --- PERBAIKAN: Tombol diubah menjadi Link Navigasi --- */}
           <a
             href="/checkout"
             className="mt-4 block text-center w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"

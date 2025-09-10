@@ -1,32 +1,19 @@
-// File: src/components/ColorScanner.jsx (Diperbaiki & Dibuat Mandiri)
+// src/components/ColorScanner.jsx (Final dengan Pipet Warna Manual yang Stabil)
 
-import React, { useState, useRef, useEffect, useMemo } from "react";
-// PERBAIKAN 1: Impor 'createBrowserClient' untuk membuat koneksi Supabase sendiri
-import { createBrowserClient } from "@supabase/ssr";
+import React, { useState, useRef, useEffect } from "react";
+import { supabase } from "../lib/supabaseClient";
 import { FiUpload, FiRefreshCw } from "react-icons/fi";
 
 const ColorScanner = () => {
-  // PERBAIKAN 2: Buat instance Supabase client khusus untuk komponen ini.
-  // 'useMemo' memastikan client hanya dibuat sekali selama komponen hidup.
-  const supabase = useMemo(
-    () =>
-      createBrowserClient(
-        import.meta.env.PUBLIC_SUPABASE_URL,
-        import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
-      ),
-    [],
-  );
-
-  // Semua state dan ref Anda yang lain sudah benar
   const [imageSrc, setImageSrc] = useState(null);
   const [pickedColor, setPickedColor] = useState(null);
   const [recommendedProducts, setRecommendedProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
   const canvasRef = useRef(null);
-  const loupeRef = useRef(null);
+  const loupeRef = useRef(null); // Ref untuk "kaca pembesar"
 
-  // Semua logika useEffect dan helper Anda sudah benar dan tidak perlu diubah...
+  // Gambar ulang gambar ke canvas saat imageSrc berubah
   useEffect(() => {
     if (imageSrc && canvasRef.current) {
       const canvas = canvasRef.current;
@@ -34,6 +21,7 @@ const ColorScanner = () => {
       const img = new Image();
       img.src = imageSrc;
       img.onload = () => {
+        // Atur ukuran canvas agar sesuai dengan kontainernya, sambil menjaga rasio aspek gambar
         const maxWidth = canvas.parentElement.clientWidth;
         const scale = maxWidth / img.width;
         canvas.width = maxWidth;
@@ -45,13 +33,17 @@ const ColorScanner = () => {
 
   const rgbToHex = (r, g, b) =>
     "#" + [r, g, b].map((x) => x.toString(16).padStart(2, "0")).join("");
+
   const getCanvasCoordinates = (e) => {
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
+    // Hitung posisi kursor relatif terhadap canvas yang ditampilkan
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+    // Hitung rasio skala antara ukuran asli gambar dan ukuran canvas yang ditampilkan
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
+    // Dapatkan koordinat piksel yang sebenarnya
     return { x: x * scaleX, y: y * scaleY };
   };
 
@@ -60,13 +52,16 @@ const ColorScanner = () => {
     const { x, y } = getCanvasCoordinates(e);
     const ctx = canvasRef.current.getContext("2d");
     const loupe = loupeRef.current;
+
     loupe.style.left = `${e.clientX}px`;
     loupe.style.top = `${e.clientY}px`;
     loupe.style.display = "block";
+
     const pixel = ctx.getImageData(x, y, 1, 1).data;
     const hex = rgbToHex(pixel[0], pixel[1], pixel[2]);
     loupe.style.backgroundColor = hex;
   };
+
   const handleMouseLeave = () => {
     if (loupeRef.current) loupeRef.current.style.display = "none";
   };
@@ -77,12 +72,11 @@ const ColorScanner = () => {
     const ctx = canvasRef.current.getContext("2d");
     const pixel = ctx.getImageData(x, y, 1, 1).data;
     const hexColor = rgbToHex(pixel[0], pixel[1], pixel[2]);
+
     setPickedColor(hexColor);
     findMatchingColors(hexColor);
   };
 
-  // PERBAIKAN 3: Fungsi ini sekarang menggunakan client supabase yang dibuat di atas.
-  // Tidak ada perubahan lain yang diperlukan di sini.
   const findMatchingColors = async (hexColor) => {
     setLoading(true);
     try {
@@ -110,6 +104,7 @@ const ColorScanner = () => {
       reader.readAsDataURL(file);
     }
   };
+
   const resetScanner = () => {
     setImageSrc(null);
     setPickedColor(null);
@@ -117,7 +112,6 @@ const ColorScanner = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Seluruh kode JSX Anda sudah benar dan tidak perlu diubah
   return (
     <div className="bg-white p-6 rounded-xl shadow-lg max-w-2xl mx-auto">
       <h2 className="text-2xl font-bold text-center mb-4">
@@ -126,6 +120,8 @@ const ColorScanner = () => {
       <p className="text-center text-slate-500 mb-6">
         Unggah gambar, lalu gerakkan kursor di atasnya untuk memilih warna.
       </p>
+
+      {/* Kaca Pembesar (Pipet) */}
       <div
         ref={loupeRef}
         style={{
@@ -141,6 +137,7 @@ const ColorScanner = () => {
           zIndex: 9999,
         }}
       ></div>
+
       <div className="border-2 border-dashed rounded-lg p-4 text-center">
         {!imageSrc ? (
           <div className="flex flex-col items-center">
@@ -163,9 +160,11 @@ const ColorScanner = () => {
           />
         )}
       </div>
+
       {loading && (
         <p className="text-center mt-4 animate-pulse">Mencari rekomendasi...</p>
       )}
+
       {recommendedProducts.length > 0 && (
         <div className="mt-6">
           <h3 className="font-bold text-center text-lg">
