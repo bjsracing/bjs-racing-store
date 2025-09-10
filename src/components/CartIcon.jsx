@@ -1,14 +1,19 @@
 // File: src/components/CartIcon.jsx
-// Perbaikan: Menggunakan alias path '@/' untuk impor yang stabil dan mengatasi error build R2.
+// Perbaikan: Menggunakan alias path '@/'.
+// Menambahkan hook useEffect untuk sinkronisasi keranjang saat komponen dimuat.
 
-import React from "react";
-// PERBAIKAI UTAMA: Gunakan alias path '@/' yang sudah dikonfigurasi di tsconfig.json.
-// Ini adalah cara yang paling stabil untuk impor.
+import React, { useEffect } from "react";
 import { useAppStore } from "@/lib/store.ts";
 
 const CartIcon = () => {
-  const items = useAppStore((state) => state.items);
-  // Menambahkan fallback '|| 0' untuk memastikan quantity selalu berupa angka dan mencegah error
+  const { items, fetchCart } = useAppStore();
+
+  // Memuat data keranjang saat komponen pertama kali di render.
+  // Ini memastikan jumlah item akurat saat halaman dimuat atau saat navigasi.
+  useEffect(() => {
+    fetchCart();
+  }, [fetchCart]);
+
   const totalItems = items.reduce(
     (total, item) => total + (item.quantity || 0),
     0,
@@ -16,7 +21,7 @@ const CartIcon = () => {
 
   return (
     <a
-      href="/cart"
+      href="/keranjang" // Mengubah href menjadi /keranjang
       className="relative text-slate-800 hover:text-orange-500 transition-colors"
     >
       <svg

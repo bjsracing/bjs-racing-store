@@ -1,23 +1,68 @@
 [
   {
-    "table_name": "products",
-    "trigger_name": "on_products_update",
-    "trigger_event": "UPDATE",
-    "trigger_definition": "EXECUTE FUNCTION handle_updated_at()",
-    "execution_time": "BEFORE"
+    "Trigger Name": "tr_check_filters",
+    "Table Name": "subscription",
+    "Function Name": "subscription_check_filters",
+    "Trigger Definition": "CREATE TRIGGER tr_check_filters BEFORE INSERT OR UPDATE ON realtime.subscription FOR EACH ROW EXECUTE FUNCTION realtime.subscription_check_filters()"
   },
   {
-    "table_name": "products",
-    "trigger_name": "product_changes_trigger",
-    "trigger_event": "INSERT",
-    "trigger_definition": "EXECUTE FUNCTION log_product_changes()",
-    "execution_time": "AFTER"
+    "Trigger Name": "update_objects_updated_at",
+    "Table Name": "objects",
+    "Function Name": "update_updated_at_column",
+    "Trigger Definition": "CREATE TRIGGER update_objects_updated_at BEFORE UPDATE ON storage.objects FOR EACH ROW EXECUTE FUNCTION storage.update_updated_at_column()"
   },
   {
-    "table_name": "products",
-    "trigger_name": "product_changes_trigger",
-    "trigger_event": "UPDATE",
-    "trigger_definition": "EXECUTE FUNCTION log_product_changes()",
-    "execution_time": "AFTER"
+    "Trigger Name": "on_products_update",
+    "Table Name": "products",
+    "Function Name": "handle_updated_at",
+    "Trigger Definition": "CREATE TRIGGER on_products_update BEFORE UPDATE ON public.products FOR EACH ROW EXECUTE FUNCTION handle_updated_at()"
+  },
+  {
+    "Trigger Name": "product_changes_trigger",
+    "Table Name": "products",
+    "Function Name": "log_product_changes",
+    "Trigger Definition": "CREATE TRIGGER product_changes_trigger AFTER INSERT OR UPDATE ON public.products FOR EACH ROW EXECUTE FUNCTION log_product_changes()"
+  },
+  {
+    "Trigger Name": "prefixes_delete_hierarchy",
+    "Table Name": "prefixes",
+    "Function Name": "delete_prefix_hierarchy_trigger",
+    "Trigger Definition": "CREATE TRIGGER prefixes_delete_hierarchy AFTER DELETE ON storage.prefixes FOR EACH ROW EXECUTE FUNCTION storage.delete_prefix_hierarchy_trigger()"
+  },
+  {
+    "Trigger Name": "objects_insert_create_prefix",
+    "Table Name": "objects",
+    "Function Name": "objects_insert_prefix_trigger",
+    "Trigger Definition": "CREATE TRIGGER objects_insert_create_prefix BEFORE INSERT ON storage.objects FOR EACH ROW EXECUTE FUNCTION storage.objects_insert_prefix_trigger()"
+  },
+  {
+    "Trigger Name": "objects_delete_delete_prefix",
+    "Table Name": "objects",
+    "Function Name": "delete_prefix_hierarchy_trigger",
+    "Trigger Definition": "CREATE TRIGGER objects_delete_delete_prefix AFTER DELETE ON storage.objects FOR EACH ROW EXECUTE FUNCTION storage.delete_prefix_hierarchy_trigger()"
+  },
+  {
+    "Trigger Name": "prefixes_create_hierarchy",
+    "Table Name": "prefixes",
+    "Function Name": "prefixes_insert_trigger",
+    "Trigger Definition": "CREATE TRIGGER prefixes_create_hierarchy BEFORE INSERT ON storage.prefixes FOR EACH ROW WHEN ((pg_trigger_depth() < 1)) EXECUTE FUNCTION storage.prefixes_insert_trigger()"
+  },
+  {
+    "Trigger Name": "objects_update_create_prefix",
+    "Table Name": "objects",
+    "Function Name": "objects_update_prefix_trigger",
+    "Trigger Definition": "CREATE TRIGGER objects_update_create_prefix BEFORE UPDATE ON storage.objects FOR EACH ROW WHEN (((new.name <> old.name) OR (new.bucket_id <> old.bucket_id))) EXECUTE FUNCTION storage.objects_update_prefix_trigger()"
+  },
+  {
+    "Trigger Name": "enforce_bucket_name_length_trigger",
+    "Table Name": "buckets",
+    "Function Name": "enforce_bucket_name_length",
+    "Trigger Definition": "CREATE TRIGGER enforce_bucket_name_length_trigger BEFORE INSERT OR UPDATE OF name ON storage.buckets FOR EACH ROW EXECUTE FUNCTION storage.enforce_bucket_name_length()"
+  },
+  {
+    "Trigger Name": "on_auth_user_created",
+    "Table Name": "users",
+    "Function Name": "handle_new_user",
+    "Trigger Definition": "CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user()"
   }
 ]

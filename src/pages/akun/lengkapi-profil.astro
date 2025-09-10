@@ -10,71 +10,78 @@ import MainLayout from '@/layouts/MainLayout.astro';
 // Pastikan hanya pengguna yang sudah login yang bisa mengakses halaman ini.
 const { session } = Astro.locals;
 if (!session) {
-  // Jika belum login, tendang kembali ke halaman login.
-  return Astro.redirect('/login');
+  // Jika belum login, tendang kembali ke halaman login.
+  return Astro.redirect('/login');
 }
 ---
 
 <MainLayout title="Lengkapi Profil - BJS Racing Store">
-  <div class="container mx-auto max-w-md px-4 py-16">
-    <h1 class="text-3xl font-bold text-center mb-2">Selamat Datang!</h1>
-    <p class="text-center text-slate-600 mb-8">Satu langkah lagi. Mohon lengkapi profil Anda.</p>
+  <div class="container mx-auto max-w-md px-4 py-16">
+    <h1 class="text-3xl font-bold text-center mb-2">Selamat Datang!</h1>
+    <p class="text-center text-slate-600 mb-8">Satu langkah lagi. Mohon lengkapi profil Anda.</p>
 
-    <form id="profile-form" class="space-y-4 bg-white p-6 rounded-lg shadow-md">
-      <div>
-        <label for="nama_pelanggan" class="block text-sm font-medium text-gray-700">Nama Lengkap</label>
-        <input type="text" id="nama_pelanggan" name="nama_pelanggan" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500">
-      </div>
+    <form id="profile-form" class="space-y-4 bg-white p-6 rounded-lg shadow-md">
+      <div>
+        <label for="nama_pelanggan" class="block text-sm font-medium text-gray-700">Nama Lengkap</label>
+        <input type="text" id="nama_pelanggan" name="nama_pelanggan" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500">
+      </div>
 
-      <div>
-        <label for="telepon" class="block text-sm font-medium text-gray-700">Nomor Telepon (WhatsApp)</label>
-        <input type="tel" id="telepon" name="telepon" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500">
-      </div>
+      <div>
+        <label for="telepon" class="block text-sm font-medium text-gray-700">Nomor Telepon (WhatsApp)</label>
+        <input type="tel" id="telepon" name="telepon" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500">
+      </div>
 
-      <button type="submit" id="submit-btn" class="w-full bg-orange-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-600 transition-opacity disabled:opacity-50">
-        Simpan Profil & Lanjutkan
-      </button>
-      <p id="form-error" class="text-red-500 text-sm mt-2 text-center"></p>
-    </form>
-  </div>
+      <button type="submit" id="submit-btn" class="w-full bg-orange-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-600 transition-opacity disabled:opacity-50">
+        Simpan Profil & Lanjutkan
+      </button>
+      <p id="form-error" class="text-red-500 text-sm mt-2 text-center"></p>
+    </form>
+  </div>
 </MainLayout>
 
 <script>
-  const form = document.getElementById('profile-form') as HTMLFormElement;
-  const errorMsg = document.getElementById('form-error') as HTMLParagraphElement;
-  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+  // Tambahkan impor untuk store Zustand
+  import { useAppStore } from '@/lib/store.ts';
+  
+  const form = document.getElementById('profile-form') as HTMLFormElement;
+  const errorMsg = document.getElementById('form-error') as HTMLParagraphElement;
+  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    errorMsg.textContent = '';
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Menyimpan...';
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorMsg.textContent = '';
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Menyimpan...';
 
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData.entries());
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
 
-    try {
-      const response = await fetch('/api/customers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
+    try {
+      const response = await fetch('/api/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
 
-      if (!response.ok) {
-        // Baca pesan error yang dikirim oleh server
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Terjadi kesalahan yang tidak diketahui dari server.');
-      }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Terjadi kesalahan yang tidak diketahui dari server.');
+      }
 
-      // Jika sukses, arahkan ke halaman akun utama
-      window.location.href = '/akun';
+      // PERBAIKAN: Setelah profil berhasil disimpan, muat keranjang belanja.
+      // Ini penting jika pengguna telah menambahkan item ke keranjang sebelum melengkapi profil.
+      const { fetchCart } = useAppStore.getState();
+      await fetchCart();
+      
+      // Jika sukses, arahkan ke halaman akun utama
+      window.location.href = '/akun';
 
-    } catch (error) {
-      console.error('Gagal membuat profil:', error);
-      errorMsg.textContent = error.message;
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Simpan Profil & Lanjutkan';
-    }
-  });
+    } catch (error) {
+      console.error('Gagal membuat profil:', error);
+      errorMsg.textContent = error.message;
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Simpan Profil & Lanjutkan';
+    }
+  });
 </script>

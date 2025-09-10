@@ -1,12 +1,11 @@
-// File: src/lib/store.ts
+// src/lib/store.ts
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { supabase } from "./supabaseClient";
 
 // ==================================================================
-// == DEFINISI TIPE DATA (TYPESCRIPT)                            ==
+// == DEFINISI TIPE DATA (TYPESCRIPT)                            ==
 // ==================================================================
 
-// Tipe data untuk produk (sesuaikan dengan struktur data produk Anda)
 interface Product {
   id: string;
   nama: string;
@@ -17,12 +16,10 @@ interface Product {
   ukuran?: string;
 }
 
-// Tipe data untuk item di keranjang
-interface CartItem extends Product {
+export interface CartItem extends Product {
   quantity: number;
 }
 
-// Tipe data untuk alamat (dari langkah sebelumnya)
 export interface Address {
   id: string;
   label: string;
@@ -37,7 +34,6 @@ export interface Address {
   city_id?: string;
 }
 
-// Tipe data untuk form input (dari langkah sebelumnya)
 export interface FormDataState {
   label: string;
   recipient_name: string;
@@ -50,15 +46,15 @@ export interface FormDataState {
   city_id?: string;
 }
 
-// Tipe data untuk keseluruhan state Zustand store
 interface StoreState {
   items: CartItem[];
   addresses: Address[];
   isMobileMenuOpen: boolean;
-  addToCart: (productToAdd: Product, quantity: number) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  clearCart: () => void;
+  fetchCart: () => Promise<void>;
+  addToCart: (productToAdd: Product, quantity: number) => Promise<void>;
+  removeFromCart: (productId: string) => Promise<void>;
+  updateQuantity: (productId: string, quantity: number) => Promise<void>;
+  clearCart: () => Promise<void>;
   calculateTotalWeight: () => number;
   fetchAddresses: () => Promise<void>;
   addAddress: (addressData: FormDataState) => Promise<void>;
@@ -72,120 +68,219 @@ interface StoreState {
 }
 
 // ==================================================================
-// == IMPLEMENTASI ZUSTAND STORE                                   ==
+// == IMPLEMENTASI ZUSTAND STORE YANG BARU                         ==
 // ==================================================================
 
-export const useAppStore = create<StoreState>()(
-  // Terapkan tipe StoreState di sini
-  persist(
-    (set, get) => ({
-      // --- State Keranjang Belanja ---
-      items: [],
-      addToCart: (productToAdd: Product, quantity: number) =>
-        set((state) => {
-          const existingItem = state.items.find(
-            (item) => item.id === productToAdd.id,
-          );
-          if (existingItem) {
-            return {
-              items: state.items.map(
-                (item) =>
-                  item.id === productToAdd.id
-                    ? { ...item, quantity: item.quantity + quantity }
-                    : item, // Perbaikan error: Hapus typo "a:" jika ada di sini
-              ),
-            };
-          } else {
-            return {
-              items: [...state.items, { ...productToAdd, quantity: quantity }],
-            };
-          }
-        }),
-      removeFromCart: (productId: string) =>
-        set((state) => ({
-          items: state.items.filter((item) => item.id !== productId),
-        })),
-      updateQuantity: (productId: string, quantity: number) =>
-        set((state) => ({
+export const useAppStore = create<StoreState>()((set, get) => ({
+  // --- State Keranjang Belanja ---
+  items: [],
+
+  fetchCart: async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      set({ items: [] });
+      return;
+    }
+
+    const { data: cartItems, error } = await supabase.rpc("get_cart_items", {
+      p_customer_id: user.id,
+    });
+
+    if (error) {
+      console.error("Error fetching cart from DB:", error);
+      set({ items: [] });
+      return;
+    }
+
+    set({ items: cartItems as CartItem[] });
+  },
+
+  addToCart: async (productToAdd: Product, quantity: number) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      console.error("User not logged in. Cannot add to cart.");
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("cart_items")
+      .insert({
+        customer_id: user.id,
+        product_id: productToAdd.id,
+        quantity,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error adding to cart:", error);
+      return;
+    }
+
+    set((state) => {
+      const existingItem = state.items.find(
+        (item) => item.id === productToAdd.id,
+      );
+      if (existingItem) {
+        return {
           items: state.items.map((item) =>
-            item.id === productId
-              ? { ...item, quantity: Math.max(1, quantity) }
+            item.id === productToAdd.id
+              ? { ...item, quantity: item.quantity + quantity }
               : item,
           ),
-        })),
-      clearCart: () => set({ items: [] }),
-      calculateTotalWeight: () => {
-        const items = get().items;
-        return items.reduce((totalWeight, item) => {
-          const weightPerItem = item.berat_gram || 0;
-          return totalWeight + weightPerItem * item.quantity;
-        }, 0);
-      },
+        };
+      } else {
+        return {
+          items: [...state.items, { ...productToAdd, quantity }],
+        };
+      }
+    });
+  },
 
-      // --- State Menu Mobile ---
-      isMobileMenuOpen: false,
-      toggleMobileMenu: () =>
-        set((state) => ({ isMobileMenuOpen: !state.isMobileMenuOpen })),
-      closeMobileMenu: () => set({ isMobileMenuOpen: false }),
+  removeFromCart: async (productId: string) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      console.error("User not logged in. Cannot remove from cart.");
+      return;
+    }
 
-      // --- State Modul Alamat ---
-      addresses: [],
-      fetchAddresses: async () => {
-        try {
-          const response = await fetch(
-            `/api/addresses?timestamp=${Date.now()}`,
-          );
-          if (!response.ok) throw new Error("Gagal mengambil data alamat.");
-          const data = await response.json();
-          set({ addresses: data });
-        } catch (error) {
-          console.error("Error fetching addresses:", error);
-          set({ addresses: [] });
-        }
-      },
-      addAddress: async (addressData: FormDataState) => {
-        const response = await fetch("/api/addresses", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(addressData),
-        });
-        const newAddress = await response.json();
-        if (!response.ok)
-          throw new Error(newAddress.message || "Gagal menyimpan alamat baru.");
-        set((state) => ({ addresses: [newAddress, ...state.addresses] }));
-      },
-      updateAddress: async (addressId: string, addressData: FormDataState) => {
-        const response = await fetch("/api/addresses", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: addressId, ...addressData }),
-        });
-        const updatedAddress = await response.json();
-        if (!response.ok)
-          throw new Error(
-            updatedAddress.message || "Gagal memperbarui alamat.",
-          );
-        set((state) => ({
-          addresses: state.addresses.map((addr) =>
-            addr.id === addressId ? updatedAddress : addr,
-          ),
-        }));
-      },
-      deleteAddress: async (addressId: string) => {
-        const response = await fetch("/api/addresses", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ addressId: addressId }),
-        });
-        if (!response.ok) throw new Error("Gagal menghapus alamat di server.");
-        set((state) => ({
-          addresses: state.addresses.filter((addr) => addr.id !== addressId),
-        }));
-      },
-    }),
-    {
-      name: "bjs-racing-store-cart",
-      partialize: (state) => ({ items: state.items }),
-    },
-  ),
-);
+    const { error } = await supabase
+      .from("cart_items")
+      .delete()
+      .eq("customer_id", user.id)
+      .eq("product_id", productId);
+
+    if (error) {
+      console.error("Error removing from cart:", error);
+      return;
+    }
+
+    set((state) => ({
+      items: state.items.filter((item) => item.id !== productId),
+    }));
+  },
+
+  updateQuantity: async (productId: string, quantity: number) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      console.error("User not logged in. Cannot update quantity.");
+      return;
+    }
+
+    if (quantity < 1) {
+      get().removeFromCart(productId);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("cart_items")
+      .update({ quantity })
+      .eq("customer_id", user.id)
+      .eq("product_id", productId);
+
+    if (error) {
+      console.error("Error updating quantity:", error);
+      return;
+    }
+
+    set((state) => ({
+      items: state.items.map((item) =>
+        item.id === productId ? { ...item, quantity } : item,
+      ),
+    }));
+  },
+
+  clearCart: async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      console.error("User not logged in. Cannot clear cart.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("cart_items")
+      .delete()
+      .eq("customer_id", user.id);
+
+    if (error) {
+      console.error("Error clearing cart:", error);
+      return;
+    }
+
+    set({ items: [] });
+  },
+
+  calculateTotalWeight: () => {
+    const items = get().items;
+    return items.reduce((totalWeight, item) => {
+      const weightPerItem = item.berat_gram || 0;
+      return totalWeight + weightPerItem * item.quantity;
+    }, 0);
+  },
+
+  isMobileMenuOpen: false,
+  toggleMobileMenu: () =>
+    set((state) => ({ isMobileMenuOpen: !state.isMobileMenuOpen })),
+  closeMobileMenu: () => set({ isMobileMenuOpen: false }),
+
+  // --- State Modul Alamat ---
+  addresses: [],
+  fetchAddresses: async () => {
+    try {
+      const response = await fetch(`/api/addresses?timestamp=${Date.now()}`);
+      if (!response.ok) throw new Error("Gagal mengambil data alamat.");
+      const data = await response.json();
+      set({ addresses: data });
+    } catch (error) {
+      console.error("Error fetching addresses:", error);
+      set({ addresses: [] });
+    }
+  },
+  addAddress: async (addressData: FormDataState) => {
+    const response = await fetch("/api/addresses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(addressData),
+    });
+    const newAddress = await response.json();
+    if (!response.ok)
+      throw new Error(newAddress.message || "Gagal menyimpan alamat baru.");
+    set((state) => ({ addresses: [newAddress, ...state.addresses] }));
+  },
+  updateAddress: async (addressId: string, addressData: FormDataState) => {
+    const response = await fetch("/api/addresses", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: addressId, ...addressData }),
+    });
+    const updatedAddress = await response.json();
+    if (!response.ok)
+      throw new Error(updatedAddress.message || "Gagal memperbarui alamat.");
+    set((state) => ({
+      addresses: state.addresses.map((addr) =>
+        addr.id === addressId ? updatedAddress : addr,
+      ),
+    }));
+  },
+  deleteAddress: async (addressId: string) => {
+    const response = await fetch("/api/addresses", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ addressId: addressId }),
+    });
+    if (!response.ok) throw new Error("Gagal menghapus alamat di server.");
+    set((state) => ({
+      addresses: state.addresses.filter((addr) => addr.id !== addressId),
+    }));
+  },
+}));

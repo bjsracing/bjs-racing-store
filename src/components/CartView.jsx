@@ -1,11 +1,18 @@
 // File: src/components/CartView.jsx
-// Perbaikan: Tombol "Lanjut ke Checkout" diubah menjadi tag <a> untuk navigasi.
 
-import React from "react";
-import { useAppStore } from "../lib/store.ts"; // Pastikan impor dari file .ts jika store sudah diganti namanya
+import React, { useEffect } from "react";
+import { useAppStore } from "../lib/store.ts";
+import { supabase } from "../lib/supabaseClient.js";
 
 const CartView = () => {
-  const { items, removeFromCart, updateQuantity } = useAppStore();
+  // Ambil state dan fungsi dari store Zustand
+  const { items, removeFromCart, updateQuantity, fetchCart } = useAppStore();
+
+  // Gunakan useEffect untuk memuat data keranjang dari database saat komponen dimuat.
+  // Dependencies array kosong ([]) memastikan ini hanya berjalan sekali.
+  useEffect(() => {
+    fetchCart();
+  }, [fetchCart]);
 
   const subtotal = items.reduce(
     (total, item) => total + (item.quantity || 0) * (item.harga_jual || 0),
@@ -30,7 +37,7 @@ const CartView = () => {
           Mari jelajahi produk kami dan temukan yang Anda butuhkan!
         </p>
         <a
-          href="/pilok" // Arahkan ke halaman produk utama
+          href="/pilok"
           className="mt-6 inline-block bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
         >
           Mulai Belanja
@@ -132,7 +139,6 @@ const CartView = () => {
             Pajak dan ongkos kirim dihitung saat checkout.
           </p>
 
-          {/* --- PERBAIKAN: Tombol diubah menjadi Link Navigasi --- */}
           <a
             href="/checkout"
             className="mt-4 block text-center w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"

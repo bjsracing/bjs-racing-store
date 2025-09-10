@@ -1,17 +1,22 @@
 // src/components/AddToCartButton.jsx
 
 import React from "react";
-import { useAppStore } from "../lib/store.js";
+import { useAppStore } from "../lib/store.ts";
 import id from "../../public/locales/id/common.json";
 import { FiShoppingCart } from "react-icons/fi";
 
 const AddToCartButton = ({ product }) => {
   const { addToCart } = useAppStore();
 
-  const handleAddToCart = () => {
-    // Pastikan kita selalu mengirim produk dengan kuantitas 1 saat pertama kali ditambah
-    addToCart(product, 1);
-    alert(`1 x ${product.nama} berhasil ditambahkan ke keranjang.`);
+  const handleAddToCart = async () => {
+    try {
+      // Panggil fungsi addToCart yang sudah diperbarui di store
+      await addToCart(product, 1);
+      alert(`1 x ${product.nama} berhasil ditambahkan ke keranjang.`);
+    } catch (error) {
+      console.error("Gagal menambahkan produk ke keranjang:", error);
+      alert("Gagal menambahkan produk ke keranjang. Silakan coba lagi.");
+    }
   };
 
   return (
