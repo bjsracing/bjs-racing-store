@@ -1,6 +1,11 @@
 // src/lib/store.ts
 import { create } from "zustand";
 import { supabase } from "./supabaseClient.ts";
+import { devtools } from "zustand/middleware";
+
+// ==================================================================
+// == DEFINISI TIPE DATA (TYPESCRIPT)                            ==
+// ==================================================================
 
 interface Product {
   id: string;
@@ -63,42 +68,125 @@ interface StoreState {
   closeMobileMenu: () => void;
 }
 
-export const useAppStore = create<StoreState>()((set, get) => ({
-  items: [],
+// ==================================================================
+// == IMPLEMENTASI ZUSTAND STORE YANG BARU                         ==
+// ==================================================================
 
-  fetchCart: async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      set({ items: [] });
-      return;
-    }
+export const useAppStore = create<StoreState>()(
+  devtools((set, get) => ({
+    // --- State Keranjang Belanja ---
+    items: [],
 
-    const { data: cartItems, error } = await supabase.rpc("get_cart_items", {
-      p_user_id: user.id, // ✅ Perbaikan: Menggunakan user.id
-    });
+    fetchCart: async () => {
+      console.log("[DEBUG-STORE] Starting fetchCart...");
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        console.log(
+          "[DEBUG-STORE] No user found for fetchCart. Clearing items.",
+        );
+        set({ items: [] });
+        return;
+      }
 
-    if (error) {
-      console.error("Error fetching cart from DB:", error);
-      set({ items: [] });
-      return;
-    }
+      console.log("[DEBUG-STORE] Fetching cart for user ID:", user.id);
+      const { data: cartItems, error } = await supabase.rpc("get_cart_items", {
+        p_user_id: user.id,
+      });
 
-    set({ items: cartItems as CartItem[] });
-  },
+      if (error) {
+        console.error("[DEBUG-STORE] Error fetching cart from DB:", error);
+        set({ items: [] });
+        return;
+      }
 
-  addToCart: async (productToAdd, quantity) => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      console.error("User not logged in. Cannot add to cart.");
-      return;
-    }
+      console.log("[DEBUG-STORE] Successfully fetched cart items:", cartItems);
+      set({ items: cartItems as CartItem[] });
+    },
 
-    try {
-      // Ambil customer_id yang terkait dengan auth_user_id
+    addToCart: async (productToAdd, quantity) => {
+      console.log(
+        "[DEBUG-STORE] Starting addToCart for product:",
+        productToAdd.id,
+      );
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        console.error("[DEBUG-STORE] User not logged in. Aborting addToCart.");
+        return;
+      }
+
+      try {
+        console.log(
+          "[DEBUG-STORE] Searching for customer ID for auth_user_id:",
+          user.id,
+        );
+        const { data: customerData, error: customerError } = await supabase
+          .from("customers")
+          .select("id")
+          .eq("auth_user_id", user.id)
+          .single();
+
+        if (customerError || !customerData) {
+          console.error(
+            "[DEBUG-STORE] Error fetching customer ID:",
+            customerError,
+          );
+          throw new Error("Customer ID not found or customer profile missing.");
+        }
+
+        const customerId = customerData.id;
+        console.log("[DEBUG-STORE] Found customer ID:", customerId);
+        console.log("[DEBUG-STORE] Attempting upsert with data:", {
+          customer_id: customerId,
+          product_id: productToAdd.id,
+          quantity,
+        });
+
+        const { error: upsertError } = await supabase.from("cart_items").upsert(
+          {
+            customer_id: customerId,
+            product_id: productToAdd.id,
+            quantity,
+          },
+          { onConflict: "customer_id, product_id" },
+        );
+
+        if (upsertError) {
+          console.error("[DEBUG-STORE] Upsert failed with error:", upsertError);
+          throw upsertError;
+        }
+
+        console.log(
+          "[DEBUG-STORE] Upsert successful. Now fetching updated cart.",
+        );
+        await get().fetchCart();
+        console.log("[DEBUG-STORE] Successfully fetched updated cart.");
+      } catch (error) {
+        console.error(
+          "[DEBUG-STORE] Caught an error in addToCart logic:",
+          error,
+        );
+      }
+    },
+
+    removeFromCart: async (productId: string) => {
+      console.log(
+        "[DEBUG-STORE] Starting removeFromCart for product:",
+        productId,
+      );
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        console.error(
+          "[DEBUG-STORE] User not logged in. Aborting removeFromCart.",
+        );
+        return;
+      }
+
       const { data: customerData, error: customerError } = await supabase
         .from("customers")
         .select("id")
@@ -106,212 +194,199 @@ export const useAppStore = create<StoreState>()((set, get) => ({
         .single();
 
       if (customerError || !customerData) {
-        console.error("Error fetching customer ID:", customerError);
-        throw new Error("Customer ID not found.");
+        console.error(
+          "[DEBUG-STORE] Error fetching customer ID:",
+          customerError,
+        );
+        return;
       }
 
       const customerId = customerData.id;
-
-      // Gunakan upsert untuk menambahkan atau memperbarui item di keranjang
-      const { error: upsertError } = await supabase.from("cart_items").upsert(
-        {
-          customer_id: customerId,
-          product_id: productToAdd.id,
-          quantity,
-        },
-        { onConflict: "customer_id, product_id" },
+      console.log(
+        "[DEBUG-STORE] Attempting to delete item for customer ID:",
+        customerId,
       );
+      const { error } = await supabase
+        .from("cart_items")
+        .delete()
+        .eq("customer_id", customerId)
+        .eq("product_id", productId);
 
-      if (upsertError) {
-        throw upsertError;
+      if (error) {
+        console.error("[DEBUG-STORE] Delete failed with error:", error);
+        return;
       }
 
-      // Setelah sukses, panggil fetchCart untuk menyinkronkan data UI
-      await get().fetchCart();
-      console.log("✅ Product upserted to cart successfully.");
-    } catch (error) {
-      console.error("Error in addToCart logic:", error);
-    }
-  },
-  // ... (fungsi lainnya)
-  removeFromCart: async (productId: string) => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      console.error("User not logged in. Cannot remove from cart.");
-      return;
-    }
+      console.log("[DEBUG-STORE] Delete successful. Updating local state.");
+      set((state) => ({
+        items: state.items.filter((item) => item.id !== productId),
+      }));
+    },
 
-    // Ambil customer_id yang terkait dengan auth_user_id
-    const { data: customerData, error: customerError } = await supabase
-      .from("customers")
-      .select("id")
-      .eq("auth_user_id", user.id)
-      .single();
+    updateQuantity: async (productId: string, quantity: number) => {
+      console.log(
+        "[DEBUG-STORE] Starting updateQuantity for product:",
+        productId,
+        "to quantity:",
+        quantity,
+      );
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        console.error(
+          "[DEBUG-STORE] User not logged in. Aborting updateQuantity.",
+        );
+        return;
+      }
 
-    if (customerError || !customerData) {
-      console.error("Error fetching customer ID:", customerError);
-      return;
-    }
+      const { data: customerData, error: customerError } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("auth_user_id", user.id)
+        .single();
 
-    const customerId = customerData.id;
+      if (customerError || !customerData) {
+        console.error(
+          "[DEBUG-STORE] Error fetching customer ID:",
+          customerError,
+        );
+        return;
+      }
 
-    const { error } = await supabase
-      .from("cart_items")
-      .delete()
-      .eq("customer_id", customerId)
-      .eq("product_id", productId);
+      const customerId = customerData.id;
+      console.log(
+        "[DEBUG-STORE] Attempting update for customer ID:",
+        customerId,
+      );
+      if (quantity < 1) {
+        get().removeFromCart(productId);
+        return;
+      }
 
-    if (error) {
-      console.error("Error removing from cart:", error);
-      return;
-    }
+      const { error } = await supabase
+        .from("cart_items")
+        .update({ quantity })
+        .eq("customer_id", customerId)
+        .eq("product_id", productId);
 
-    set((state) => ({
-      items: state.items.filter((item) => item.id !== productId),
-    }));
-  },
-  updateQuantity: async (productId: string, quantity: number) => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      console.error("User not logged in. Cannot update quantity.");
-      return;
-    }
+      if (error) {
+        console.error("[DEBUG-STORE] Update failed with error:", error);
+        return;
+      }
 
-    // Ambil customer_id yang terkait dengan auth_user_id
-    const { data: customerData, error: customerError } = await supabase
-      .from("customers")
-      .select("id")
-      .eq("auth_user_id", user.id)
-      .single();
+      console.log("[DEBUG-STORE] Update successful. Updating local state.");
+      set((state) => ({
+        items: state.items.map((item) =>
+          item.id === productId ? { ...item, quantity } : item,
+        ),
+      }));
+    },
 
-    if (customerError || !customerData) {
-      console.error("Error fetching customer ID:", customerError);
-      return;
-    }
+    clearCart: async () => {
+      console.log("[DEBUG-STORE] Starting clearCart.");
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        console.error("[DEBUG-STORE] User not logged in. Aborting clearCart.");
+        return;
+      }
 
-    const customerId = customerData.id;
+      const { data: customerData, error: customerError } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("auth_user_id", user.id)
+        .single();
 
-    if (quantity < 1) {
-      get().removeFromCart(productId);
-      return;
-    }
+      if (customerError || !customerData) {
+        console.error(
+          "[DEBUG-STORE] Error fetching customer ID:",
+          customerError,
+        );
+        return;
+      }
 
-    const { error } = await supabase
-      .from("cart_items")
-      .update({ quantity })
-      .eq("customer_id", customerId)
-      .eq("product_id", productId);
+      const customerId = customerData.id;
+      console.log(
+        "[DEBUG-STORE] Attempting to clear cart for customer ID:",
+        customerId,
+      );
+      const { error } = await supabase
+        .from("cart_items")
+        .delete()
+        .eq("customer_id", customerId);
 
-    if (error) {
-      console.error("Error updating quantity:", error);
-      return;
-    }
+      if (error) {
+        console.error("[DEBUG-STORE] Clear cart failed with error:", error);
+        return;
+      }
 
-    // Perbarui state lokal setelah sukses
-    set((state) => ({
-      items: state.items.map((item) =>
-        item.id === productId ? { ...item, quantity } : item,
-      ),
-    }));
-  },
-  clearCart: async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      console.error("User not logged in. Cannot clear cart.");
-      return;
-    }
+      console.log("[DEBUG-STORE] Clear cart successful. Clearing local state.");
+      set({ items: [] });
+    },
 
-    // Ambil customer_id yang terkait dengan auth_user_id
-    const { data: customerData, error: customerError } = await supabase
-      .from("customers")
-      .select("id")
-      .eq("auth_user_id", user.id)
-      .single();
+    calculateTotalWeight: () => {
+      const items = get().items;
+      return items.reduce((totalWeight, item) => {
+        const weightPerItem = item.berat_gram || 0;
+        return totalWeight + weightPerItem * item.quantity;
+      }, 0);
+    },
 
-    if (customerError || !customerData) {
-      console.error("Error fetching customer ID:", customerError);
-      return;
-    }
+    isMobileMenuOpen: false,
+    toggleMobileMenu: () =>
+      set((state) => ({ isMobileMenuOpen: !state.isMobileMenuOpen })),
+    closeMobileMenu: () => set({ isMobileMenuOpen: false }),
 
-    const customerId = customerData.id;
-
-    const { error } = await supabase
-      .from("cart_items")
-      .delete()
-      .eq("customer_id", customerId);
-
-    if (error) {
-      console.error("Error clearing cart:", error);
-      return;
-    }
-
-    set({ items: [] });
-  },
-  calculateTotalWeight: () => {
-    const items = get().items;
-    return items.reduce((totalWeight, item) => {
-      const weightPerItem = item.berat_gram || 0;
-      return totalWeight + weightPerItem * item.quantity;
-    }, 0);
-  },
-  isMobileMenuOpen: false,
-  toggleMobileMenu: () =>
-    set((state) => ({ isMobileMenuOpen: !state.isMobileMenuOpen })),
-  closeMobileMenu: () => set({ isMobileMenuOpen: false }),
-  // ... (fungsi lainnya)
-  addresses: [],
-  fetchAddresses: async () => {
-    try {
-      const response = await fetch(`/api/addresses?timestamp=${Date.now()}`);
-      if (!response.ok) throw new Error("Gagal mengambil data alamat.");
-      const data = await response.json();
-      set({ addresses: data });
-    } catch (error) {
-      console.error("Error fetching addresses:", error);
-      set({ addresses: [] });
-    }
-  },
-  addAddress: async (addressData: FormDataState) => {
-    const response = await fetch("/api/addresses", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(addressData),
-    });
-    const newAddress = await response.json();
-    if (!response.ok)
-      throw new Error(newAddress.message || "Gagal menyimpan alamat baru.");
-    set((state) => ({ addresses: [newAddress, ...state.addresses] }));
-  },
-  updateAddress: async (addressId: string, addressData: FormDataState) => {
-    const response = await fetch("/api/addresses", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: addressId, ...addressData }),
-    });
-    const updatedAddress = await response.json();
-    if (!response.ok)
-      throw new Error(updatedAddress.message || "Gagal memperbarui alamat.");
-    set((state) => ({
-      addresses: state.addresses.map((addr) =>
-        addr.id === addressId ? updatedAddress : addr,
-      ),
-    }));
-  },
-  deleteAddress: async (addressId: string) => {
-    const response = await fetch("/api/addresses", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ addressId: addressId }),
-    });
-    if (!response.ok) throw new Error("Gagal menghapus alamat di server.");
-    set((state) => ({
-      addresses: state.addresses.filter((addr) => addr.id !== addressId),
-    }));
-  },
-}));
+    addresses: [],
+    fetchAddresses: async () => {
+      try {
+        const response = await fetch(`/api/addresses?timestamp=${Date.now()}`);
+        if (!response.ok) throw new Error("Gagal mengambil data alamat.");
+        const data = await response.json();
+        set({ addresses: data });
+      } catch (error) {
+        console.error("Error fetching addresses:", error);
+        set({ addresses: [] });
+      }
+    },
+    addAddress: async (addressData: FormDataState) => {
+      const response = await fetch("/api/addresses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(addressData),
+      });
+      const newAddress = await response.json();
+      if (!response.ok)
+        throw new Error(newAddress.message || "Gagal menyimpan alamat baru.");
+      set((state) => ({ addresses: [newAddress, ...state.addresses] }));
+    },
+    updateAddress: async (addressId: string, addressData: FormDataState) => {
+      const response = await fetch("/api/addresses", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: addressId, ...addressData }),
+      });
+      const updatedAddress = await response.json();
+      if (!response.ok)
+        throw new Error(updatedAddress.message || "Gagal memperbarui alamat.");
+      set((state) => ({
+        addresses: state.addresses.map((addr) =>
+          addr.id === addressId ? updatedAddress : addr,
+        ),
+      }));
+    },
+    deleteAddress: async (addressId: string) => {
+      const response = await fetch("/api/addresses", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ addressId: addressId }),
+      });
+      if (!response.ok) throw new Error("Gagal menghapus alamat di server.");
+      set((state) => ({
+        addresses: state.addresses.filter((addr) => addr.id !== addressId),
+      }));
+    },
+  })),
+);
