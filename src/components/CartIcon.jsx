@@ -21,7 +21,7 @@ const CartIcon = () => {
 
   return (
     <a
-      href="/keranjang" // Mengubah href menjadi /keranjang
+      href="/cart"
       className="relative text-slate-800 hover:text-orange-500 transition-colors"
     >
       <svg

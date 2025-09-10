@@ -1,4 +1,4 @@
-// src/lib/supabaseClient.js
+// src/lib/supabaseClient.ts
 
 import { createBrowserClient } from "@supabase/ssr";
 
