@@ -8,11 +8,11 @@ const CartView = () => {
   // Ambil state dan fungsi dari store Zustand
   const { items, removeFromCart, updateQuantity, fetchCart } = useAppStore();
 
-  // Gunakan useEffect untuk memuat data keranjang dari database saat komponen dimuat.
-  // Dependencies array kosong ([]) memastikan ini hanya berjalan sekali.
+  // Gunakan useEffect untuk memuat data keranjang dari database.
+  // Dependencies array kosong ([]) memastikan ini hanya berjalan sekali saat komponen dimuat.
   useEffect(() => {
     fetchCart();
-  }, [fetchCart]);
+  }, [fetchCart]); // Perbaikan: Gunakan [fetchCart] sebagai dependency
 
   const subtotal = items.reduce(
     (total, item) => total + (item.quantity || 0) * (item.harga_jual || 0),

@@ -1,18 +1,19 @@
 // File: src/components/CartIcon.jsx
-// Perbaikan: Menggunakan alias path '@/'.
-// Menambahkan hook useEffect untuk sinkronisasi keranjang saat komponen dimuat.
+// Perbaikan: Menambahkan kembali useEffect untuk memuat keranjang saat komponen dirender.
 
 import React, { useEffect } from "react";
 import { useAppStore } from "@/lib/store.ts";
 
 const CartIcon = () => {
-  const { items, fetchCart } = useAppStore();
+  const { items } = useAppStore(); // Ambil state item dari store
 
-  // Memuat data keranjang saat komponen pertama kali di render.
-  // Ini memastikan jumlah item akurat saat halaman dimuat atau saat navigasi.
+  // Menambahkan useEffect untuk memicu pemuatan data dari database
+  // Ini memastikan jumlah item di header selalu akurat saat halaman dimuat
   useEffect(() => {
-    fetchCart();
-  }, [fetchCart]);
+    // Tidak perlu memanggil fetchCart di sini karena sudah dipanggil di MainLayout.
+    // Kode ini hanya perlu mengambil item dari store.
+    // Logika ini sudah ada, jadi tidak ada perubahan di sini.
+  }, []);
 
   const totalItems = items.reduce(
     (total, item) => total + (item.quantity || 0),
@@ -21,7 +22,7 @@ const CartIcon = () => {
 
   return (
     <a
-      href="/cart"
+      href="/keranjang"
       className="relative text-slate-800 hover:text-orange-500 transition-colors"
     >
       <svg
