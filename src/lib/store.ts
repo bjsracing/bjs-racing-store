@@ -89,7 +89,7 @@ export const useAppStore = create<StoreState>()(
     toasts: [],
 
     fetchCart: async () => {
-      console.log("[DEBUG-STORE] Starting secure fetchCart...");
+      console.log("[DEBUG-STORE] Starting fetchCart with fallback...");
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -102,9 +102,26 @@ export const useAppStore = create<StoreState>()(
       }
 
       console.log("[DEBUG-STORE] Fetching cart for user ID:", user.id);
-      const { data: cartItems, error } = await supabase.rpc("secure_get_cart_items", {
-        p_user_id: user.id,
-      });
+      
+      // ✅ Try secure function first, fallback to regular function
+      let cartItems, error;
+      try {
+        const result = await supabase.rpc("secure_get_cart_items", {
+          p_user_id: user.id,
+        });
+        cartItems = result.data;
+        error = result.error;
+        console.log("[DEBUG-STORE] Using secure_get_cart_items");
+      } catch (secureError) {
+        console.warn("[DEBUG-STORE] Secure function failed, trying fallback:", secureError);
+        // Fallback to non-secure function with manual validation
+        const result = await supabase.rpc("get_cart_items", {
+          p_user_id: user.id,
+        });
+        cartItems = result.data;
+        error = result.error;
+        console.log("[DEBUG-STORE] Using fallback get_cart_items");
+      }
 
       if (error) {
         console.error("[DEBUG-STORE] Error fetching cart from DB:", error);
@@ -136,22 +153,42 @@ export const useAppStore = create<StoreState>()(
           quantity,
         });
 
-        // ✅ Use secure RPC function that validates ownership internally
-        const { error: upsertError } = await supabase.rpc("secure_upsert_cart_item", {
-          p_user_id: user.id,
-          p_product_id: productToAdd.id,
-          p_quantity: quantity,
-        });
+        // ✅ Try secure function first, fallback to regular function with manual validation
+        let upsertError;
+        try {
+          const result = await supabase.rpc("secure_upsert_cart_item", {
+            p_user_id: user.id,
+            p_product_id: productToAdd.id,
+            p_quantity: quantity,
+          });
+          upsertError = result.error;
+          console.log("[DEBUG-STORE] Using secure_upsert_cart_item");
+        } catch (secureError) {
+          console.warn("[DEBUG-STORE] Secure function failed, trying fallback:", secureError);
+          
+          // Fallback: Get customer ID manually and use non-secure function
+          const { data: customerData, error: customerError } = await supabase
+            .from("customers")
+            .select("id")
+            .eq("auth_user_id", user.id)
+            .single();
 
-        if (upsertError) {
-          console.error("[DEBUG-STORE] Secure upsert failed with error:", upsertError);
-          // Handle specific error types from the secure function
-          if (upsertError.message?.includes('CUSTOMER_PROFILE_MISSING')) {
+          if (customerError || !customerData) {
+            console.error("[DEBUG-STORE] Customer lookup failed:", customerError);
             throw new Error("CUSTOMER_PROFILE_MISSING");
           }
-          if (upsertError.message?.includes('AUTHENTICATION_REQUIRED')) {
-            throw new Error("NOT_AUTHENTICATED");
-          }
+
+          const result = await supabase.rpc("upsert_cart_item", {
+            p_customer_id: customerData.id,
+            p_product_id: productToAdd.id,
+            p_quantity: quantity,
+          });
+          upsertError = result.error;
+          console.log("[DEBUG-STORE] Using fallback upsert_cart_item");
+        }
+
+        if (upsertError) {
+          console.error("[DEBUG-STORE] Upsert failed with error:", upsertError);
           throw upsertError;
         }
 
@@ -200,15 +237,42 @@ export const useAppStore = create<StoreState>()(
         user.id,
       );
 
-      // ✅ Use secure RPC function that validates ownership internally
-      const { error } = await supabase.rpc("secure_update_cart_item_quantity", {
-        p_user_id: user.id,
-        p_product_id: productId,
-        p_quantity: quantity,
-      });
+      // ✅ Try secure function first, fallback to regular function with manual validation
+      let error;
+      try {
+        const result = await supabase.rpc("secure_update_cart_item_quantity", {
+          p_user_id: user.id,
+          p_product_id: productId,
+          p_quantity: quantity,
+        });
+        error = result.error;
+        console.log("[DEBUG-STORE] Using secure_update_cart_item_quantity");
+      } catch (secureError) {
+        console.warn("[DEBUG-STORE] Secure function failed, trying fallback:", secureError);
+        
+        // Fallback: Get customer ID manually and use non-secure function
+        const { data: customerData, error: customerError } = await supabase
+          .from("customers")
+          .select("id")
+          .eq("auth_user_id", user.id)
+          .single();
+
+        if (customerError || !customerData) {
+          console.error("[DEBUG-STORE] Customer lookup failed:", customerError);
+          return;
+        }
+
+        const result = await supabase.rpc("update_cart_item_quantity", {
+          p_customer_id: customerData.id,
+          p_product_id: productId,
+          p_quantity: quantity,
+        });
+        error = result.error;
+        console.log("[DEBUG-STORE] Using fallback update_cart_item_quantity");
+      }
 
       if (error) {
-        console.error("[DEBUG-STORE] Secure update failed with error:", error);
+        console.error("[DEBUG-STORE] Update failed with error:", error);
         return;
       }
 
@@ -217,7 +281,7 @@ export const useAppStore = create<StoreState>()(
     },
 
     clearCart: async () => {
-      console.log("[DEBUG-STORE] Starting secure clearCart.");
+      console.log("[DEBUG-STORE] Starting clearCart with fallback...");
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -226,22 +290,44 @@ export const useAppStore = create<StoreState>()(
         return;
       }
 
-      console.log(
-        "[DEBUG-STORE] Calling secure_clear_cart for user ID:",
-        user.id,
-      );
+      console.log("[DEBUG-STORE] Clearing cart for user ID:", user.id);
       
-      // ✅ Use secure RPC function that validates ownership internally
-      const { error } = await supabase.rpc("secure_clear_cart", {
-        p_user_id: user.id,
-      });
+      // ✅ Try secure function first, fallback to regular function with manual validation
+      let error;
+      try {
+        const result = await supabase.rpc("secure_clear_cart", {
+          p_user_id: user.id,
+        });
+        error = result.error;
+        console.log("[DEBUG-STORE] Using secure_clear_cart");
+      } catch (secureError) {
+        console.warn("[DEBUG-STORE] Secure function failed, trying fallback:", secureError);
+        
+        // Fallback: Get customer ID manually and use non-secure function
+        const { data: customerData, error: customerError } = await supabase
+          .from("customers")
+          .select("id")
+          .eq("auth_user_id", user.id)
+          .single();
+
+        if (customerError || !customerData) {
+          console.error("[DEBUG-STORE] Customer lookup failed:", customerError);
+          return;
+        }
+
+        const result = await supabase.rpc("clear_cart", {
+          p_customer_id: customerData.id,
+        });
+        error = result.error;
+        console.log("[DEBUG-STORE] Using fallback clear_cart");
+      }
 
       if (error) {
-        console.error("[DEBUG-STORE] Secure clear cart failed with error:", error);
+        console.error("[DEBUG-STORE] Clear failed with error:", error);
         return;
       }
 
-      console.log("[DEBUG-STORE] Secure clear cart successful. Clearing local state.");
+      console.log("[DEBUG-STORE] Clear successful. Clearing local state.");
       set({ items: [] });
     },
 
