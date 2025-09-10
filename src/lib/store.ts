@@ -47,9 +47,17 @@ export interface FormDataState {
   city_id?: string;
 }
 
+export interface Toast {
+  id: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+  message: string;
+  duration?: number;
+}
+
 interface StoreState {
   items: CartItem[];
   addresses: Address[];
+  toasts: Toast[];
   isMobileMenuOpen: boolean;
   fetchCart: () => Promise<void>;
   addToCart: (productToAdd: Product, quantity: number) => Promise<void>;
@@ -66,6 +74,9 @@ interface StoreState {
   deleteAddress: (addressId: string) => Promise<void>;
   toggleMobileMenu: () => void;
   closeMobileMenu: () => void;
+  addToast: (toast: Omit<Toast, 'id'>) => void;
+  removeToast: (toastId: string) => void;
+  clearToasts: () => void;
 }
 
 // ==================================================================
@@ -75,9 +86,10 @@ interface StoreState {
 export const useAppStore = create<StoreState>()(
   devtools((set, get) => ({
     items: [],
+    toasts: [],
 
     fetchCart: async () => {
-      console.log("[DEBUG-STORE] Starting fetchCart...");
+      console.log("[DEBUG-STORE] Starting secure fetchCart...");
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -90,7 +102,7 @@ export const useAppStore = create<StoreState>()(
       }
 
       console.log("[DEBUG-STORE] Fetching cart for user ID:", user.id);
-      const { data: cartItems, error } = await supabase.rpc("get_cart_items", {
+      const { data: cartItems, error } = await supabase.rpc("secure_get_cart_items", {
         p_user_id: user.id,
       });
 
@@ -106,7 +118,7 @@ export const useAppStore = create<StoreState>()(
 
     addToCart: async (productToAdd, quantity) => {
       console.log(
-        "[DEBUG-STORE] Starting addToCart for product:",
+        "[DEBUG-STORE] Starting secure addToCart for product:",
         productToAdd.id,
       );
       const {
@@ -118,50 +130,33 @@ export const useAppStore = create<StoreState>()(
       }
 
       try {
-        console.log(
-          "[DEBUG-STORE] Searching for customer ID for auth_user_id:",
-          user.id,
-        );
-        const { data: customerData, error: customerError } = await supabase
-          .from("customers")
-          .select("id")
-          .eq("auth_user_id", user.id)
-          .single();
-
-        if (customerError || !customerData) {
-          console.error(
-            "[DEBUG-STORE] Error fetching customer ID:",
-            customerError,
-          );
-          throw new Error(
-            "Customer ID not found or customer profile is missing.",
-          );
-        }
-
-        const customerId = customerData.id;
-        console.log("[DEBUG-STORE] Found customer ID:", customerId);
-        console.log("[DEBUG-STORE] Attempting upsert with data:", {
-          customer_id: customerId,
+        console.log("[DEBUG-STORE] Calling secure_upsert_cart_item with:", {
+          user_id: user.id,
           product_id: productToAdd.id,
           quantity,
         });
 
-        const { error: upsertError } = await supabase.from("cart_items").upsert(
-          {
-            customer_id: customerId,
-            product_id: productToAdd.id,
-            quantity,
-          },
-          { onConflict: "customer_id, product_id" },
-        );
+        // ✅ Use secure RPC function that validates ownership internally
+        const { error: upsertError } = await supabase.rpc("secure_upsert_cart_item", {
+          p_user_id: user.id,
+          p_product_id: productToAdd.id,
+          p_quantity: quantity,
+        });
 
         if (upsertError) {
-          console.error("[DEBUG-STORE] Upsert failed with error:", upsertError);
+          console.error("[DEBUG-STORE] Secure upsert failed with error:", upsertError);
+          // Handle specific error types from the secure function
+          if (upsertError.message?.includes('CUSTOMER_PROFILE_MISSING')) {
+            throw new Error("CUSTOMER_PROFILE_MISSING");
+          }
+          if (upsertError.message?.includes('AUTHENTICATION_REQUIRED')) {
+            throw new Error("NOT_AUTHENTICATED");
+          }
           throw upsertError;
         }
 
         console.log(
-          "[DEBUG-STORE] Upsert successful. Now fetching updated cart.",
+          "[DEBUG-STORE] Secure upsert successful. Now fetching updated cart.",
         );
         await get().fetchCart();
         console.log("[DEBUG-STORE] Successfully fetched updated cart.");
@@ -176,58 +171,16 @@ export const useAppStore = create<StoreState>()(
 
     removeFromCart: async (productId: string) => {
       console.log(
-        "[DEBUG-STORE] Starting removeFromCart for product:",
+        "[DEBUG-STORE] Starting secure removeFromCart for product:",
         productId,
       );
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        console.error(
-          "[DEBUG-STORE] User not logged in. Aborting removeFromCart.",
-        );
-        return;
-      }
-
-      const { data: customerData, error: customerError } = await supabase
-        .from("customers")
-        .select("id")
-        .eq("auth_user_id", user.id)
-        .single();
-
-      if (customerError || !customerData) {
-        console.error(
-          "[DEBUG-STORE] Error fetching customer ID:",
-          customerError,
-        );
-        return;
-      }
-
-      const customerId = customerData.id;
-      console.log(
-        "[DEBUG-STORE] Attempting to delete item for customer ID:",
-        customerId,
-      );
-      const { error } = await supabase
-        .from("cart_items")
-        .delete()
-        .eq("customer_id", customerId)
-        .eq("product_id", productId);
-
-      if (error) {
-        console.error("[DEBUG-STORE] Delete failed with error:", error);
-        return;
-      }
-
-      console.log("[DEBUG-STORE] Delete successful. Updating local state.");
-      set((state) => ({
-        items: state.items.filter((item) => item.id !== productId),
-      }));
+      // ✅ Use secure updateQuantity with quantity 0 to delete item
+      await get().updateQuantity(productId, 0);
     },
 
     updateQuantity: async (productId: string, quantity: number) => {
       console.log(
-        "[DEBUG-STORE] Starting updateQuantity for product:",
+        "[DEBUG-STORE] Starting secure updateQuantity for product:",
         productId,
         "to quantity:",
         quantity,
@@ -242,51 +195,29 @@ export const useAppStore = create<StoreState>()(
         return;
       }
 
-      const { data: customerData, error: customerError } = await supabase
-        .from("customers")
-        .select("id")
-        .eq("auth_user_id", user.id)
-        .single();
-
-      if (customerError || !customerData) {
-        console.error(
-          "[DEBUG-STORE] Error fetching customer ID:",
-          customerError,
-        );
-        return;
-      }
-
-      const customerId = customerData.id;
       console.log(
-        "[DEBUG-STORE] Attempting update for customer ID:",
-        customerId,
+        "[DEBUG-STORE] Calling secure_update_cart_item_quantity for user ID:",
+        user.id,
       );
-      if (quantity < 1) {
-        get().removeFromCart(productId);
-        return;
-      }
 
-      const { error } = await supabase
-        .from("cart_items")
-        .update({ quantity })
-        .eq("customer_id", customerId)
-        .eq("product_id", productId);
+      // ✅ Use secure RPC function that validates ownership internally
+      const { error } = await supabase.rpc("secure_update_cart_item_quantity", {
+        p_user_id: user.id,
+        p_product_id: productId,
+        p_quantity: quantity,
+      });
 
       if (error) {
-        console.error("[DEBUG-STORE] Update failed with error:", error);
+        console.error("[DEBUG-STORE] Secure update failed with error:", error);
         return;
       }
 
-      console.log("[DEBUG-STORE] Update successful. Updating local state.");
-      set((state) => ({
-        items: state.items.map((item) =>
-          item.id === productId ? { ...item, quantity } : item,
-        ),
-      }));
+      console.log("[DEBUG-STORE] Secure update successful. Refreshing cart.");
+      await get().fetchCart();
     },
 
     clearCart: async () => {
-      console.log("[DEBUG-STORE] Starting clearCart.");
+      console.log("[DEBUG-STORE] Starting secure clearCart.");
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -295,36 +226,22 @@ export const useAppStore = create<StoreState>()(
         return;
       }
 
-      const { data: customerData, error: customerError } = await supabase
-        .from("customers")
-        .select("id")
-        .eq("auth_user_id", user.id)
-        .single();
-
-      if (customerError || !customerData) {
-        console.error(
-          "[DEBUG-STORE] Error fetching customer ID:",
-          customerError,
-        );
-        return;
-      }
-
-      const customerId = customerData.id;
       console.log(
-        "[DEBUG-STORE] Attempting to clear cart for customer ID:",
-        customerId,
+        "[DEBUG-STORE] Calling secure_clear_cart for user ID:",
+        user.id,
       );
-      const { error } = await supabase
-        .from("cart_items")
-        .delete()
-        .eq("customer_id", customerId);
+      
+      // ✅ Use secure RPC function that validates ownership internally
+      const { error } = await supabase.rpc("secure_clear_cart", {
+        p_user_id: user.id,
+      });
 
       if (error) {
-        console.error("[DEBUG-STORE] Clear cart failed with error:", error);
+        console.error("[DEBUG-STORE] Secure clear cart failed with error:", error);
         return;
       }
 
-      console.log("[DEBUG-STORE] Clear cart successful. Clearing local state.");
+      console.log("[DEBUG-STORE] Secure clear cart successful. Clearing local state.");
       set({ items: [] });
     },
 
@@ -389,6 +306,27 @@ export const useAppStore = create<StoreState>()(
       set((state) => ({
         addresses: state.addresses.filter((addr) => addr.id !== addressId),
       }));
+    },
+
+    // Toast notification actions
+    addToast: (toastData) => {
+      const toast: Toast = {
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        ...toastData,
+      };
+      set((state) => ({
+        toasts: [...state.toasts, toast],
+      }));
+    },
+
+    removeToast: (toastId) => {
+      set((state) => ({
+        toasts: state.toasts.filter((toast) => toast.id !== toastId),
+      }));
+    },
+
+    clearToasts: () => {
+      set({ toasts: [] });
     },
   })),
 );

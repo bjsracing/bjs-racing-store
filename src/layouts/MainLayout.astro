@@ -1,8 +1,8 @@
 ---
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-import { supabase } from '../lib/supabaseClient.ts';
-import { useAppStore } from '../lib/store.ts';
+import CartInitializer from '../components/CartInitializer.jsx';
+import ToastContainer from '../components/ToastContainer.jsx';
 
 const { session } = Astro.locals;
 
@@ -47,6 +47,8 @@ const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
   </head>
   <body class="bg-slate-100 text-slate-800 text-sm mobile:text-base tablet:text-lg">
     <Header session={session} />
+    <CartInitializer client:load />
+    <ToastContainer client:load />
     
     <main class="min-h-screen container mx-auto px-3 mobile:px-4 tablet:px-6 desktop:px-8 py-4">
       <slot />
@@ -54,30 +56,6 @@ const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
 
     <Footer />
     
-    {/* Perbaikan: Menambahkan script untuk sinkronisasi keranjang */}
-    <script>
-      import { useAppStore } from '../lib/store.ts';
-      import { supabase } from '../lib/supabaseClient.ts';
-      
-      // Mendengarkan perubahan status otentikasi di seluruh aplikasi
-      supabase.auth.onAuthStateChange(async (event, session) => {
-        const { fetchCart, clearCart } = useAppStore.getState();
-        if (event === 'SIGNED_IN') {
-          fetchCart();
-        } else if (event === 'SIGNED_OUT') {
-          clearCart();
-        }
-      });
-      
-      // Panggil fetchCart saat halaman pertama kali dimuat
-      document.addEventListener('DOMContentLoaded', async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        const { fetchCart } = useAppStore.getState();
-        if (user) {
-          fetchCart();
-        }
-      });
-    </script>
 
     {/* Skrip yang sudah ada - DIJAGA SEPERTI ASLINYA */}
     <script>
@@ -224,7 +202,12 @@ const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
       window.isTablet = function() { return window.deviceInfo?.isTablet || false; };
       window.isDesktop = function() { return window.deviceInfo?.isDesktop || false; };
     </script>
-    <script is:inline src="//cdn.jsdelivr.net/npm/eruda"></script>
-    <script is:inline>eruda.init();</script>
+    {/* Development debug console - only in development */}
+    {import.meta.env.DEV && (
+      <>
+        <script is:inline src="//cdn.jsdelivr.net/npm/eruda"></script>
+        <script is:inline>eruda.init();</script>
+      </>
+    )}
   </body>
 </html>

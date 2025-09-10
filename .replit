@@ -1,4 +1,4 @@
-modules = ["nodejs-22"]
+modules = ["nodejs-22", "postgresql-16"]
 hidden = [".config", "package-lock.json"]
 
 # Perintah untuk menjalankan server development Astro
@@ -21,10 +21,6 @@ externalPort = 3000
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 45401
-externalPort = 3001
 
 [agent]
 expertMode = true
@@ -52,3 +48,6 @@ waitForPort = 5000
 
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[nix]
+channel = "stable-25_05"
