@@ -2,6 +2,12 @@
 
 BJS RACING STORE is a comprehensive e-commerce Progressive Web Application (PWA) built with Astro and React. The application serves as a distributor platform for spray paint products and motorcycle parts, featuring a complete shopping experience with user authentication, product catalog, shopping cart, checkout system, and address management. The system includes internationalization support and integrates with Supabase for backend services and RajaOngkir API for Indonesian shipping calculations.
 
+## Recent Major Updates (September 2025)
+- **Production-Ready Cart System**: Completely rebuilt cart functionality with atomic operations, proper error handling, and professional UX
+- **Security Hardening**: Implemented enterprise-grade security with RLS policies and secure RPC functions  
+- **Professional UX**: Modern toast notification system replacing blocking alerts
+- **Database Optimization**: Atomic cart operations eliminating race conditions and performance bottlenecks
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
