@@ -69,12 +69,11 @@ interface StoreState {
 }
 
 // ==================================================================
-// == IMPLEMENTASI ZUSTAND STORE YANG BARU                         ==
+// == IMPLEMENTASI ZUSTAND STORE YANG LENGKAP                     ==
 // ==================================================================
 
 export const useAppStore = create<StoreState>()(
   devtools((set, get) => ({
-    // --- State Keranjang Belanja ---
     items: [],
 
     fetchCart: async () => {
@@ -134,7 +133,9 @@ export const useAppStore = create<StoreState>()(
             "[DEBUG-STORE] Error fetching customer ID:",
             customerError,
           );
-          throw new Error("Customer ID not found or customer profile missing.");
+          throw new Error(
+            "Customer ID not found or customer profile is missing.",
+          );
         }
 
         const customerId = customerData.id;
@@ -169,6 +170,7 @@ export const useAppStore = create<StoreState>()(
           "[DEBUG-STORE] Caught an error in addToCart logic:",
           error,
         );
+        throw error;
       }
     },
 
