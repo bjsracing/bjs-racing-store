@@ -1,7 +1,7 @@
 // src/components/ImageUploader.jsx
 
 import React, { useState } from "react";
-import { supabase } from "../lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient.ts";
 import imageCompression from "browser-image-compression";
 import { FiUpload } from "react-icons/fi";
 

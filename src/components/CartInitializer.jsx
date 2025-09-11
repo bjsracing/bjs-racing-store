@@ -1,7 +1,7 @@
 // File: src/components/CartInitializer.jsx
 import { useEffect, useState } from "react";
 import { useAppStore } from "../lib/store.ts";
-import { supabase } from "../lib/supabaseClient.ts";
+import { supabase } from "@/lib/supabaseClient.ts";
 
 function CartInitializer() {
   const [isInitialized, setIsInitialized] = useState(false);

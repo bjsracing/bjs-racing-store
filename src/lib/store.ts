@@ -1,7 +1,7 @@
 // File: src/lib/store.ts
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
-import { supabase } from "./supabaseClient.ts";
+import { supabase } from "@/lib/supabaseClient.ts";
 
 // ==================================================================
 // == DEFINISI TIPE DATA (TYPESCRIPT)                              ==

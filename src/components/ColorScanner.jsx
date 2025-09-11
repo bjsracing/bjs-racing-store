@@ -1,7 +1,7 @@
 // src/components/ColorScanner.jsx (Final dengan Pipet Warna Manual yang Stabil)
 
 import React, { useState, useRef, useEffect } from "react";
-import { supabase } from "../lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient.ts";
 import { FiUpload, FiRefreshCw } from "react-icons/fi";
 
 const ColorScanner = () => {

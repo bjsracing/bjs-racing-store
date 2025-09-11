@@ -1,7 +1,7 @@
 // src/components/ColorCatalogFilter.jsx
 
 import React, { useState, useEffect, useMemo } from "react";
-import { supabase } from "../lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient.ts";
 import { FiSearch, FiRefreshCw } from "react-icons/fi";
 
 const ColorCatalogFilter = ({ filters, setFilters }) => {

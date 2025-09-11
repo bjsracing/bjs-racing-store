@@ -1,7 +1,7 @@
 // src/components/ColorCatalog.jsx (Final dengan Debounce)
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { supabase } from "../lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient.ts";
 import ColorCatalogFilter from "./ColorCatalogFilter.jsx";
 import ColorSwatchCard from "./ColorSwatchCard.jsx";
 
