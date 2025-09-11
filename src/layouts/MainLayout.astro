@@ -46,8 +46,9 @@ const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
   </head>
   <body class="bg-slate-100 text-slate-800 text-sm mobile:text-base tablet:text-lg">
 
-    {/* 2. TAMBAHKAN KOMPONEN INI UNTUK MENGAKTIFKAN LISTENER DI SETIAP HALAMAN */}
-    <CartInitializer client:load />
+    {/* --- PERBAIKAN UTAMA DI SINI --- */}
+    {/* Mengubah 'client:load' menjadi 'client:idle' untuk menunda eksekusi */}
+    <CartInitializer client:idle />
 
     <Header session={session} />
 
