@@ -1,6 +1,7 @@
 ---
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import CartInitializer from '../components/CartInitializer.jsx'; // <-- 1. TAMBAHKAN IMPORT INI
 
 const { session } = Astro.locals;
 
@@ -21,31 +22,35 @@ const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
     <meta name="description" content="BJS Racing Store - Distributor Spray Paint dan Onderdil Motor" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover, user-scalable=yes" />
     <meta name="theme-color" content="#FF7800" />
-    
+
     <title>{title}</title>
 
     {/* Preload fonts */}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    
+
     {/* PWA Tags - HARUS ADA */}
     <link rel="manifest" href="/manifest.json" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-    
+
     {/* iOS-specific tags */}
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="BJS Racing" />
-    
+
     {/* Generator tag */}
     <meta name="generator" content={Astro.generator} />
   </head>
   <body class="bg-slate-100 text-slate-800 text-sm mobile:text-base tablet:text-lg">
+
+    {/* 2. TAMBAHKAN KOMPONEN INI UNTUK MENGAKTIFKAN LISTENER DI SETIAP HALAMAN */}
+    <CartInitializer client:load />
+
     <Header session={session} />
-    
+
     <main class="min-h-screen container mx-auto px-3 mobile:px-4 tablet:px-6 desktop:px-8 py-4">
       <slot />
     </main>

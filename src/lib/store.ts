@@ -1,12 +1,12 @@
 // File: src/lib/store.ts
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { devtools } from "zustand/middleware";
+import { supabase } from "./supabaseClient.ts";
 
 // ==================================================================
-// == DEFINISI TIPE DATA (TYPESCRIPT)                            ==
+// == DEFINISI TIPE DATA (TYPESCRIPT)                              ==
 // ==================================================================
 
-// Tipe data untuk produk (sesuaikan dengan struktur data produk Anda)
 interface Product {
   id: string;
   nama: string;
@@ -17,12 +17,10 @@ interface Product {
   ukuran?: string;
 }
 
-// Tipe data untuk item di keranjang
-interface CartItem extends Product {
+export interface CartItem extends Product {
   quantity: number;
 }
 
-// Tipe data untuk alamat (dari langkah sebelumnya)
 export interface Address {
   id: string;
   label: string;
@@ -37,7 +35,6 @@ export interface Address {
   city_id?: string;
 }
 
-// Tipe data untuk form input (dari langkah sebelumnya)
 export interface FormDataState {
   label: string;
   recipient_name: string;
@@ -50,16 +47,22 @@ export interface FormDataState {
   city_id?: string;
 }
 
-// Tipe data untuk keseluruhan state Zustand store
 interface StoreState {
   items: CartItem[];
   addresses: Address[];
   isMobileMenuOpen: boolean;
-  addToCart: (productToAdd: Product, quantity: number) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  clearCart: () => void;
+  isCartLoading: boolean; // State baru untuk loading indicator
+
+  // Fungsi Keranjang (sekarang async dan terhubung ke DB)
+  fetchCart: () => Promise<void>;
+  addToCart: (productToAdd: Product, quantity: number) => Promise<void>;
+  removeFromCart: (productId: string) => Promise<void>;
+  updateQuantity: (productId: string, quantity: number) => Promise<void>;
+  clearCart: () => Promise<void>;
+  clearLocalCart: () => void; // Fungsi baru untuk logout
   calculateTotalWeight: () => number;
+
+  // Fungsi lain
   fetchAddresses: () => Promise<void>;
   addAddress: (addressData: FormDataState) => Promise<void>;
   updateAddress: (
@@ -72,120 +75,189 @@ interface StoreState {
 }
 
 // ==================================================================
-// == IMPLEMENTASI ZUSTAND STORE                                   ==
+// == IMPLEMENTASI ZUSTAND STORE (DATABASE-DRIVEN)                 ==
 // ==================================================================
 
 export const useAppStore = create<StoreState>()(
-  // Terapkan tipe StoreState di sini
-  persist(
-    (set, get) => ({
-      // --- State Keranjang Belanja ---
-      items: [],
-      addToCart: (productToAdd: Product, quantity: number) =>
-        set((state) => {
-          const existingItem = state.items.find(
-            (item) => item.id === productToAdd.id,
-          );
-          if (existingItem) {
-            return {
-              items: state.items.map(
-                (item) =>
-                  item.id === productToAdd.id
-                    ? { ...item, quantity: item.quantity + quantity }
-                    : item, // Perbaikan error: Hapus typo "a:" jika ada di sini
-              ),
-            };
-          } else {
-            return {
-              items: [...state.items, { ...productToAdd, quantity: quantity }],
-            };
-          }
-        }),
-      removeFromCart: (productId: string) =>
-        set((state) => ({
-          items: state.items.filter((item) => item.id !== productId),
-        })),
-      updateQuantity: (productId: string, quantity: number) =>
-        set((state) => ({
-          items: state.items.map((item) =>
-            item.id === productId
-              ? { ...item, quantity: Math.max(1, quantity) }
-              : item,
-          ),
-        })),
-      clearCart: () => set({ items: [] }),
-      calculateTotalWeight: () => {
-        const items = get().items;
-        return items.reduce((totalWeight, item) => {
-          const weightPerItem = item.berat_gram || 0;
-          return totalWeight + weightPerItem * item.quantity;
-        }, 0);
-      },
+  devtools((set, get) => ({
+    // --- Initial State ---
+    items: [],
+    addresses: [],
+    isMobileMenuOpen: false,
+    isCartLoading: true, // Anggap loading saat aplikasi pertama kali dimuat
 
-      // --- State Menu Mobile ---
-      isMobileMenuOpen: false,
-      toggleMobileMenu: () =>
-        set((state) => ({ isMobileMenuOpen: !state.isMobileMenuOpen })),
-      closeMobileMenu: () => set({ isMobileMenuOpen: false }),
-
-      // --- State Modul Alamat ---
-      addresses: [],
-      fetchAddresses: async () => {
-        try {
-          const response = await fetch(
-            `/api/addresses?timestamp=${Date.now()}`,
-          );
-          if (!response.ok) throw new Error("Gagal mengambil data alamat.");
-          const data = await response.json();
-          set({ addresses: data });
-        } catch (error) {
-          console.error("Error fetching addresses:", error);
-          set({ addresses: [] });
+    // --- Fungsi Keranjang Belanja (Terhubung ke Supabase) ---
+    fetchCart: async () => {
+      set({ isCartLoading: true });
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          set({ items: [], isCartLoading: false });
+          return;
         }
-      },
-      addAddress: async (addressData: FormDataState) => {
-        const response = await fetch("/api/addresses", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(addressData),
+
+        const { data, error } = await supabase.rpc("get_cart_items", {
+          p_user_id: user.id,
         });
-        const newAddress = await response.json();
-        if (!response.ok)
-          throw new Error(newAddress.message || "Gagal menyimpan alamat baru.");
-        set((state) => ({ addresses: [newAddress, ...state.addresses] }));
-      },
-      updateAddress: async (addressId: string, addressData: FormDataState) => {
-        const response = await fetch("/api/addresses", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: addressId, ...addressData }),
-        });
-        const updatedAddress = await response.json();
-        if (!response.ok)
-          throw new Error(
-            updatedAddress.message || "Gagal memperbarui alamat.",
-          );
-        set((state) => ({
-          addresses: state.addresses.map((addr) =>
-            addr.id === addressId ? updatedAddress : addr,
-          ),
-        }));
-      },
-      deleteAddress: async (addressId: string) => {
-        const response = await fetch("/api/addresses", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ addressId: addressId }),
-        });
-        if (!response.ok) throw new Error("Gagal menghapus alamat di server.");
-        set((state) => ({
-          addresses: state.addresses.filter((addr) => addr.id !== addressId),
-        }));
-      },
-    }),
-    {
-      name: "bjs-racing-store-cart",
-      partialize: (state) => ({ items: state.items }),
+
+        if (error) {
+          console.error("Gagal mengambil data keranjang:", error);
+          set({ items: [] });
+        } else {
+          set({ items: data || [] });
+        }
+      } catch (e) {
+        console.error("Terjadi pengecualian saat fetchCart:", e);
+        set({ items: [] });
+      } finally {
+        set({ isCartLoading: false });
+      }
     },
-  ),
+
+    addToCart: async (productToAdd, quantity) => {
+      // Optimistic UI Update: Perbarui UI secara instan
+      set((state) => {
+        const existingItem = state.items.find(
+          (item) => item.id === productToAdd.id,
+        );
+        if (existingItem) {
+          return {
+            items: state.items.map((item) =>
+              item.id === productToAdd.id
+                ? { ...item, quantity: item.quantity + quantity }
+                : item,
+            ),
+          };
+        }
+        return { items: [...state.items, { ...productToAdd, quantity }] };
+      });
+
+      // Sinkronisasi dengan Database
+      const { error } = await supabase.rpc("upsert_cart_item", {
+        p_product_id: productToAdd.id,
+        p_quantity: quantity,
+      });
+
+      if (error) {
+        console.error("Gagal sinkronisasi addToCart:", error);
+        get().fetchCart(); // Jika gagal, kembalikan state sesuai data di DB
+      }
+    },
+
+    updateQuantity: async (productId, quantity) => {
+      if (quantity < 1) {
+        return get().removeFromCart(productId);
+      }
+      set((state) => ({
+        items: state.items.map((item) =>
+          item.id === productId
+            ? { ...item, quantity: Math.max(0, quantity) }
+            : item,
+        ),
+      }));
+
+      const { error } = await supabase.rpc("update_cart_item_quantity", {
+        p_product_id: productId,
+        p_quantity: quantity,
+      });
+
+      if (error) {
+        console.error("Gagal sinkronisasi updateQuantity:", error);
+        get().fetchCart();
+      }
+    },
+
+    removeFromCart: async (productId) => {
+      set((state) => ({
+        items: state.items.filter((item) => item.id !== productId),
+      }));
+
+      const { error } = await supabase.rpc("update_cart_item_quantity", {
+        p_product_id: productId,
+        p_quantity: 0, // Mengirim 0 akan menghapus item di DB
+      });
+
+      if (error) {
+        console.error("Gagal sinkronisasi removeFromCart:", error);
+        get().fetchCart();
+      }
+    },
+
+    clearCart: async () => {
+      set({ items: [] });
+      const { error } = await supabase.rpc("clear_cart");
+      if (error) {
+        console.error("Gagal sinkronisasi clearCart:", error);
+        get().fetchCart();
+      }
+    },
+
+    clearLocalCart: () => {
+      set({ items: [], isCartLoading: false });
+    },
+
+    calculateTotalWeight: () => {
+      return get().items.reduce(
+        (total, item) => total + (item.berat_gram || 0) * item.quantity,
+        0,
+      );
+    },
+
+    // --- State Menu Mobile ---
+    toggleMobileMenu: () =>
+      set((state) => ({ isMobileMenuOpen: !state.isMobileMenuOpen })),
+    closeMobileMenu: () => set({ isMobileMenuOpen: false }),
+
+    // --- State Modul Alamat ---
+    fetchAddresses: async () => {
+      try {
+        const response = await fetch(`/api/addresses?timestamp=${Date.now()}`);
+        if (!response.ok) throw new Error("Gagal mengambil data alamat.");
+        const data = await response.json();
+        set({ addresses: data });
+      } catch (error) {
+        console.error("Error fetching addresses:", error);
+        set({ addresses: [] });
+      }
+    },
+    addAddress: async (addressData) => {
+      const response = await fetch("/api/addresses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(addressData),
+      });
+      const newAddress = await response.json();
+      if (!response.ok)
+        throw new Error(newAddress.message || "Gagal menyimpan alamat baru.");
+      set((state) => ({ addresses: [newAddress, ...state.addresses] }));
+    },
+    updateAddress: async (addressId, addressData) => {
+      const response = await fetch("/api/addresses", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: addressId, ...addressData }),
+      });
+      const updatedAddress = await response.json();
+      if (!response.ok)
+        throw new Error(updatedAddress.message || "Gagal memperbarui alamat.");
+      set((state) => ({
+        addresses: state.addresses.map((addr) =>
+          addr.id === addressId ? updatedAddress : addr,
+        ),
+      }));
+    },
+    deleteAddress: async (addressId) => {
+      const response = await fetch("/api/addresses", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ addressId: addressId }),
+      });
+      if (!response.ok) throw new Error("Gagal menghapus alamat di server.");
+      set((state) => ({
+        addresses: state.addresses.filter((addr) => addr.id !== addressId),
+      }));
+    },
+  })),
 );
