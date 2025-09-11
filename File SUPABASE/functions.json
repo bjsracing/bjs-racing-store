@@ -1,502 +1,347 @@
 [
   {
-    "schema_name": "auth",
-    "function_name": "email",
-    "function_definition": "CREATE OR REPLACE FUNCTION auth.email()\n RETURNS text\n LANGUAGE sql\n STABLE\nAS $function$\n  select \n  coalesce(\n    nullif(current_setting('request.jwt.claim.email', true), ''),\n    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'email')\n  )::text\n$function$\n"
+    "function_name": "upsert_special_price",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.upsert_special_price(customer_uuid uuid, product_uuid uuid, new_price numeric)\n RETURNS void\n LANGUAGE sql\n SECURITY DEFINER\nAS $function$\r\n    INSERT INTO public.daftar_harga_mitra (customer_id, product_id, harga_spesial)\r\n    VALUES (customer_uuid, product_uuid, new_price)\r\n    ON CONFLICT (customer_id, product_id) DO UPDATE\r\n    SET harga_spesial = new_price;\r\n$function$\n",
+    "schema_name": "public"
   },
   {
-    "schema_name": "auth",
-    "function_name": "jwt",
-    "function_definition": "CREATE OR REPLACE FUNCTION auth.jwt()\n RETURNS jsonb\n LANGUAGE sql\n STABLE\nAS $function$\n  select \n    coalesce(\n        nullif(current_setting('request.jwt.claim', true), ''),\n        nullif(current_setting('request.jwt.claims', true), '')\n    )::jsonb\n$function$\n"
+    "function_name": "search_customers",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.search_customers(search_term text)\n RETURNS SETOF customers\n LANGUAGE sql\nAS $function$\n  SELECT * FROM public.customers\n  WHERE\n    nama_pelanggan ILIKE '%' || search_term || '%' OR\n    telepon ILIKE '%' || search_term || '%';\n$function$\n",
+    "schema_name": "public"
   },
   {
-    "schema_name": "auth",
-    "function_name": "role",
-    "function_definition": "CREATE OR REPLACE FUNCTION auth.role()\n RETURNS text\n LANGUAGE sql\n STABLE\nAS $function$\n  select \n  coalesce(\n    nullif(current_setting('request.jwt.claim.role', true), ''),\n    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role')\n  )::text\n$function$\n"
-  },
-  {
-    "schema_name": "auth",
-    "function_name": "uid",
-    "function_definition": "CREATE OR REPLACE FUNCTION auth.uid()\n RETURNS uuid\n LANGUAGE sql\n STABLE\nAS $function$\n  select \n  coalesce(\n    nullif(current_setting('request.jwt.claim.sub', true), ''),\n    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')\n  )::uuid\n$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "armor",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.armor(bytea)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_armor$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "armor",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.armor(bytea, text[], text[])\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_armor$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "crypt",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.crypt(text, text)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_crypt$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "dearmor",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.dearmor(text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_dearmor$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "decrypt",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.decrypt(bytea, bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_decrypt$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "decrypt_iv",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.decrypt_iv(bytea, bytea, bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_decrypt_iv$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "digest",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.digest(bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_digest$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "digest",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.digest(text, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_digest$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "encrypt",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.encrypt(bytea, bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_encrypt$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "encrypt_iv",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.encrypt_iv(bytea, bytea, bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_encrypt_iv$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "gen_random_bytes",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.gen_random_bytes(integer)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_random_bytes$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "gen_random_uuid",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.gen_random_uuid()\n RETURNS uuid\n LANGUAGE c\n PARALLEL SAFE\nAS '$libdir/pgcrypto', $function$pg_random_uuid$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "gen_salt",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.gen_salt(text)\n RETURNS text\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_gen_salt$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "gen_salt",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.gen_salt(text, integer)\n RETURNS text\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_gen_salt_rounds$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "grant_pg_cron_access",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.grant_pg_cron_access()\n RETURNS event_trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n  IF EXISTS (\n    SELECT\n    FROM pg_event_trigger_ddl_commands() AS ev\n    JOIN pg_extension AS ext\n    ON ev.objid = ext.oid\n    WHERE ext.extname = 'pg_cron'\n  )\n  THEN\n    grant usage on schema cron to postgres with grant option;\n\n    alter default privileges in schema cron grant all on tables to postgres with grant option;\n    alter default privileges in schema cron grant all on functions to postgres with grant option;\n    alter default privileges in schema cron grant all on sequences to postgres with grant option;\n\n    alter default privileges for user supabase_admin in schema cron grant all\n        on sequences to postgres with grant option;\n    alter default privileges for user supabase_admin in schema cron grant all\n        on tables to postgres with grant option;\n    alter default privileges for user supabase_admin in schema cron grant all\n        on functions to postgres with grant option;\n\n    grant all privileges on all tables in schema cron to postgres with grant option;\n    revoke all on table cron.job from postgres;\n    grant select on table cron.job to postgres with grant option;\n  END IF;\nEND;\n$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "grant_pg_graphql_access",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.grant_pg_graphql_access()\n RETURNS event_trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    func_is_graphql_resolve bool;\nBEGIN\n    func_is_graphql_resolve = (\n        SELECT n.proname = 'resolve'\n        FROM pg_event_trigger_ddl_commands() AS ev\n        LEFT JOIN pg_catalog.pg_proc AS n\n        ON ev.objid = n.oid\n    );\n\n    IF func_is_graphql_resolve\n    THEN\n        -- Update public wrapper to pass all arguments through to the pg_graphql resolve func\n        DROP FUNCTION IF EXISTS graphql_public.graphql;\n        create or replace function graphql_public.graphql(\n            \"operationName\" text default null,\n            query text default null,\n            variables jsonb default null,\n            extensions jsonb default null\n        )\n            returns jsonb\n            language sql\n        as $$\n            select graphql.resolve(\n                query := query,\n                variables := coalesce(variables, '{}'),\n                \"operationName\" := \"operationName\",\n                extensions := extensions\n            );\n        $$;\n\n        -- This hook executes when `graphql.resolve` is created. That is not necessarily the last\n        -- function in the extension so we need to grant permissions on existing entities AND\n        -- update default permissions to any others that are created after `graphql.resolve`\n        grant usage on schema graphql to postgres, anon, authenticated, service_role;\n        grant select on all tables in schema graphql to postgres, anon, authenticated, service_role;\n        grant execute on all functions in schema graphql to postgres, anon, authenticated, service_role;\n        grant all on all sequences in schema graphql to postgres, anon, authenticated, service_role;\n        alter default privileges in schema graphql grant all on tables to postgres, anon, authenticated, service_role;\n        alter default privileges in schema graphql grant all on functions to postgres, anon, authenticated, service_role;\n        alter default privileges in schema graphql grant all on sequences to postgres, anon, authenticated, service_role;\n\n        -- Allow postgres role to allow granting usage on graphql and graphql_public schemas to custom roles\n        grant usage on schema graphql_public to postgres with grant option;\n        grant usage on schema graphql to postgres with grant option;\n    END IF;\n\nEND;\n$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "grant_pg_net_access",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.grant_pg_net_access()\n RETURNS event_trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n  IF EXISTS (\n    SELECT 1\n    FROM pg_event_trigger_ddl_commands() AS ev\n    JOIN pg_extension AS ext\n    ON ev.objid = ext.oid\n    WHERE ext.extname = 'pg_net'\n  )\n  THEN\n    IF NOT EXISTS (\n      SELECT 1\n      FROM pg_roles\n      WHERE rolname = 'supabase_functions_admin'\n    )\n    THEN\n      CREATE USER supabase_functions_admin NOINHERIT CREATEROLE LOGIN NOREPLICATION;\n    END IF;\n\n    GRANT USAGE ON SCHEMA net TO supabase_functions_admin, postgres, anon, authenticated, service_role;\n\n    IF EXISTS (\n      SELECT FROM pg_extension\n      WHERE extname = 'pg_net'\n      -- all versions in use on existing projects as of 2025-02-20\n      -- version 0.12.0 onwards don't need these applied\n      AND extversion IN ('0.2', '0.6', '0.7', '0.7.1', '0.8', '0.10.0', '0.11.0')\n    ) THEN\n      ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;\n      ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;\n\n      ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;\n      ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;\n\n      REVOKE ALL ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;\n      REVOKE ALL ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;\n\n      GRANT EXECUTE ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;\n      GRANT EXECUTE ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;\n    END IF;\n  END IF;\nEND;\n$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "hmac",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.hmac(bytea, bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_hmac$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "hmac",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.hmac(text, text, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pg_hmac$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pg_stat_statements",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pg_stat_statements(showtext boolean, OUT userid oid, OUT dbid oid, OUT toplevel boolean, OUT queryid bigint, OUT query text, OUT plans bigint, OUT total_plan_time double precision, OUT min_plan_time double precision, OUT max_plan_time double precision, OUT mean_plan_time double precision, OUT stddev_plan_time double precision, OUT calls bigint, OUT total_exec_time double precision, OUT min_exec_time double precision, OUT max_exec_time double precision, OUT mean_exec_time double precision, OUT stddev_exec_time double precision, OUT rows bigint, OUT shared_blks_hit bigint, OUT shared_blks_read bigint, OUT shared_blks_dirtied bigint, OUT shared_blks_written bigint, OUT local_blks_hit bigint, OUT local_blks_read bigint, OUT local_blks_dirtied bigint, OUT local_blks_written bigint, OUT temp_blks_read bigint, OUT temp_blks_written bigint, OUT shared_blk_read_time double precision, OUT shared_blk_write_time double precision, OUT local_blk_read_time double precision, OUT local_blk_write_time double precision, OUT temp_blk_read_time double precision, OUT temp_blk_write_time double precision, OUT wal_records bigint, OUT wal_fpi bigint, OUT wal_bytes numeric, OUT jit_functions bigint, OUT jit_generation_time double precision, OUT jit_inlining_count bigint, OUT jit_inlining_time double precision, OUT jit_optimization_count bigint, OUT jit_optimization_time double precision, OUT jit_emission_count bigint, OUT jit_emission_time double precision, OUT jit_deform_count bigint, OUT jit_deform_time double precision, OUT stats_since timestamp with time zone, OUT minmax_stats_since timestamp with time zone)\n RETURNS SETOF record\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pg_stat_statements', $function$pg_stat_statements_1_11$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pg_stat_statements_info",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pg_stat_statements_info(OUT dealloc bigint, OUT stats_reset timestamp with time zone)\n RETURNS record\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pg_stat_statements', $function$pg_stat_statements_info$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pg_stat_statements_reset",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pg_stat_statements_reset(userid oid DEFAULT 0, dbid oid DEFAULT 0, queryid bigint DEFAULT 0, minmax_only boolean DEFAULT false)\n RETURNS timestamp with time zone\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pg_stat_statements', $function$pg_stat_statements_reset_1_11$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pgp_armor_headers",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pgp_armor_headers(text, OUT key text, OUT value text)\n RETURNS SETOF record\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_armor_headers$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pgp_key_id",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pgp_key_id(bytea)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_key_id_w$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pgp_pub_decrypt",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_decrypt(bytea, bytea)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_decrypt_text$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pgp_pub_decrypt",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_decrypt(bytea, bytea, text)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_decrypt_text$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pgp_pub_decrypt",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_decrypt(bytea, bytea, text, text)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_decrypt_text$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pgp_pub_decrypt_bytea",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_decrypt_bytea(bytea, bytea)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_decrypt_bytea$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pgp_pub_decrypt_bytea",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_decrypt_bytea(bytea, bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_decrypt_bytea$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pgp_pub_decrypt_bytea",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_decrypt_bytea(bytea, bytea, text, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_decrypt_bytea$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pgp_pub_encrypt",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_encrypt(text, bytea)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_encrypt_text$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pgp_pub_encrypt",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_encrypt(text, bytea, text)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_encrypt_text$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pgp_pub_encrypt_bytea",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_encrypt_bytea(bytea, bytea)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_encrypt_bytea$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pgp_pub_encrypt_bytea",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pgp_pub_encrypt_bytea(bytea, bytea, text)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_pub_encrypt_bytea$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pgp_sym_decrypt",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pgp_sym_decrypt(bytea, text)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_decrypt_text$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pgp_sym_decrypt",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pgp_sym_decrypt(bytea, text, text)\n RETURNS text\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_decrypt_text$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pgp_sym_decrypt_bytea",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pgp_sym_decrypt_bytea(bytea, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_decrypt_bytea$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pgp_sym_decrypt_bytea",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pgp_sym_decrypt_bytea(bytea, text, text)\n RETURNS bytea\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_decrypt_bytea$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pgp_sym_encrypt",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pgp_sym_encrypt(text, text)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_encrypt_text$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pgp_sym_encrypt",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pgp_sym_encrypt(text, text, text)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_encrypt_text$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pgp_sym_encrypt_bytea",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pgp_sym_encrypt_bytea(bytea, text)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_encrypt_bytea$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pgp_sym_encrypt_bytea",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pgp_sym_encrypt_bytea(bytea, text, text)\n RETURNS bytea\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/pgcrypto', $function$pgp_sym_encrypt_bytea$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pgrst_ddl_watch",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pgrst_ddl_watch()\n RETURNS event_trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n  cmd record;\nBEGIN\n  FOR cmd IN SELECT * FROM pg_event_trigger_ddl_commands()\n  LOOP\n    IF cmd.command_tag IN (\n      'CREATE SCHEMA', 'ALTER SCHEMA'\n    , 'CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO', 'ALTER TABLE'\n    , 'CREATE FOREIGN TABLE', 'ALTER FOREIGN TABLE'\n    , 'CREATE VIEW', 'ALTER VIEW'\n    , 'CREATE MATERIALIZED VIEW', 'ALTER MATERIALIZED VIEW'\n    , 'CREATE FUNCTION', 'ALTER FUNCTION'\n    , 'CREATE TRIGGER'\n    , 'CREATE TYPE', 'ALTER TYPE'\n    , 'CREATE RULE'\n    , 'COMMENT'\n    )\n    -- don't notify in case of CREATE TEMP table or other objects created on pg_temp\n    AND cmd.schema_name is distinct from 'pg_temp'\n    THEN\n      NOTIFY pgrst, 'reload schema';\n    END IF;\n  END LOOP;\nEND; $function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "pgrst_drop_watch",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.pgrst_drop_watch()\n RETURNS event_trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n  obj record;\nBEGIN\n  FOR obj IN SELECT * FROM pg_event_trigger_dropped_objects()\n  LOOP\n    IF obj.object_type IN (\n      'schema'\n    , 'table'\n    , 'foreign table'\n    , 'view'\n    , 'materialized view'\n    , 'function'\n    , 'trigger'\n    , 'type'\n    , 'rule'\n    )\n    AND obj.is_temporary IS false -- no pg_temp objects\n    THEN\n      NOTIFY pgrst, 'reload schema';\n    END IF;\n  END LOOP;\nEND; $function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "set_graphql_placeholder",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.set_graphql_placeholder()\n RETURNS event_trigger\n LANGUAGE plpgsql\nAS $function$\n    DECLARE\n    graphql_is_dropped bool;\n    BEGIN\n    graphql_is_dropped = (\n        SELECT ev.schema_name = 'graphql_public'\n        FROM pg_event_trigger_dropped_objects() AS ev\n        WHERE ev.schema_name = 'graphql_public'\n    );\n\n    IF graphql_is_dropped\n    THEN\n        create or replace function graphql_public.graphql(\n            \"operationName\" text default null,\n            query text default null,\n            variables jsonb default null,\n            extensions jsonb default null\n        )\n            returns jsonb\n            language plpgsql\n        as $$\n            DECLARE\n                server_version float;\n            BEGIN\n                server_version = (SELECT (SPLIT_PART((select version()), ' ', 2))::float);\n\n                IF server_version >= 14 THEN\n                    RETURN jsonb_build_object(\n                        'errors', jsonb_build_array(\n                            jsonb_build_object(\n                                'message', 'pg_graphql extension is not enabled.'\n                            )\n                        )\n                    );\n                ELSE\n                    RETURN jsonb_build_object(\n                        'errors', jsonb_build_array(\n                            jsonb_build_object(\n                                'message', 'pg_graphql is only available on projects running Postgres 14 onwards.'\n                            )\n                        )\n                    );\n                END IF;\n            END;\n        $$;\n    END IF;\n\n    END;\n$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "uuid_generate_v1",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.uuid_generate_v1()\n RETURNS uuid\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_generate_v1$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "uuid_generate_v1mc",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.uuid_generate_v1mc()\n RETURNS uuid\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_generate_v1mc$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "uuid_generate_v3",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.uuid_generate_v3(namespace uuid, name text)\n RETURNS uuid\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_generate_v3$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "uuid_generate_v4",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.uuid_generate_v4()\n RETURNS uuid\n LANGUAGE c\n PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_generate_v4$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "uuid_generate_v5",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.uuid_generate_v5(namespace uuid, name text)\n RETURNS uuid\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_generate_v5$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "uuid_nil",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.uuid_nil()\n RETURNS uuid\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_nil$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "uuid_ns_dns",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.uuid_ns_dns()\n RETURNS uuid\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_ns_dns$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "uuid_ns_oid",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.uuid_ns_oid()\n RETURNS uuid\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_ns_oid$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "uuid_ns_url",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.uuid_ns_url()\n RETURNS uuid\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_ns_url$function$\n"
-  },
-  {
-    "schema_name": "extensions",
-    "function_name": "uuid_ns_x500",
-    "function_definition": "CREATE OR REPLACE FUNCTION extensions.uuid_ns_x500()\n RETURNS uuid\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/uuid-ossp', $function$uuid_ns_x500$function$\n"
-  },
-  {
-    "schema_name": "pgbouncer",
-    "function_name": "get_auth",
-    "function_definition": "CREATE OR REPLACE FUNCTION pgbouncer.get_auth(p_usename text)\n RETURNS TABLE(username text, password text)\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nbegin\n    raise debug 'PgBouncer auth request: %', p_usename;\n\n    return query\n    select \n        rolname::text, \n        case when rolvaliduntil < now() \n            then null \n            else rolpassword::text \n        end \n    from pg_authid \n    where rolname=$1 and rolcanlogin;\nend;\n$function$\n"
-  },
-  {
-    "schema_name": "public",
-    "function_name": "backfill_total_terjual",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.backfill_total_terjual()\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    -- Buat tabel sementara untuk menampung semua item yang terjual\n    CREATE TEMP TABLE sales_aggregation AS\n    -- Ambil item dari transaksi POS\n    SELECT\n        (item->>'id')::uuid AS product_id,\n        (item->>'quantity')::integer AS quantity\n    FROM\n        public.transactions,\n        jsonb_array_elements(items) AS item\n    WHERE\n        item ? 'harga_jual' -- Ciri khas item POS\n\n    UNION ALL\n\n    -- Ambil item dari transaksi Grosir\n    SELECT\n        (item->>'product_id')::uuid AS product_id,\n        (item->>'kuantitas')::integer AS quantity\n    FROM\n        public.transactions,\n        jsonb_array_elements(items) AS item\n    WHERE\n        item ? 'harga_grosir_deal'; -- Ciri khas item Grosir\n\n    -- Update tabel products dengan data yang sudah dihitung\n    UPDATE public.products p\n    SET\n        total_terjual = aggregated.total_sold\n    FROM (\n        SELECT\n            product_id,\n            SUM(quantity) as total_sold\n        FROM\n            sales_aggregation\n        GROUP BY\n            product_id\n    ) AS aggregated\n    WHERE\n        p.id = aggregated.product_id;\n\n    -- Hapus tabel sementara setelah selesai\n    DROP TABLE sales_aggregation;\nEND;\n$function$\n"
-  },
-  {
-    "schema_name": "public",
-    "function_name": "calculate_profit_loss",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.calculate_profit_loss(start_date text, end_date text)\n RETURNS TABLE(total_pendapatan numeric, total_hpp numeric, laba_kotor numeric, total_pengeluaran numeric, laba_bersih numeric)\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    v_total_pendapatan numeric;\n    v_total_hpp numeric;\n    v_laba_kotor numeric;\n    v_total_pengeluaran numeric;\n    v_laba_bersih numeric;\nBEGIN\n    -- 1. Hitung Total Pendapatan\n    SELECT COALESCE(SUM(total_akhir), 0)\n    INTO v_total_pendapatan\n    FROM public.transactions\n    WHERE created_at >= start_date::timestamp AND created_at <= end_date::timestamp;\n\n    -- 2. Hitung Total Pengeluaran\n    SELECT COALESCE(SUM(jumlah), 0)\n    INTO v_total_pengeluaran\n    FROM public.expenses\n    WHERE tanggal >= start_date::timestamp AND tanggal <= end_date::timestamp;\n\n    -- 3. Hitung Total HPP\n    WITH all_sold_items AS (\n        -- Ambil item dari transaksi POS\n        SELECT\n            (item->>'id')::uuid AS product_id,\n            (item->>'quantity')::numeric AS quantity,\n            (item->>'harga_beli')::numeric AS purchase_price\n        FROM \n            public.transactions t, -- <-- TAMBAHKAN ALIAS 't'\n            jsonb_array_elements(items) AS item\n        WHERE \n            t.created_at >= start_date::timestamp AND t.created_at <= end_date::timestamp -- <-- PERBAIKI: Gunakan t.created_at\n            AND item->>'harga_grosir_deal' IS NULL\n\n        UNION ALL\n\n        -- Ambil item dari transaksi Grosir\n        SELECT\n            (item->>'product_id')::uuid AS product_id,\n            (item->>'kuantitas')::numeric AS quantity,\n            p.harga_beli AS purchase_price\n        FROM \n            public.transactions t, -- <-- TAMBAHKAN ALIAS 't'\n            jsonb_array_elements(items) AS item\n        JOIN \n            public.products p ON p.id = (item->>'product_id')::uuid\n        WHERE \n            t.created_at >= start_date::timestamp AND t.created_at <= end_date::timestamp -- <-- PERBAIKI: Gunakan t.created_at\n            AND item->>'harga_grosir_deal' IS NOT NULL\n    )\n    SELECT COALESCE(SUM(quantity * purchase_price), 0)\n    INTO v_total_hpp\n    FROM all_sold_items;\n\n    -- 4. Hitung Laba Kotor dan Laba Bersih\n    v_laba_kotor := v_total_pendapatan - v_total_hpp;\n    v_laba_bersih := v_laba_kotor - v_total_pengeluaran;\n\n    -- 5. Kembalikan semua hasil\n    RETURN QUERY\n    SELECT\n        v_total_pendapatan,\n        v_total_hpp,\n        v_laba_kotor,\n        v_total_pengeluaran,\n        v_laba_bersih;\nEND;\n$function$\n"
-  },
-  {
-    "schema_name": "public",
-    "function_name": "check_customer_ownership",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.check_customer_ownership(p_customer_id uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\nAS $function$\n  SELECT EXISTS (\n    SELECT 1\n    FROM public.customers\n    WHERE id = p_customer_id AND auth_user_id = auth.uid()\n  );\n$function$\n"
-  },
-  {
-    "schema_name": "public",
-    "function_name": "confirm_sales_order",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.confirm_sales_order(order_id uuid)\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE\r\n    item RECORD;\r\nBEGIN\r\n    -- Update status pesanan menjadi 'Dikonfirmasi'\r\n    UPDATE public.sales_orders\r\n    SET status = 'Dikonfirmasi'\r\n    WHERE id = order_id AND status = 'Draft';\r\n\r\n    -- Jika tidak ada baris yang diupdate (karena status bukan 'Draft'), keluar.\r\n    IF NOT FOUND THEN\r\n        RAISE EXCEPTION 'Pesanan tidak ditemukan atau statusnya bukan Draft.';\r\n    END IF;\r\n\r\n    -- Loop melalui setiap item di pesanan untuk mengalokasikan stok\r\n    FOR item IN\r\n        SELECT product_id, kuantitas FROM public.sales_order_items WHERE sales_order_id = order_id\r\n    LOOP\r\n        UPDATE public.products\r\n        SET stok_dialokasikan = stok_dialokasikan + item.kuantitas\r\n        WHERE id = item.product_id;\r\n    END LOOP;\r\nEND;\r\n$function$\n"
-  },
-  {
-    "schema_name": "public",
-    "function_name": "delete_special_price",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.delete_special_price(special_price_id uuid)\n RETURNS void\n LANGUAGE sql\n SECURITY DEFINER\nAS $function$\r\n    DELETE FROM public.daftar_harga_mitra\r\n    WHERE id = special_price_id;\r\n$function$\n"
-  },
-  {
-    "schema_name": "public",
-    "function_name": "find_closest_colors",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.find_closest_colors(input_hex text)\n RETURNS TABLE(id uuid, nama text, sku text, merek text, color_hex text, image_url text, color_swatch_url text, distance double precision)\n LANGUAGE sql\nAS $function$\n    SELECT\n        p.id,\n        p.nama,\n        p.sku,\n        p.merek,\n        p.color_hex,\n        p.image_url,\n        p.color_swatch_url,\n        -- PERBAIKAN UTAMA: Hitung jarak dengan mengakses elemen array secara langsung\n        SQRT(\n            POWER( (public.hex_to_rgb(p.color_hex))[1] - (public.hex_to_rgb(input_hex))[1], 2) +\n            POWER( (public.hex_to_rgb(p.color_hex))[2] - (public.hex_to_rgb(input_hex))[2], 2) +\n            POWER( (public.hex_to_rgb(p.color_hex))[3] - (public.hex_to_rgb(input_hex))[3], 2)\n        ) as distance\n    FROM\n        public.products p\n    WHERE\n        p.kategori = 'Pilok' AND p.color_hex IS NOT NULL\n    ORDER BY\n        distance ASC -- Urutkan dari yang paling mirip\n    LIMIT 5;\n$function$\n"
-  },
-  {
-    "schema_name": "public",
-    "function_name": "generate_invoice_number",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.generate_invoice_number()\n RETURNS text\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE\r\n    new_inv_number TEXT;\r\n    year_short TEXT;\r\n    next_val BIGINT;\r\nBEGIN\r\n    -- Menggunakan sequence yang sama dengan SO agar nomor urutnya sinkron\r\n    next_val := nextval('public.order_number_seq');\r\n    year_short := to_char(CURRENT_DATE, 'YY');\r\n    new_inv_number := 'BJS/INV/' || year_short || '/' || lpad(next_val::text, 5, '0');\r\n    RETURN new_inv_number;\r\nEND;\r\n$function$\n"
-  },
-  {
-    "schema_name": "public",
-    "function_name": "generate_so_number",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.generate_so_number()\n RETURNS text\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE\r\n    new_so_number TEXT;\r\n    year_short TEXT;\r\n    next_val BIGINT;\r\nBEGIN\r\n    -- Mengambil 2 digit terakhir dari tahun saat ini\r\n    year_short := to_char(CURRENT_DATE, 'YY');\r\n    \r\n    -- Mengambil nomor urut berikutnya dari sequence\r\n    next_val := nextval('public.order_number_seq');\r\n    \r\n    -- Menggabungkan format nomor\r\n    new_so_number := 'BJS/SO/' || year_short || '/' || lpad(next_val::text, 5, '0');\r\n    \r\n    RETURN new_so_number;\r\nEND;\r\n$function$\n"
-  },
-  {
-    "schema_name": "public",
-    "function_name": "get_best_selling_products",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.get_best_selling_products(start_date text, end_date text, category_filter text DEFAULT NULL::text)\n RETURNS TABLE(id uuid, kode text, sku text, nama text, merek text, kategori text, nama_supplier text, total_terjual numeric, stok_saat_ini integer, stok_minimal integer)\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    RETURN QUERY\n    WITH all_items AS (\n        -- Ambil item dari transaksi POS (struktur lama)\n        SELECT\n            (item->>'id')::uuid AS product_id,\n            (item->>'quantity')::numeric AS quantity\n        FROM\n            public.transactions,\n            jsonb_array_elements(items) AS item\n        WHERE\n            created_at >= start_date::timestamp AND created_at <= end_date::timestamp\n            AND item->>'harga_grosir_deal' IS NULL -- Ciri khas item POS\n\n        UNION ALL\n\n        -- Ambil item dari transaksi Grosir (struktur baru)\n        SELECT\n            (item->>'product_id')::uuid AS product_id,\n            (item->>'kuantitas')::numeric AS quantity\n        FROM\n            public.transactions,\n            jsonb_array_elements(items) AS item\n        WHERE\n            created_at >= start_date::timestamp AND created_at <= end_date::timestamp\n            AND item->>'harga_grosir_deal' IS NOT NULL -- Ciri khas item Grosir\n    )\n    SELECT\n        p.id,\n        p.kode,\n        p.sku, -- <-- Mengambil kolom baru\n        p.nama,\n        p.merek,\n        p.kategori,\n        s.nama_supplier,\n        sum(ai.quantity) AS total_terjual,\n        p.stok AS stok_saat_ini,\n        p.stok_min AS stok_minimal\n    FROM\n        all_items ai\n    JOIN\n        public.products p ON ai.product_id = p.id\n    LEFT JOIN\n        public.suppliers s ON p.supplier_id = s.id\n    WHERE\n        (category_filter IS NULL OR p.kategori = category_filter)\n    GROUP BY\n        p.id, s.nama_supplier\n    ORDER BY\n        total_terjual DESC;\nEND;\n$function$\n"
-  },
-  {
-    "schema_name": "public",
-    "function_name": "get_cart_items",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.get_cart_items(p_user_id uuid)\n RETURNS TABLE(id uuid, product_id uuid, quantity integer, nama text, harga_jual numeric, image_url text)\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    v_customer_id uuid;\nBEGIN\n    SELECT id INTO v_customer_id\n    FROM public.customers\n    WHERE auth_user_id = p_user_id;\n\n    IF v_customer_id IS NULL THEN\n        RETURN;\n    END IF;\n\n    RETURN QUERY\n    SELECT\n        ci.id,\n        ci.product_id,\n        ci.quantity,\n        p.nama,\n        p.harga_jual,\n        p.image_url\n    FROM\n        public.cart_items ci\n    JOIN\n        public.products p ON ci.product_id = p.id\n    WHERE\n        ci.customer_id = v_customer_id;\nEND;\n$function$\n"
-  },
-  {
-    "schema_name": "public",
-    "function_name": "get_dashboard_charts_data",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.get_dashboard_charts_data(start_date text, end_date text)\n RETURNS TABLE(daily_sales jsonb, category_sales jsonb)\n LANGUAGE sql\nAS $function$\nWITH transactions_in_range AS (\n    SELECT created_at, total_akhir, items\n    FROM public.transactions\n    WHERE created_at >= start_date::timestamp AND created_at <= end_date::timestamp\n),\ndaily_summary AS (\n    SELECT\n        date_trunc('day', created_at)::date AS transaction_date,\n        sum(total_akhir) AS total\n    FROM transactions_in_range\n    GROUP BY transaction_date\n),\nall_items AS (\n    SELECT (item->>'kategori') as kategori,\n           ((item->>'harga_jual')::numeric * (item->>'quantity')::numeric) as total\n    FROM transactions_in_range, jsonb_array_elements(items) as item\n    WHERE item->>'harga_grosir_deal' IS NULL AND item->>'kategori' IS NOT NULL\n\n    UNION ALL\n\n    SELECT p.kategori,\n           ((item->>'harga_grosir_deal')::numeric * (item->>'kuantitas')::numeric) as total\n    FROM transactions_in_range, jsonb_array_elements(items) as item\n    JOIN public.products p ON p.id = (item->>'product_id')::uuid\n    WHERE item->>'harga_grosir_deal' IS NOT NULL AND p.kategori IS NOT NULL\n),\ncategory_summary AS (\n    SELECT kategori, sum(total) as total\n    FROM all_items\n    GROUP BY kategori\n)\nSELECT\n    (SELECT jsonb_object_agg(transaction_date, total) FROM daily_summary) as daily_sales,\n    (SELECT jsonb_object_agg(kategori, total) FROM category_summary) as category_sales;\n$function$\n"
-  },
-  {
-    "schema_name": "public",
-    "function_name": "get_dashboard_metrics",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.get_dashboard_metrics(start_date text, end_date text)\n RETURNS TABLE(sales_value numeric, profit_value numeric, transactions_count bigint)\n LANGUAGE sql\nAS $function$\n    SELECT\n        COALESCE(SUM(total_akhir), 0) as sales_value,\n        COALESCE(SUM(total_laba), 0) as profit_value,\n        COUNT(*) as transactions_count\n    FROM\n        public.transactions\n    WHERE\n        created_at >= start_date::timestamp AND created_at <= end_date::timestamp;\n$function$\n"
-  },
-  {
-    "schema_name": "public",
-    "function_name": "get_distinct_kategori",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.get_distinct_kategori()\n RETURNS TABLE(kategori text)\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    RETURN QUERY\n    SELECT DISTINCT p.kategori\n    FROM public.products p\n    WHERE p.kategori IS NOT NULL AND p.kategori <> ''\n    ORDER BY p.kategori;\nEND;\n$function$\n"
-  },
-  {
-    "schema_name": "public",
-    "function_name": "get_distinct_merek",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.get_distinct_merek()\n RETURNS TABLE(merek text)\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    RETURN QUERY\n    SELECT DISTINCT p.merek\n    FROM public.products p\n    WHERE p.merek IS NOT NULL AND p.merek <> ''\n    ORDER BY p.merek;\nEND;\n$function$\n"
-  },
-  {
-    "schema_name": "public",
-    "function_name": "get_products_for_special_price_editor",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.get_products_for_special_price_editor(p_customer_id uuid, p_search_term text, p_kategori_filter text, p_merek_filter text)\n RETURNS TABLE(id uuid, kode text, nama text, merek text, harga_grosir numeric, harga_spesial numeric)\n LANGUAGE plpgsql\nAS $function$\r\nBEGIN\r\n    RETURN QUERY\r\n    SELECT\r\n        p.id,\r\n        p.kode,\r\n        p.nama,\r\n        p.merek,\r\n        p.harga_grosir,\r\n        dhm.harga_spesial\r\n    FROM\r\n        public.products p\r\n    LEFT JOIN\r\n        public.daftar_harga_mitra dhm ON p.id = dhm.product_id AND dhm.customer_id = p_customer_id\r\n    WHERE\r\n        p.status = 'Aktif'\r\n        AND (p_search_term IS NULL OR p_search_term = '' OR p.nama ILIKE '%' || p_search_term || '%' OR p.kode ILIKE '%' || p_search_term || '%')\r\n        AND (p_kategori_filter = 'semua' OR p.kategori = p_kategori_filter)\r\n        AND (p_merek_filter = 'semua' OR p.merek = p_merek_filter)\r\n    ORDER BY\r\n        p.nama;\r\nEND;\r\n$function$\n"
-  },
-  {
-    "schema_name": "public",
-    "function_name": "get_products_for_special_price_editor",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.get_products_for_special_price_editor(p_customer_id uuid, p_search_term text, p_kategori_filter text, p_merek_filter text, p_ukuran_filter text)\n RETURNS TABLE(id uuid, kode text, nama text, merek text, harga_grosir numeric, harga_spesial numeric)\n LANGUAGE plpgsql\nAS $function$\r\nBEGIN\r\n    RETURN QUERY\r\n    SELECT\r\n        p.id,\r\n        p.kode,\r\n        p.nama,\r\n        p.merek,\r\n        p.harga_grosir,\r\n        dhm.harga_spesial\r\n    FROM\r\n        public.products p\r\n    LEFT JOIN\r\n        public.daftar_harga_mitra dhm ON p.id = dhm.product_id AND dhm.customer_id = p_customer_id\r\n    WHERE\r\n        p.status = 'Aktif'\r\n        AND (p_search_term IS NULL OR p_search_term = '' OR p.nama ILIKE '%' || p_search_term || '%' OR p.kode ILIKE '%' || p_search_term || '%')\r\n        AND (p_kategori_filter = 'semua' OR p.kategori = p_kategori_filter)\r\n        AND (p_merek_filter = 'semua' OR p.merek = p_merek_filter)\r\n        AND (p_ukuran_filter = 'semua' OR p.ukuran = p_ukuran_filter); -- <-- TAMBAHAN BARU\r\nEND;\r\n$function$\n"
-  },
-  {
-    "schema_name": "public",
-    "function_name": "get_recent_purchase_orders",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.get_recent_purchase_orders()\n RETURNS TABLE(id uuid, po_number text, order_date date, status text, nama_supplier text, created_at timestamp with time zone)\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    RETURN QUERY\n    SELECT\n        po.id,\n        po.po_number,\n        po.order_date,\n        po.status,\n        s.nama_supplier,\n        po.created_at\n    FROM\n        public.purchase_orders AS po\n    LEFT JOIN\n        public.suppliers AS s ON po.supplier_id = s.id\n    ORDER BY\n        po.created_at DESC NULLS LAST\n    LIMIT 10; -- Hanya ambil 10 data terbaru\nEND;\n$function$\n"
-  },
-  {
-    "schema_name": "public",
-    "function_name": "get_related_products",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.get_related_products(p_product_id uuid, p_merek text, p_lini_produk text)\n RETURNS SETOF products\n LANGUAGE sql\nAS $function$\n    SELECT *\n    FROM public.products\n    WHERE\n        status = 'Aktif'\n        AND merek = p_merek\n        AND lini_produk = p_lini_produk\n        AND id != p_product_id -- Jangan tampilkan produk yang sedang dilihat\n    ORDER BY\n        total_terjual DESC, nama ASC\n    LIMIT 10; -- Batasi 10 produk terkait\n$function$\n"
-  },
-  {
-    "schema_name": "public",
     "function_name": "get_simulation_image_url",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.get_simulation_image_url(p_product_id uuid, p_object_id uuid)\n RETURNS text\n LANGUAGE sql\nAS $function$\n    SELECT colored_image_url\n    FROM public.simulation_variants\n    WHERE\n        product_id = p_product_id AND simulation_object_id = p_object_id\n    LIMIT 1;\n$function$\n"
+    "function_definition": "CREATE OR REPLACE FUNCTION public.get_simulation_image_url(p_product_id uuid, p_object_id uuid)\n RETURNS text\n LANGUAGE sql\nAS $function$\n    SELECT colored_image_url\n    FROM public.simulation_variants\n    WHERE\n        product_id = p_product_id AND simulation_object_id = p_object_id\n    LIMIT 1;\n$function$\n",
+    "schema_name": "public"
   },
   {
-    "schema_name": "public",
-    "function_name": "get_special_prices_for_customer",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.get_special_prices_for_customer(customer_uuid uuid)\n RETURNS TABLE(id uuid, harga_spesial numeric, product_id uuid, kode text, nama text, ukuran text, harga_grosir_default numeric)\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n    RETURN QUERY\r\n    SELECT\r\n        dhm.id,\r\n        dhm.harga_spesial,\r\n        p.id AS product_id,\r\n        p.kode,\r\n        p.nama,\r\n        p.ukuran,\r\n        p.harga_grosir AS harga_grosir_default\r\n    FROM\r\n        public.daftar_harga_mitra AS dhm\r\n    JOIN\r\n        public.products AS p ON dhm.product_id = p.id\r\n    WHERE\r\n        dhm.customer_id = customer_uuid;\r\nEND;\r\n$function$\n"
+    "function_name": "search_products",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.search_products(search_term text, merek_filter text, kategori_filter text, status_filter text, low_stock_only boolean)\n RETURNS SETOF products\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    RETURN QUERY\n    SELECT *\n    FROM\n        public.products\n    WHERE\n        (\n            search_term IS NULL OR search_term = '' OR\n            kode ILIKE '%' || search_term || '%' OR\n            nama ILIKE '%' || search_term || '%' OR\n            merek ILIKE '%' || search_term || '%' OR\n            kategori ILIKE '%' || search_term || '%'\n        )\n        AND (merek_filter = 'semua' OR merek ILIKE merek_filter)\n        AND (kategori_filter = 'semua' OR kategori ILIKE kategori_filter)\n        AND (status_filter = 'semua' OR status ILIKE status_filter)\n        AND (low_stock_only = false OR (stok <= stok_min))\n    ORDER BY\n        updated_at DESC NULLS LAST;\nEND;\n$function$\n",
+    "schema_name": "public"
   },
   {
-    "schema_name": "public",
-    "function_name": "get_transaction_summary",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.get_transaction_summary()\n RETURNS TABLE(today numeric, unpaid numeric, \"thisMonth\" bigint)\n LANGUAGE sql\nAS $function$\n    select\n        coalesce(sum(case when date(created_at) = current_date then total_akhir else 0 end), 0) as today,\n        coalesce(sum(case when status_pembayaran = 'Belum Lunas' then sisa_hutang else 0 end), 0) as unpaid,\n        count(case when date_trunc('month', created_at) = date_trunc('month', current_date) then 1 end) as \"thisMonth\"\n    from public.transactions;\n$function$\n"
+    "function_name": "generate_so_number",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.generate_so_number()\n RETURNS text\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE\r\n    new_so_number TEXT;\r\n    year_short TEXT;\r\n    next_val BIGINT;\r\nBEGIN\r\n    -- Mengambil 2 digit terakhir dari tahun saat ini\r\n    year_short := to_char(CURRENT_DATE, 'YY');\r\n    \r\n    -- Mengambil nomor urut berikutnya dari sequence\r\n    next_val := nextval('public.order_number_seq');\r\n    \r\n    -- Menggabungkan format nomor\r\n    new_so_number := 'BJS/SO/' || year_short || '/' || lpad(next_val::text, 5, '0');\r\n    \r\n    RETURN new_so_number;\r\nEND;\r\n$function$\n",
+    "schema_name": "public"
   },
   {
-    "schema_name": "public",
     "function_name": "get_unique_request_categories",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.get_unique_request_categories()\n RETURNS TABLE(kategori text)\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n  RETURN QUERY\n  SELECT DISTINCT pc.kategori\n  FROM public.permintaan_pelanggan pc\n  WHERE pc.kategori IS NOT NULL AND pc.kategori <> '';\nEND;\n$function$\n"
+    "function_definition": "CREATE OR REPLACE FUNCTION public.get_unique_request_categories()\n RETURNS TABLE(kategori text)\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n  RETURN QUERY\n  SELECT DISTINCT pc.kategori\n  FROM public.permintaan_pelanggan pc\n  WHERE pc.kategori IS NOT NULL AND pc.kategori <> '';\nEND;\n$function$\n",
+    "schema_name": "public"
   },
   {
-    "schema_name": "public",
-    "function_name": "gin_extract_query_trgm",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.gin_extract_query_trgm(text, internal, smallint, internal, internal, internal, internal)\n RETURNS internal\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gin_extract_query_trgm$function$\n"
+    "function_name": "get_dashboard_metrics",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.get_dashboard_metrics(start_date text, end_date text)\n RETURNS TABLE(sales_value numeric, profit_value numeric, transactions_count bigint)\n LANGUAGE sql\nAS $function$\n    SELECT\n        COALESCE(SUM(total_akhir), 0) as sales_value,\n        COALESCE(SUM(total_laba), 0) as profit_value,\n        COUNT(*) as transactions_count\n    FROM\n        public.transactions\n    WHERE\n        created_at >= start_date::timestamp AND created_at <= end_date::timestamp;\n$function$\n",
+    "schema_name": "public"
   },
   {
-    "schema_name": "public",
-    "function_name": "gin_extract_value_trgm",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.gin_extract_value_trgm(text, internal)\n RETURNS internal\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gin_extract_value_trgm$function$\n"
+    "function_name": "search_sales_orders",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.search_sales_orders(search_term text, status_filter text, mitra_id_filter uuid, start_date_filter date, end_date_filter date)\n RETURNS SETOF sales_order_list_view\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    RETURN QUERY\n    SELECT *\n    FROM public.sales_order_list_view\n    WHERE\n        (\n            search_term IS NULL OR search_term = '' OR\n            so_number ILIKE '%' || search_term || '%' OR\n            invoice_number ILIKE '%' || search_term || '%' OR\n            nama_pelanggan ILIKE '%' || search_term || '%'\n        )\n        AND (status_filter = 'semua' OR final_status = status_filter)\n        AND (mitra_id_filter IS NULL OR customer_id = mitra_id_filter)\n        AND (start_date_filter IS NULL OR tanggal_pesanan >= start_date_filter)\n        AND (end_date_filter IS NULL OR tanggal_pesanan <= end_date_filter)\n    ORDER BY\n        created_at DESC;\nEND;\n$function$\n",
+    "schema_name": "public"
   },
   {
-    "schema_name": "public",
-    "function_name": "gin_trgm_consistent",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.gin_trgm_consistent(internal, smallint, text, integer, internal, internal, internal, internal)\n RETURNS boolean\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gin_trgm_consistent$function$\n"
+    "function_name": "delete_special_price",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.delete_special_price(special_price_id uuid)\n RETURNS void\n LANGUAGE sql\n SECURITY DEFINER\nAS $function$\r\n    DELETE FROM public.daftar_harga_mitra\r\n    WHERE id = special_price_id;\r\n$function$\n",
+    "schema_name": "public"
   },
   {
-    "schema_name": "public",
-    "function_name": "gin_trgm_triconsistent",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.gin_trgm_triconsistent(internal, smallint, text, integer, internal, internal, internal)\n RETURNS \"char\"\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gin_trgm_triconsistent$function$\n"
+    "function_name": "set_limit",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.set_limit(real)\n RETURNS real\n LANGUAGE c\n STRICT\nAS '$libdir/pg_trgm', $function$set_limit$function$\n",
+    "schema_name": "public"
   },
   {
-    "schema_name": "public",
-    "function_name": "gtrgm_compress",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.gtrgm_compress(internal)\n RETURNS internal\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gtrgm_compress$function$\n"
+    "function_name": "show_limit",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.show_limit()\n RETURNS real\n LANGUAGE c\n STABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$show_limit$function$\n",
+    "schema_name": "public"
   },
   {
-    "schema_name": "public",
-    "function_name": "gtrgm_consistent",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.gtrgm_consistent(internal, text, smallint, oid, internal)\n RETURNS boolean\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gtrgm_consistent$function$\n"
+    "function_name": "show_trgm",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.show_trgm(text)\n RETURNS text[]\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$show_trgm$function$\n",
+    "schema_name": "public"
   },
   {
-    "schema_name": "public",
-    "function_name": "gtrgm_decompress",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.gtrgm_decompress(internal)\n RETURNS internal\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gtrgm_decompress$function$\n"
+    "function_name": "similarity",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.similarity(text, text)\n RETURNS real\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$similarity$function$\n",
+    "schema_name": "public"
   },
   {
-    "schema_name": "public",
-    "function_name": "gtrgm_distance",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.gtrgm_distance(internal, text, smallint, oid, internal)\n RETURNS double precision\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gtrgm_distance$function$\n"
+    "function_name": "similarity_op",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.similarity_op(text, text)\n RETURNS boolean\n LANGUAGE c\n STABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$similarity_op$function$\n",
+    "schema_name": "public"
   },
   {
-    "schema_name": "public",
+    "function_name": "word_similarity",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.word_similarity(text, text)\n RETURNS real\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$word_similarity$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "word_similarity_op",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.word_similarity_op(text, text)\n RETURNS boolean\n LANGUAGE c\n STABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$word_similarity_op$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "word_similarity_commutator_op",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.word_similarity_commutator_op(text, text)\n RETURNS boolean\n LANGUAGE c\n STABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$word_similarity_commutator_op$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "similarity_dist",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.similarity_dist(text, text)\n RETURNS real\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$similarity_dist$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "word_similarity_dist_op",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.word_similarity_dist_op(text, text)\n RETURNS real\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$word_similarity_dist_op$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "word_similarity_dist_commutator_op",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.word_similarity_dist_commutator_op(text, text)\n RETURNS real\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$word_similarity_dist_commutator_op$function$\n",
+    "schema_name": "public"
+  },
+  {
     "function_name": "gtrgm_in",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.gtrgm_in(cstring)\n RETURNS gtrgm\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gtrgm_in$function$\n"
+    "function_definition": "CREATE OR REPLACE FUNCTION public.gtrgm_in(cstring)\n RETURNS gtrgm\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gtrgm_in$function$\n",
+    "schema_name": "public"
   },
   {
-    "schema_name": "public",
-    "function_name": "gtrgm_options",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.gtrgm_options(internal)\n RETURNS void\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE\nAS '$libdir/pg_trgm', $function$gtrgm_options$function$\n"
-  },
-  {
-    "schema_name": "public",
     "function_name": "gtrgm_out",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.gtrgm_out(gtrgm)\n RETURNS cstring\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gtrgm_out$function$\n"
+    "function_definition": "CREATE OR REPLACE FUNCTION public.gtrgm_out(gtrgm)\n RETURNS cstring\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gtrgm_out$function$\n",
+    "schema_name": "public"
   },
   {
-    "schema_name": "public",
+    "function_name": "gtrgm_consistent",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.gtrgm_consistent(internal, text, smallint, oid, internal)\n RETURNS boolean\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gtrgm_consistent$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "gtrgm_distance",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.gtrgm_distance(internal, text, smallint, oid, internal)\n RETURNS double precision\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gtrgm_distance$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "gtrgm_compress",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.gtrgm_compress(internal)\n RETURNS internal\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gtrgm_compress$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "gtrgm_decompress",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.gtrgm_decompress(internal)\n RETURNS internal\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gtrgm_decompress$function$\n",
+    "schema_name": "public"
+  },
+  {
     "function_name": "gtrgm_penalty",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.gtrgm_penalty(internal, internal, internal)\n RETURNS internal\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gtrgm_penalty$function$\n"
+    "function_definition": "CREATE OR REPLACE FUNCTION public.gtrgm_penalty(internal, internal, internal)\n RETURNS internal\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gtrgm_penalty$function$\n",
+    "schema_name": "public"
   },
   {
-    "schema_name": "public",
     "function_name": "gtrgm_picksplit",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.gtrgm_picksplit(internal, internal)\n RETURNS internal\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gtrgm_picksplit$function$\n"
+    "function_definition": "CREATE OR REPLACE FUNCTION public.gtrgm_picksplit(internal, internal)\n RETURNS internal\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gtrgm_picksplit$function$\n",
+    "schema_name": "public"
   },
   {
-    "schema_name": "public",
-    "function_name": "gtrgm_same",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.gtrgm_same(gtrgm, gtrgm, internal)\n RETURNS internal\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gtrgm_same$function$\n"
-  },
-  {
-    "schema_name": "public",
     "function_name": "gtrgm_union",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.gtrgm_union(internal, internal)\n RETURNS gtrgm\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gtrgm_union$function$\n"
+    "function_definition": "CREATE OR REPLACE FUNCTION public.gtrgm_union(internal, internal)\n RETURNS gtrgm\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gtrgm_union$function$\n",
+    "schema_name": "public"
   },
   {
-    "schema_name": "public",
+    "function_name": "gtrgm_same",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.gtrgm_same(gtrgm, gtrgm, internal)\n RETURNS internal\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gtrgm_same$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "gin_extract_value_trgm",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.gin_extract_value_trgm(text, internal)\n RETURNS internal\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gin_extract_value_trgm$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "gin_extract_query_trgm",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.gin_extract_query_trgm(text, internal, smallint, internal, internal, internal, internal)\n RETURNS internal\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gin_extract_query_trgm$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "gin_trgm_consistent",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.gin_trgm_consistent(internal, smallint, text, integer, internal, internal, internal, internal)\n RETURNS boolean\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gin_trgm_consistent$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "gin_trgm_triconsistent",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.gin_trgm_triconsistent(internal, smallint, text, integer, internal, internal, internal)\n RETURNS \"char\"\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$gin_trgm_triconsistent$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "strict_word_similarity",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.strict_word_similarity(text, text)\n RETURNS real\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$strict_word_similarity$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "strict_word_similarity_op",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.strict_word_similarity_op(text, text)\n RETURNS boolean\n LANGUAGE c\n STABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$strict_word_similarity_op$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "strict_word_similarity_commutator_op",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.strict_word_similarity_commutator_op(text, text)\n RETURNS boolean\n LANGUAGE c\n STABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$strict_word_similarity_commutator_op$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "strict_word_similarity_dist_op",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.strict_word_similarity_dist_op(text, text)\n RETURNS real\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$strict_word_similarity_dist_op$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "strict_word_similarity_dist_commutator_op",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.strict_word_similarity_dist_commutator_op(text, text)\n RETURNS real\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE STRICT\nAS '$libdir/pg_trgm', $function$strict_word_similarity_dist_commutator_op$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "gtrgm_options",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.gtrgm_options(internal)\n RETURNS void\n LANGUAGE c\n IMMUTABLE PARALLEL SAFE\nAS '$libdir/pg_trgm', $function$gtrgm_options$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "get_dashboard_charts_data",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.get_dashboard_charts_data(start_date text, end_date text)\n RETURNS TABLE(daily_sales jsonb, category_sales jsonb)\n LANGUAGE sql\nAS $function$\nWITH transactions_in_range AS (\n    SELECT created_at, total_akhir, items\n    FROM public.transactions\n    WHERE created_at >= start_date::timestamp AND created_at <= end_date::timestamp\n),\ndaily_summary AS (\n    SELECT\n        date_trunc('day', created_at)::date AS transaction_date,\n        sum(total_akhir) AS total\n    FROM transactions_in_range\n    GROUP BY transaction_date\n),\nall_items AS (\n    SELECT (item->>'kategori') as kategori,\n           ((item->>'harga_jual')::numeric * (item->>'quantity')::numeric) as total\n    FROM transactions_in_range, jsonb_array_elements(items) as item\n    WHERE item->>'harga_grosir_deal' IS NULL AND item->>'kategori' IS NOT NULL\n\n    UNION ALL\n\n    SELECT p.kategori,\n           ((item->>'harga_grosir_deal')::numeric * (item->>'kuantitas')::numeric) as total\n    FROM transactions_in_range, jsonb_array_elements(items) as item\n    JOIN public.products p ON p.id = (item->>'product_id')::uuid\n    WHERE item->>'harga_grosir_deal' IS NOT NULL AND p.kategori IS NOT NULL\n),\ncategory_summary AS (\n    SELECT kategori, sum(total) as total\n    FROM all_items\n    GROUP BY kategori\n)\nSELECT\n    (SELECT jsonb_object_agg(transaction_date, total) FROM daily_summary) as daily_sales,\n    (SELECT jsonb_object_agg(kategori, total) FROM category_summary) as category_sales;\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "get_distinct_merek",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.get_distinct_merek()\n RETURNS TABLE(merek text)\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    RETURN QUERY\n    SELECT DISTINCT p.merek\n    FROM public.products p\n    WHERE p.merek IS NOT NULL AND p.merek <> ''\n    ORDER BY p.merek;\nEND;\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "search_purchase_orders",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.search_purchase_orders(search_term text, status_filter text, supplier_id_filter uuid, start_date_filter date, end_date_filter date)\n RETURNS TABLE(id uuid, po_number text, order_date date, status text, nama_supplier text, created_at timestamp with time zone)\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    RETURN QUERY\n    SELECT\n        po.id,\n        po.po_number,\n        po.order_date,\n        po.status,\n        s.nama_supplier,\n        po.created_at\n    FROM\n        public.purchase_orders AS po\n    LEFT JOIN\n        public.suppliers AS s ON po.supplier_id = s.id\n    WHERE\n        (\n            search_term IS NULL OR search_term = '' OR\n            po.po_number ILIKE '%' || search_term || '%' OR\n            s.nama_supplier ILIKE '%' || search_term || '%'\n        )\n        AND (status_filter = 'semua' OR po.status = status_filter)\n        AND (supplier_id_filter IS NULL OR po.supplier_id = supplier_id_filter)\n        AND (start_date_filter IS NULL OR po.order_date >= start_date_filter)\n        AND (end_date_filter IS NULL OR po.order_date <= end_date_filter)\n    ORDER BY\n        po.created_at DESC NULLS LAST;\nEND;\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "get_special_prices_for_customer",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.get_special_prices_for_customer(customer_uuid uuid)\n RETURNS TABLE(id uuid, harga_spesial numeric, product_id uuid, kode text, nama text, ukuran text, harga_grosir_default numeric)\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n    RETURN QUERY\r\n    SELECT\r\n        dhm.id,\r\n        dhm.harga_spesial,\r\n        p.id AS product_id,\r\n        p.kode,\r\n        p.nama,\r\n        p.ukuran,\r\n        p.harga_grosir AS harga_grosir_default\r\n    FROM\r\n        public.daftar_harga_mitra AS dhm\r\n    JOIN\r\n        public.products AS p ON dhm.product_id = p.id\r\n    WHERE\r\n        dhm.customer_id = customer_uuid;\r\nEND;\r\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "search_active_products",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.search_active_products(search_term text)\n RETURNS SETOF products\n LANGUAGE sql\n STABLE\nAS $function$\n    SELECT *\n    FROM products\n    WHERE\n        status = 'Aktif' AND (\n            search_term IS NULL OR search_term = '' OR\n            kode ILIKE '%' || search_term || '%' OR\n            nama ILIKE '%' || search_term || '%' OR\n            merek ILIKE '%' || search_term || '%' OR\n            kategori ILIKE '%' || search_term || '%'\n        )\n    LIMIT 50;\n$function$\n",
+    "schema_name": "public"
+  },
+  {
     "function_name": "handle_new_user",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.handle_new_user()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nbegin\n  insert into public.profiles (id, role)\n  values (new.id, 'customer');\n  return new;\nend;\n$function$\n"
+    "function_definition": "CREATE OR REPLACE FUNCTION public.handle_new_user()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nbegin\n  insert into public.profiles (id, role)\n  values (new.id, 'customer');\n  return new;\nend;\n$function$\n",
+    "schema_name": "public"
   },
   {
-    "schema_name": "public",
-    "function_name": "handle_updated_at",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.handle_updated_at()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n  NEW.updated_at = NOW();\n  RETURN NEW;\nEND;\n$function$\n"
+    "function_name": "process_po_receipt_v2",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.process_po_receipt_v2(p_po_id uuid, p_invoice_image_url text, p_shipping_cost numeric, p_discount_amount numeric, p_other_costs numeric, p_payment_status text, p_due_date date, p_total_amount numeric, p_items jsonb)\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    item_data record; -- Menggunakan 'record' untuk loop\n    v_po_number text;\nBEGIN\n    -- Ambil nomor PO untuk keterangan log\n    SELECT po_number INTO v_po_number FROM public.purchase_orders WHERE id = p_po_id;\n\n    -- Update tabel purchase_orders utama dengan Total Akhir dari Frontend\n    UPDATE public.purchase_orders\n    SET\n        status = 'Selesai',\n        invoice_image_url = p_invoice_image_url,\n        shipping_cost = p_shipping_cost,\n        discount_amount = p_discount_amount,\n        other_costs = p_other_costs,\n        payment_status = p_payment_status,\n        due_date = p_due_date,\n        total_amount = p_total_amount\n    WHERE id = p_po_id;\n\n    -- Loop melalui setiap item\n    FOR item_data IN SELECT * FROM jsonb_populate_recordset(null::po_item_receipt_type, p_items)\n    LOOP\n        -- Update item PO dengan kuantitas diterima dan harga final\n        UPDATE public.purchase_order_items \n        SET \n            quantity_received = item_data.quantity_received, \n            purchase_price = item_data.final_landed_cost \n        WHERE id = item_data.po_item_id;\n\n        -- Update produk: tambah stok, perbarui harga beli, dan harga jual jika ada\n        UPDATE public.products \n        SET \n            stok = stok + item_data.quantity_to_add_to_stock, \n            harga_beli = item_data.final_landed_cost, \n            harga_jual = COALESCE(item_data.new_selling_price, harga_jual), \n            updated_at = now() \n        WHERE id = item_data.product_id;\n\n        -- Masukkan log penambahan stok\n        INSERT INTO public.stock_logs (product_id, perubahan, keterangan) \n        VALUES (item_data.product_id, item_data.quantity_to_add_to_stock, 'Penerimaan dari PO #' || v_po_number);\n    END LOOP;\n    \n    -- BLOK INSERT KE EXPENSES SUDAH DIHAPUS DARI SINI\n\nEND;\n$function$\n",
+    "schema_name": "public"
   },
   {
-    "schema_name": "public",
+    "function_name": "backfill_total_terjual",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.backfill_total_terjual()\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    -- Buat tabel sementara untuk menampung semua item yang terjual\n    CREATE TEMP TABLE sales_aggregation AS\n    -- Ambil item dari transaksi POS\n    SELECT\n        (item->>'id')::uuid AS product_id,\n        (item->>'quantity')::integer AS quantity\n    FROM\n        public.transactions,\n        jsonb_array_elements(items) AS item\n    WHERE\n        item ? 'harga_jual' -- Ciri khas item POS\n\n    UNION ALL\n\n    -- Ambil item dari transaksi Grosir\n    SELECT\n        (item->>'product_id')::uuid AS product_id,\n        (item->>'kuantitas')::integer AS quantity\n    FROM\n        public.transactions,\n        jsonb_array_elements(items) AS item\n    WHERE\n        item ? 'harga_grosir_deal'; -- Ciri khas item Grosir\n\n    -- Update tabel products dengan data yang sudah dihitung\n    UPDATE public.products p\n    SET\n        total_terjual = aggregated.total_sold\n    FROM (\n        SELECT\n            product_id,\n            SUM(quantity) as total_sold\n        FROM\n            sales_aggregation\n        GROUP BY\n            product_id\n    ) AS aggregated\n    WHERE\n        p.id = aggregated.product_id;\n\n    -- Hapus tabel sementara setelah selesai\n    DROP TABLE sales_aggregation;\nEND;\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "get_distinct_kategori",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.get_distinct_kategori()\n RETURNS TABLE(kategori text)\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    RETURN QUERY\n    SELECT DISTINCT p.kategori\n    FROM public.products p\n    WHERE p.kategori IS NOT NULL AND p.kategori <> ''\n    ORDER BY p.kategori;\nEND;\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "get_recent_purchase_orders",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.get_recent_purchase_orders()\n RETURNS TABLE(id uuid, po_number text, order_date date, status text, nama_supplier text, created_at timestamp with time zone)\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    RETURN QUERY\n    SELECT\n        po.id,\n        po.po_number,\n        po.order_date,\n        po.status,\n        s.nama_supplier,\n        po.created_at\n    FROM\n        public.purchase_orders AS po\n    LEFT JOIN\n        public.suppliers AS s ON po.supplier_id = s.id\n    ORDER BY\n        po.created_at DESC NULLS LAST\n    LIMIT 10; -- Hanya ambil 10 data terbaru\nEND;\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "get_related_products",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.get_related_products(p_product_id uuid, p_merek text, p_lini_produk text)\n RETURNS SETOF products\n LANGUAGE sql\nAS $function$\n    SELECT *\n    FROM public.products\n    WHERE\n        status = 'Aktif'\n        AND merek = p_merek\n        AND lini_produk = p_lini_produk\n        AND id != p_product_id -- Jangan tampilkan produk yang sedang dilihat\n    ORDER BY\n        total_terjual DESC, nama ASC\n    LIMIT 10; -- Batasi 10 produk terkait\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "get_products_for_special_price_editor",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.get_products_for_special_price_editor(p_customer_id uuid, p_search_term text, p_kategori_filter text, p_merek_filter text)\n RETURNS TABLE(id uuid, kode text, nama text, merek text, harga_grosir numeric, harga_spesial numeric)\n LANGUAGE plpgsql\nAS $function$\r\nBEGIN\r\n    RETURN QUERY\r\n    SELECT\r\n        p.id,\r\n        p.kode,\r\n        p.nama,\r\n        p.merek,\r\n        p.harga_grosir,\r\n        dhm.harga_spesial\r\n    FROM\r\n        public.products p\r\n    LEFT JOIN\r\n        public.daftar_harga_mitra dhm ON p.id = dhm.product_id AND dhm.customer_id = p_customer_id\r\n    WHERE\r\n        p.status = 'Aktif'\r\n        AND (p_search_term IS NULL OR p_search_term = '' OR p.nama ILIKE '%' || p_search_term || '%' OR p.kode ILIKE '%' || p_search_term || '%')\r\n        AND (p_kategori_filter = 'semua' OR p.kategori = p_kategori_filter)\r\n        AND (p_merek_filter = 'semua' OR p.merek = p_merek_filter)\r\n    ORDER BY\r\n        p.nama;\r\nEND;\r\n$function$\n",
+    "schema_name": "public"
+  },
+  {
     "function_name": "hex_to_rgb",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.hex_to_rgb(hex text)\n RETURNS double precision[]\n LANGUAGE plpgsql\n IMMUTABLE\nAS $function$\nDECLARE\n    r int;\n    g int;\n    b int;\nBEGIN\n    r := ('x' || substring(hex, 2, 2))::bit(8)::int;\n    g := ('x' || substring(hex, 4, 2))::bit(8)::int;\n    b := ('x' || substring(hex, 6, 2))::bit(8)::int;\n    RETURN ARRAY[r::double precision, g::double precision, b::double precision];\nEND;\n$function$\n"
+    "function_definition": "CREATE OR REPLACE FUNCTION public.hex_to_rgb(hex text)\n RETURNS double precision[]\n LANGUAGE plpgsql\n IMMUTABLE\nAS $function$\nDECLARE\n    r int;\n    g int;\n    b int;\nBEGIN\n    r := ('x' || substring(hex, 2, 2))::bit(8)::int;\n    g := ('x' || substring(hex, 4, 2))::bit(8)::int;\n    b := ('x' || substring(hex, 6, 2))::bit(8)::int;\n    RETURN ARRAY[r::double precision, g::double precision, b::double precision];\nEND;\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "find_closest_colors",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.find_closest_colors(input_hex text)\n RETURNS TABLE(id uuid, nama text, sku text, merek text, color_hex text, image_url text, color_swatch_url text, distance double precision)\n LANGUAGE sql\nAS $function$\n    SELECT\n        p.id,\n        p.nama,\n        p.sku,\n        p.merek,\n        p.color_hex,\n        p.image_url,\n        p.color_swatch_url,\n        -- PERBAIKAN UTAMA: Hitung jarak dengan mengakses elemen array secara langsung\n        SQRT(\n            POWER( (public.hex_to_rgb(p.color_hex))[1] - (public.hex_to_rgb(input_hex))[1], 2) +\n            POWER( (public.hex_to_rgb(p.color_hex))[2] - (public.hex_to_rgb(input_hex))[2], 2) +\n            POWER( (public.hex_to_rgb(p.color_hex))[3] - (public.hex_to_rgb(input_hex))[3], 2)\n        ) as distance\n    FROM\n        public.products p\n    WHERE\n        p.kategori = 'Pilok' AND p.color_hex IS NOT NULL\n    ORDER BY\n        distance ASC -- Urutkan dari yang paling mirip\n    LIMIT 5;\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "get_transaction_summary",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.get_transaction_summary()\n RETURNS TABLE(today numeric, unpaid numeric, \"thisMonth\" bigint)\n LANGUAGE sql\nAS $function$\n    select\n        coalesce(sum(case when date(created_at) = current_date then total_akhir else 0 end), 0) as today,\n        coalesce(sum(case when status_pembayaran = 'Belum Lunas' then sisa_hutang else 0 end), 0) as unpaid,\n        count(case when date_trunc('month', created_at) = date_trunc('month', current_date) then 1 end) as \"thisMonth\"\n    from public.transactions;\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "get_products_for_special_price_editor",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.get_products_for_special_price_editor(p_customer_id uuid, p_search_term text, p_kategori_filter text, p_merek_filter text, p_ukuran_filter text)\n RETURNS TABLE(id uuid, kode text, nama text, merek text, harga_grosir numeric, harga_spesial numeric)\n LANGUAGE plpgsql\nAS $function$\r\nBEGIN\r\n    RETURN QUERY\r\n    SELECT\r\n        p.id,\r\n        p.kode,\r\n        p.nama,\r\n        p.merek,\r\n        p.harga_grosir,\r\n        dhm.harga_spesial\r\n    FROM\r\n        public.products p\r\n    LEFT JOIN\r\n        public.daftar_harga_mitra dhm ON p.id = dhm.product_id AND dhm.customer_id = p_customer_id\r\n    WHERE\r\n        p.status = 'Aktif'\r\n        AND (p_search_term IS NULL OR p_search_term = '' OR p.nama ILIKE '%' || p_search_term || '%' OR p.kode ILIKE '%' || p_search_term || '%')\r\n        AND (p_kategori_filter = 'semua' OR p.kategori = p_kategori_filter)\r\n        AND (p_merek_filter = 'semua' OR p.merek = p_merek_filter)\r\n        AND (p_ukuran_filter = 'semua' OR p.ukuran = p_ukuran_filter); -- <-- TAMBAHAN BARU\r\nEND;\r\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "handle_updated_at",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.handle_updated_at()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n  NEW.updated_at = NOW();\n  RETURN NEW;\nEND;\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "process_po_receipt",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.process_po_receipt(p_po_id uuid, p_invoice_image_url text, p_items jsonb)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nDECLARE\n    item_record jsonb;\n    v_product_id uuid;\n    v_quantity integer;\n    v_new_purchase_price numeric;\n    v_new_selling_price numeric;\n    v_total_amount numeric := 0;\n    v_supplier_name text;\n    v_po_number text;\nBEGIN\n    PERFORM set_config('request.bypass_rls', 'on', true);\n\n    FOR item_record IN SELECT * FROM jsonb_array_elements(p_items)\n    LOOP\n        v_product_id := (item_record->>'product_id')::uuid;\n        v_quantity := (item_record->>'quantity_ordered')::integer;\n        v_new_purchase_price := (item_record->>'new_purchase_price')::numeric;\n        v_new_selling_price := (item_record->>'new_selling_price')::numeric;\n\n        UPDATE public.purchase_order_items SET purchase_price = v_new_purchase_price, quantity_received = v_quantity WHERE purchase_order_id = p_po_id AND product_id = v_product_id;\n        UPDATE public.products SET stok = stok + v_quantity, harga_beli = v_new_purchase_price, harga_jual = COALESCE(v_new_selling_price, harga_jual) WHERE id = v_product_id;\n        INSERT INTO public.stock_logs(product_id, perubahan, keterangan) VALUES (v_product_id, v_quantity, 'Penerimaan barang dari PO');\n        v_total_amount := v_total_amount + (v_new_purchase_price * v_quantity);\n    END LOOP;\n\n    SELECT po.po_number, s.nama_supplier INTO v_po_number, v_supplier_name FROM public.purchase_orders po LEFT JOIN public.suppliers s ON po.supplier_id = s.id WHERE po.id = p_po_id;\n    UPDATE public.purchase_orders SET status = 'Selesai', total_amount = v_total_amount, invoice_image_url = p_invoice_image_url WHERE id = p_po_id;\n    \n    -- PERBAIKAN FINAL DI SINI: Menggunakan `kategori_pengeluaran`\n    INSERT INTO public.expenses(tanggal, kategori_pengeluaran, keterangan, jumlah) \n    VALUES (CURRENT_DATE, 'Pembelian Stok', 'Pembelian ke ' || COALESCE(v_supplier_name, 'Supplier Umum') || ' (PO: ' || v_po_number || ')', v_total_amount);\nEND;\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "search_products",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.search_products(search_term text, merek_filter text, kategori_filter text, status_filter text, supplier_filter text, low_stock_only boolean)\n RETURNS SETOF products\n LANGUAGE plpgsql\nAS $function$ -- <-- Menggunakan struktur return yang benar\nBEGIN\n    RETURN QUERY\n    SELECT *\n    FROM public.products\n    WHERE\n        (\n            search_term IS NULL OR search_term = '' OR\n            kode ILIKE '%' || search_term || '%' OR\n            nama ILIKE '%' || search_term || '%' OR\n            merek ILIKE '%' || search_term || '%' OR\n            kategori ILIKE '%' || search_term || '%'\n        )\n        AND (merek_filter = 'semua' OR merek ILIKE merek_filter)\n        AND (kategori_filter = 'semua' OR kategori ILIKE kategori_filter)\n        AND (status_filter = 'semua' OR status ILIKE status_filter)\n        AND (supplier_filter = 'semua' OR supplier ILIKE supplier_filter)\n        -- Ini satu-satunya baris logika yang diubah dari kode asli Anda\n        AND (low_stock_only = false OR (stok <= stok_min))\n    ORDER BY\n        updated_at DESC NULLS LAST;\nEND;\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "get_best_selling_products",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.get_best_selling_products(start_date text, end_date text, category_filter text DEFAULT NULL::text)\n RETURNS TABLE(id uuid, kode text, sku text, nama text, merek text, kategori text, nama_supplier text, total_terjual numeric, stok_saat_ini integer, stok_minimal integer)\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    RETURN QUERY\n    WITH all_items AS (\n        -- Ambil item dari transaksi POS (struktur lama)\n        SELECT\n            (item->>'id')::uuid AS product_id,\n            (item->>'quantity')::numeric AS quantity\n        FROM\n            public.transactions,\n            jsonb_array_elements(items) AS item\n        WHERE\n            created_at >= start_date::timestamp AND created_at <= end_date::timestamp\n            AND item->>'harga_grosir_deal' IS NULL -- Ciri khas item POS\n\n        UNION ALL\n\n        -- Ambil item dari transaksi Grosir (struktur baru)\n        SELECT\n            (item->>'product_id')::uuid AS product_id,\n            (item->>'kuantitas')::numeric AS quantity\n        FROM\n            public.transactions,\n            jsonb_array_elements(items) AS item\n        WHERE\n            created_at >= start_date::timestamp AND created_at <= end_date::timestamp\n            AND item->>'harga_grosir_deal' IS NOT NULL -- Ciri khas item Grosir\n    )\n    SELECT\n        p.id,\n        p.kode,\n        p.sku, -- <-- Mengambil kolom baru\n        p.nama,\n        p.merek,\n        p.kategori,\n        s.nama_supplier,\n        sum(ai.quantity) AS total_terjual,\n        p.stok AS stok_saat_ini,\n        p.stok_min AS stok_minimal\n    FROM\n        all_items ai\n    JOIN\n        public.products p ON ai.product_id = p.id\n    LEFT JOIN\n        public.suppliers s ON p.supplier_id = s.id\n    WHERE\n        (category_filter IS NULL OR p.kategori = category_filter)\n    GROUP BY\n        p.id, s.nama_supplier\n    ORDER BY\n        total_terjual DESC;\nEND;\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "search_products_for_po_v2",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.search_products_for_po_v2(search_term text, merek_filter text, kategori_filter text, supplier_filter text)\n RETURNS TABLE(id uuid, kode text, nama text, merek text, kategori text, stok integer, supplier text, satuan_dasar text, satuan_pembelian text, nilai_konversi numeric, ukuran text)\n LANGUAGE plpgsql\nAS $function$\r\nBEGIN\r\n    RETURN QUERY\r\n    SELECT\r\n        p.id,\r\n        p.kode,\r\n        p.nama,\r\n        p.merek,\r\n        p.kategori,\r\n        p.stok,\r\n        p.supplier,\r\n        p.satuan_dasar,\r\n        p.satuan_pembelian,\r\n        p.nilai_konversi,\r\n        p.ukuran -- <-- Tambahan kolom di SELECT\r\n    FROM\r\n        public.products AS p\r\n    WHERE\r\n        p.status = 'Aktif'\r\n        -- Semua logika WHERE di bawah ini SAMA PERSIS dengan kode stabil Anda\r\n        AND (merek_filter = 'semua' OR p.merek ILIKE merek_filter)\r\n        AND (kategori_filter = 'semua' OR p.kategori ILIKE kategori_filter)\r\n        AND (supplier_filter = 'semua' OR p.supplier ILIKE supplier_filter)\r\n        AND (\r\n            search_term IS NULL OR search_term = '' OR\r\n            p.kode ILIKE '%' || search_term || '%' OR\r\n            p.nama ILIKE '%' || search_term || '%' OR\r\n            p.merek ILIKE '%' || search_term || '%' OR\r\n            p.kategori ILIKE '%' || search_term || '%'\r\n        );\r\nEND;\r\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "search_products_for_po",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.search_products_for_po(search_term text, merek_filter text, kategori_filter text, supplier_filter text)\n RETURNS TABLE(id uuid, kode text, nama text, merek text, kategori text, stok integer, supplier text)\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    RETURN QUERY\n    SELECT\n        p.id,\n        p.kode,\n        p.nama,\n        p.merek,\n        p.kategori,\n        p.stok,\n        p.supplier\n    FROM\n        products AS p\n    WHERE\n        p.status = 'Aktif'\n        AND (\n            search_term IS NULL OR search_term = '' OR\n            p.kode ILIKE '%' || search_term || '%' OR\n            p.nama ILIKE '%' || search_term || '%' OR\n            p.merek ILIKE '%' || search_term || '%' OR\n            p.kategori ILIKE '%' || search_term || '%' OR\n            p.supplier ILIKE '%' || search_term || '%'\n        )\n        AND (merek_filter = 'semua' OR p.merek = merek_filter)\n        AND (kategori_filter = 'semua' OR p.kategori = kategori_filter)\n        AND (supplier_filter = 'semua' OR p.supplier = supplier_filter);\nEND;\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "test_get_pos",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.test_get_pos()\n RETURNS TABLE(id uuid, po_number text)\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    RETURN QUERY \n    SELECT po.id, po.po_number \n    FROM public.purchase_orders po \n    LIMIT 5;\nEND;\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "log_product_changes",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.log_product_changes()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    -- Jika ini adalah penambahan produk baru (INSERT)\n    IF (TG_OP = 'INSERT') THEN\n        INSERT INTO public.product_history_logs(product_id, change_type)\n        VALUES(NEW.id, 'PRODUK DIBUAT');\n        RETURN NEW;\n    END IF;\n\n    -- Jika ini adalah pengeditan produk (UPDATE)\n    IF (TG_OP = 'UPDATE') THEN\n        -- Cek dan catat perubahan NAMA PRODUK\n        IF OLD.nama IS DISTINCT FROM NEW.nama THEN\n            INSERT INTO public.product_history_logs(product_id, field_changed, old_value, new_value, change_type)\n            VALUES(NEW.id, 'nama', OLD.nama, NEW.nama, 'EDIT PRODUK');\n        END IF;\n\n        -- Cek dan catat perubahan HARGA JUAL\n        IF OLD.harga_jual IS DISTINCT FROM NEW.harga_jual THEN\n            INSERT INTO public.product_history_logs(product_id, field_changed, old_value, new_value, change_type)\n            VALUES(NEW.id, 'harga_jual', OLD.harga_jual::text, NEW.harga_jual::text, 'EDIT PRODUK');\n        END IF;\n\n        -- Cek dan catat perubahan HARGA BELI\n        IF OLD.harga_beli IS DISTINCT FROM NEW.harga_beli THEN\n            INSERT INTO public.product_history_logs(product_id, field_changed, old_value, new_value, change_type)\n            VALUES(NEW.id, 'harga_beli', OLD.harga_beli::text, NEW.harga_beli::text, 'EDIT PRODUK');\n        END IF;\n\n        -- Cek dan catat perubahan STOK MINIMAL\n        IF OLD.stok_min IS DISTINCT FROM NEW.stok_min THEN\n            INSERT INTO public.product_history_logs(product_id, field_changed, old_value, new_value, change_type)\n            VALUES(NEW.id, 'stok_min', OLD.stok_min::text, NEW.stok_min::text, 'EDIT PRODUK');\n        END IF;\n\n        -- ### TAMBAHAN BARU: Cek dan catat perubahan STOK ###\n        IF OLD.stok IS DISTINCT FROM NEW.stok THEN\n            INSERT INTO public.product_history_logs(product_id, field_changed, old_value, new_value, change_type)\n            VALUES(NEW.id, 'stok', OLD.stok::text, NEW.stok::text, 'EDIT STOK MANUAL');\n        END IF;\n        \n        RETURN NEW;\n    END IF;\n\n    RETURN NULL;\nEND;\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "search_and_sort_products",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.search_and_sort_products(p_kategori text, p_merek text, p_lini_produk text, p_color_variant text, p_ukuran text, p_sort_by text, p_search_term text)\n RETURNS SETOF products\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    RETURN QUERY\n    SELECT *\n    FROM public.products\n    WHERE\n        status = 'Aktif'\n        AND (p_kategori IS NULL OR kategori = p_kategori)\n        AND (p_merek IS NULL OR merek = p_merek)\n        AND (p_lini_produk IS NULL OR lini_produk = p_lini_produk)\n        AND (p_color_variant IS NULL OR color_variant = p_color_variant) -- <-- Filter baru\n        AND (p_ukuran IS NULL OR ukuran = p_ukuran)\n        AND (\n            p_search_term IS NULL OR p_search_term = '' OR\n            nama ILIKE '%' || p_search_term || '%' OR\n            sku ILIKE '%' || p_search_term || '%'\n        )\n    ORDER BY\n        CASE WHEN p_sort_by = 'terbaru' THEN created_at END DESC,\n        CASE WHEN p_sort_by = 'terlaris' THEN total_terjual END DESC NULLS LAST,\n        CASE WHEN p_sort_by = 'harga_asc' THEN harga_jual END ASC,\n        CASE WHEN p_sort_by = 'harga_desc' THEN harga_jual END DESC,\n        nama ASC;\nEND;\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "confirm_sales_order",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.confirm_sales_order(order_id uuid)\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE\r\n    item RECORD;\r\nBEGIN\r\n    -- Update status pesanan menjadi 'Dikonfirmasi'\r\n    UPDATE public.sales_orders\r\n    SET status = 'Dikonfirmasi'\r\n    WHERE id = order_id AND status = 'Draft';\r\n\r\n    -- Jika tidak ada baris yang diupdate (karena status bukan 'Draft'), keluar.\r\n    IF NOT FOUND THEN\r\n        RAISE EXCEPTION 'Pesanan tidak ditemukan atau statusnya bukan Draft.';\r\n    END IF;\r\n\r\n    -- Loop melalui setiap item di pesanan untuk mengalokasikan stok\r\n    FOR item IN\r\n        SELECT product_id, kuantitas FROM public.sales_order_items WHERE sales_order_id = order_id\r\n    LOOP\r\n        UPDATE public.products\r\n        SET stok_dialokasikan = stok_dialokasikan + item.kuantitas\r\n        WHERE id = item.product_id;\r\n    END LOOP;\r\nEND;\r\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "generate_invoice_number",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.generate_invoice_number()\n RETURNS text\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE\r\n    new_inv_number TEXT;\r\n    year_short TEXT;\r\n    next_val BIGINT;\r\nBEGIN\r\n    -- Menggunakan sequence yang sama dengan SO agar nomor urutnya sinkron\r\n    next_val := nextval('public.order_number_seq');\r\n    year_short := to_char(CURRENT_DATE, 'YY');\r\n    new_inv_number := 'BJS/INV/' || year_short || '/' || lpad(next_val::text, 5, '0');\r\n    RETURN new_inv_number;\r\nEND;\r\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "process_grosir_invoice",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.process_grosir_invoice(p_sales_order_id uuid, p_customer_id uuid, p_invoice_number text, p_termin_pembayaran text, p_items jsonb)\n RETURNS uuid\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    -- ... (deklarasi variabel tidak berubah) ...\n    new_invoice_id uuid;\n    total_subtotal numeric := 0;\n    total_diskon_item numeric := 0;\n    total_laba_invoice numeric := 0;\n    item record;\n    product_info record;\nBEGIN\n    -- ... (blok kalkulasi total tidak berubah) ...\n    FOR item IN SELECT * FROM jsonb_to_recordset(p_items) AS x(product_id uuid, kuantitas integer, harga_grosir_deal numeric, diskon_item_rp numeric) LOOP\n        total_subtotal := total_subtotal + (item.harga_grosir_deal * item.kuantitas);\n        total_diskon_item := total_diskon_item + (item.diskon_item_rp * item.kuantitas);\n    END LOOP;\n\n    -- ... (blok insert ke tabel invoices tidak berubah) ...\n    INSERT INTO public.invoices(sales_order_id, customer_id, invoice_number, termin_pembayaran, subtotal, total_diskon, total_akhir, status_pembayaran)\n    VALUES (p_sales_order_id, p_customer_id, p_invoice_number, p_termin_pembayaran, total_subtotal, total_diskon_item, total_subtotal - total_diskon_item, 'Belum Lunas')\n    RETURNING id INTO new_invoice_id;\n\n    -- ... (blok loop untuk menyimpan item tidak berubah) ...\n     FOR item IN SELECT * FROM jsonb_to_recordset(p_items) AS x(product_id uuid, kuantitas integer, harga_grosir_deal numeric, diskon_item_rp numeric) LOOP\n        INSERT INTO public.invoice_items(invoice_id, product_id, kuantitas, harga_grosir_deal, diskon_item_rp, subtotal)\n        VALUES (new_invoice_id, item.product_id, item.kuantitas, item.harga_grosir_deal, item.diskon_item_rp, (item.harga_grosir_deal * item.kuantitas));\n        SELECT harga_beli INTO product_info FROM public.products WHERE id = item.product_id;\n        total_laba_invoice := total_laba_invoice + ((item.harga_grosir_deal * item.kuantitas) - (product_info.harga_beli * item.kuantitas) - (item.diskon_item_rp * item.kuantitas));\n        UPDATE public.products SET stok = stok - item.kuantitas, stok_dialokasikan = stok_dialokasikan - item.kuantitas WHERE id = item.product_id;\n    END LOOP;\n\n    -- --- PERUBAHAN DI SINI ---\n    -- 4. Buat record di tabel transactions, sekarang dengan invoice_number\n    INSERT INTO public.transactions(customer_id, total, diskon, total_akhir, bayar, kembalian, total_laba, items, status_pembayaran, sisa_hutang, invoice_number)\n    VALUES(p_customer_id, total_subtotal, total_diskon_item, total_subtotal - total_diskon_item, 0, 0, total_laba_invoice, p_items, 'Belum Lunas', total_subtotal - total_diskon_item, p_invoice_number); -- <-- Tambahkan p_invoice_number\n\n    -- Baris untuk update sales_orders sudah kita hapus sebelumnya (ini sudah benar)\n\n    RETURN new_invoice_id;\nEND;\n$function$\n",
+    "schema_name": "public"
+  },
+  {
+    "function_name": "calculate_profit_loss",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.calculate_profit_loss(start_date text, end_date text)\n RETURNS TABLE(total_pendapatan numeric, total_hpp numeric, laba_kotor numeric, total_pengeluaran numeric, laba_bersih numeric)\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    v_total_pendapatan numeric;\n    v_total_hpp numeric;\n    v_laba_kotor numeric;\n    v_total_pengeluaran numeric;\n    v_laba_bersih numeric;\nBEGIN\n    -- 1. Hitung Total Pendapatan\n    SELECT COALESCE(SUM(total_akhir), 0)\n    INTO v_total_pendapatan\n    FROM public.transactions\n    WHERE created_at >= start_date::timestamp AND created_at <= end_date::timestamp;\n\n    -- 2. Hitung Total Pengeluaran\n    SELECT COALESCE(SUM(jumlah), 0)\n    INTO v_total_pengeluaran\n    FROM public.expenses\n    WHERE tanggal >= start_date::timestamp AND tanggal <= end_date::timestamp;\n\n    -- 3. Hitung Total HPP\n    WITH all_sold_items AS (\n        -- Ambil item dari transaksi POS\n        SELECT\n            (item->>'id')::uuid AS product_id,\n            (item->>'quantity')::numeric AS quantity,\n            (item->>'harga_beli')::numeric AS purchase_price\n        FROM \n            public.transactions t, -- <-- TAMBAHKAN ALIAS 't'\n            jsonb_array_elements(items) AS item\n        WHERE \n            t.created_at >= start_date::timestamp AND t.created_at <= end_date::timestamp -- <-- PERBAIKI: Gunakan t.created_at\n            AND item->>'harga_grosir_deal' IS NULL\n\n        UNION ALL\n\n        -- Ambil item dari transaksi Grosir\n        SELECT\n            (item->>'product_id')::uuid AS product_id,\n            (item->>'kuantitas')::numeric AS quantity,\n            p.harga_beli AS purchase_price\n        FROM \n            public.transactions t, -- <-- TAMBAHKAN ALIAS 't'\n            jsonb_array_elements(items) AS item\n        JOIN \n            public.products p ON p.id = (item->>'product_id')::uuid\n        WHERE \n            t.created_at >= start_date::timestamp AND t.created_at <= end_date::timestamp -- <-- PERBAIKI: Gunakan t.created_at\n            AND item->>'harga_grosir_deal' IS NOT NULL\n    )\n    SELECT COALESCE(SUM(quantity * purchase_price), 0)\n    INTO v_total_hpp\n    FROM all_sold_items;\n\n    -- 4. Hitung Laba Kotor dan Laba Bersih\n    v_laba_kotor := v_total_pendapatan - v_total_hpp;\n    v_laba_bersih := v_laba_kotor - v_total_pengeluaran;\n\n    -- 5. Kembalikan semua hasil\n    RETURN QUERY\n    SELECT\n        v_total_pendapatan,\n        v_total_hpp,\n        v_laba_kotor,\n        v_total_pengeluaran,\n        v_laba_bersih;\nEND;\n$function$\n",
+    "schema_name": "public"
   }
 ]

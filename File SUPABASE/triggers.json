@@ -1,68 +1,23 @@
 [
   {
-    "schema_name": "auth",
-    "table_name": "users",
-    "trigger_name": "on_auth_user_created",
-    "full_definition": "CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user()"
-  },
-  {
-    "schema_name": "public",
     "table_name": "products",
     "trigger_name": "on_products_update",
-    "full_definition": "CREATE TRIGGER on_products_update BEFORE UPDATE ON public.products FOR EACH ROW EXECUTE FUNCTION handle_updated_at()"
+    "trigger_event": "UPDATE",
+    "trigger_definition": "EXECUTE FUNCTION handle_updated_at()",
+    "execution_time": "BEFORE"
   },
   {
-    "schema_name": "public",
     "table_name": "products",
     "trigger_name": "product_changes_trigger",
-    "full_definition": "CREATE TRIGGER product_changes_trigger AFTER INSERT OR UPDATE ON public.products FOR EACH ROW EXECUTE FUNCTION log_product_changes()"
+    "trigger_event": "INSERT",
+    "trigger_definition": "EXECUTE FUNCTION log_product_changes()",
+    "execution_time": "AFTER"
   },
   {
-    "schema_name": "realtime",
-    "table_name": "subscription",
-    "trigger_name": "tr_check_filters",
-    "full_definition": "CREATE TRIGGER tr_check_filters BEFORE INSERT OR UPDATE ON realtime.subscription FOR EACH ROW EXECUTE FUNCTION realtime.subscription_check_filters()"
-  },
-  {
-    "schema_name": "storage",
-    "table_name": "buckets",
-    "trigger_name": "enforce_bucket_name_length_trigger",
-    "full_definition": "CREATE TRIGGER enforce_bucket_name_length_trigger BEFORE INSERT OR UPDATE OF name ON storage.buckets FOR EACH ROW EXECUTE FUNCTION storage.enforce_bucket_name_length()"
-  },
-  {
-    "schema_name": "storage",
-    "table_name": "objects",
-    "trigger_name": "objects_delete_delete_prefix",
-    "full_definition": "CREATE TRIGGER objects_delete_delete_prefix AFTER DELETE ON storage.objects FOR EACH ROW EXECUTE FUNCTION storage.delete_prefix_hierarchy_trigger()"
-  },
-  {
-    "schema_name": "storage",
-    "table_name": "objects",
-    "trigger_name": "objects_insert_create_prefix",
-    "full_definition": "CREATE TRIGGER objects_insert_create_prefix BEFORE INSERT ON storage.objects FOR EACH ROW EXECUTE FUNCTION storage.objects_insert_prefix_trigger()"
-  },
-  {
-    "schema_name": "storage",
-    "table_name": "objects",
-    "trigger_name": "objects_update_create_prefix",
-    "full_definition": "CREATE TRIGGER objects_update_create_prefix BEFORE UPDATE ON storage.objects FOR EACH ROW WHEN (((new.name <> old.name) OR (new.bucket_id <> old.bucket_id))) EXECUTE FUNCTION storage.objects_update_prefix_trigger()"
-  },
-  {
-    "schema_name": "storage",
-    "table_name": "objects",
-    "trigger_name": "update_objects_updated_at",
-    "full_definition": "CREATE TRIGGER update_objects_updated_at BEFORE UPDATE ON storage.objects FOR EACH ROW EXECUTE FUNCTION storage.update_updated_at_column()"
-  },
-  {
-    "schema_name": "storage",
-    "table_name": "prefixes",
-    "trigger_name": "prefixes_create_hierarchy",
-    "full_definition": "CREATE TRIGGER prefixes_create_hierarchy BEFORE INSERT ON storage.prefixes FOR EACH ROW WHEN ((pg_trigger_depth() < 1)) EXECUTE FUNCTION storage.prefixes_insert_trigger()"
-  },
-  {
-    "schema_name": "storage",
-    "table_name": "prefixes",
-    "trigger_name": "prefixes_delete_hierarchy",
-    "full_definition": "CREATE TRIGGER prefixes_delete_hierarchy AFTER DELETE ON storage.prefixes FOR EACH ROW EXECUTE FUNCTION storage.delete_prefix_hierarchy_trigger()"
+    "table_name": "products",
+    "trigger_name": "product_changes_trigger",
+    "trigger_event": "UPDATE",
+    "trigger_definition": "EXECUTE FUNCTION log_product_changes()",
+    "execution_time": "AFTER"
   }
 ]

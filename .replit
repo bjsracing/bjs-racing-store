@@ -1,4 +1,4 @@
-modules = ["nodejs-22", "postgresql-16"]
+modules = ["nodejs-22"]
 hidden = [".config", "package-lock.json"]
 
 # Perintah untuk menjalankan server development Astro
@@ -18,40 +18,5 @@ externalPort = 80
 localPort = 4322
 externalPort = 3000
 
-[[ports]]
-localPort = 5000
-externalPort = 80
-
-[[ports]]
-localPort = 34407
-externalPort = 3001
-
 [agent]
 expertMode = true
-
-[workflows]
-runButton = "Project"
-
-[[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Development Server"
-
-[[workflows.workflow]]
-name = "Development Server"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
-waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[nix]
-channel = "stable-25_05"

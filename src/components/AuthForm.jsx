@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
-import { supabase } from "../lib/supabaseClient.ts";
+import { supabase } from "../lib/supabaseClient.js";
 
 const AuthForm = () => {
   useEffect(() => {

@@ -1,8 +1,6 @@
 ---
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-import CartInitializer from '../components/CartInitializer.jsx';
-import ToastContainer from '../components/ToastContainer.jsx';
 
 const { session } = Astro.locals;
 
@@ -47,8 +45,6 @@ const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
   </head>
   <body class="bg-slate-100 text-slate-800 text-sm mobile:text-base tablet:text-lg">
     <Header session={session} />
-    <CartInitializer client:load />
-    <ToastContainer client:load />
     
     <main class="min-h-screen container mx-auto px-3 mobile:px-4 tablet:px-6 desktop:px-8 py-4">
       <slot />
@@ -56,158 +52,181 @@ const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
 
     <Footer />
     
-
-    {/* Skrip yang sudah ada - DIJAGA SEPERTI ASLINYA */}
+    {/* PWA Registration Script */}
     <script>
-      // ✅ DEBOUNCE FUNCTION UNTUK PERFORMANCE
-      function debounce(func, wait) {
-        let timeout;
-        return function executedFunction(...args) {
-          const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-          };
-          clearTimeout(timeout);
-          timeout = setTimeout(later, wait);
-        };
-      }
-      
-      // ✅ DETECTION CODE
-      function detectDeviceCapabilities() {
-        const userAgent = navigator.userAgent;
-        const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
-        const isAndroid = /Android/.test(userAgent);
-        const isMobile = /Mobile/.test(userAgent) || window.innerWidth < 768;
-        const isTablet = /iPad|Android.*Tablet|Tablet/.test(userAgent) || (window.innerWidth >= 768 && window.innerWidth <= 1024);
-        const isDesktop = !isMobile && !isTablet;
-        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-        const isLandscape = window.matchMedia("(orientation: landscape)").matches;
-        
-        const html = document.documentElement;
-        
-        html.classList.remove('ios', 'android', 'mobile', 'tablet', 'desktop', 'touch-device', 'pointer-device', 'landscape', 'portrait');
-        
-        if (isIOS) html.classList.add('ios');
-        if (isAndroid) html.classList.add('android');
-        if (isMobile) html.classList.add('mobile');
-        if (isTablet) html.classList.add('tablet');
-        if (isDesktop) html.classList.add('desktop');
-        if (isTouchDevice) html.classList.add('touch-device');
-        if (!isTouchDevice) html.classList.add('pointer-device');
-        if (isLandscape) html.classList.add('landscape');
-        if (!isLandscape) html.classList.add('portrait');
-        
-        window.deviceInfo = {
-          isIOS, isAndroid, isMobile, isTablet, isDesktop, isTouchDevice, isLandscape, userAgent
-        };
-        
-        console.log('🔄 BJS Racing - Device detected:', window.deviceInfo);
-        return window.deviceInfo;
-      }
-      
-      // Fungsi untuk menangani perubahan orientasi
-      function handleOrientationChange() {
-        const isLandscape = window.matchMedia("(orientation: landscape)").matches;
-        const html = document.documentElement;
-        
-        if (isLandscape) {
-          html.classList.add('landscape');
-          html.classList.remove('portrait');
-          document.dispatchEvent(new CustomEvent('orientationlandscape'));
-          console.log('📱 Orientation changed: Landscape');
-        } else {
-          html.classList.add('portrait');
-          html.classList.remove('landscape');
-          document.dispatchEvent(new CustomEvent('orientationportrait'));
-          console.log('📱 Orientation changed: Portrait');
-        }
-      }
-      
-      // Fungsi untuk menangani resize
-      function handleResize() {
-        detectDeviceCapabilities();
-        
-        const width = window.innerWidth;
-        if (width < 768) {
-          document.documentElement.classList.add('layout-mobile');
-          document.documentElement.classList.remove('layout-tablet', 'layout-desktop');
-        } else if (width >= 768 && width < 1024) {
-          document.documentElement.classList.add('layout-tablet');
-          document.documentElement.classList.remove('layout-mobile', 'layout-desktop');
-        } else {
-          document.documentElement.classList.add('layout-desktop');
-          document.documentElement.classList.remove('layout-mobile', 'layout-tablet');
-        }
-      }
-      
-      document.addEventListener('DOMContentLoaded', function() {
-        detectDeviceCapabilities();
-        handleOrientationChange();
-        handleResize();
-        
-        window.addEventListener('resize', debounce(handleResize, 250));
-        window.addEventListener('orientationchange', debounce(handleOrientationChange, 250));
-        
-        if (window.deviceInfo && window.deviceInfo.isIOS) {
-          document.body.style.minHeight = '-webkit-fill-available';
-          document.addEventListener('touchstart', function() {}, {passive: true});
-        }
-        
-        if ('serviceWorker' in navigator) {
-          window.addEventListener('load', function() {
-            navigator.serviceWorker.register('/sw.js')
-              .then(function(registration) {
-                console.log('SW registered: ', registration);
-              })
-              .catch(function(registrationError) {
-                console.log('SW registration failed: ', registrationError);
-              });
-          });
-        }
-        
-        let deferredPrompt;
-        const installButton = document.createElement('button');
-        
-        window.addEventListener('beforeinstallprompt', (e) => {
-          e.preventDefault();
-          deferredPrompt = e;
-          
-          installButton.style.display = 'block';
-          installButton.textContent = 'Install App';
-          installButton.classList.add('fixed', 'bottom-4', 'right-4', 'bg-orange-500', 'text-white', 'px-4', 'py-2', 'rounded-lg', 'shadow-lg');
-          document.body.appendChild(installButton);
-        });
-        
-        installButton.addEventListener('click', async () => {
-          if (!deferredPrompt) return;
-          
-          deferredPrompt.prompt();
-          const { outcome } = await deferredPrompt.userChoice;
-          
-          if (outcome === 'accepted') {
-            installButton.style.display = 'none';
-          }
-          
-          deferredPrompt = null;
-        });
-        
-        window.addEventListener('appinstalled', () => {
-          installButton.style.display = 'none';
-          deferredPrompt = null;
-          console.log('PWA was installed');
-        });
-      });
+// ✅ DEBOUNCE FUNCTION UNTUK PERFORMANCE
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
 
-      window.isMobile = function() { return window.deviceInfo?.isMobile || false; };
-      window.isTablet = function() { return window.deviceInfo?.isTablet || false; };
-      window.isDesktop = function() { return window.deviceInfo?.isDesktop || false; };
-    </script>
-    {/* Development debug console - only in development */}
-    {import.meta.env.DEV && (
-      <>
-        <script is:inline src="//cdn.jsdelivr.net/npm/eruda"></script>
-        <script is:inline>eruda.init();</script>
-      </>
-    )}
+// ✅ DETECTION CODE
+function detectDeviceCapabilities() {
+  const userAgent = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
+  const isAndroid = /Android/.test(userAgent);
+  const isMobile = /Mobile/.test(userAgent) || window.innerWidth < 768;
+  const isTablet = /iPad|Android.*Tablet|Tablet/.test(userAgent) || 
+                  (window.innerWidth >= 768 && window.innerWidth <= 1024);
+  const isDesktop = !isMobile && !isTablet;
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  const isLandscape = window.matchMedia("(orientation: landscape)").matches;
+  
+  // Tambahkan class ke html element berdasarkan deteksi
+  const html = document.documentElement;
+  
+  // Hapus class sebelumnya
+  html.classList.remove('ios', 'android', 'mobile', 'tablet', 'desktop', 'touch-device', 'pointer-device', 'landscape', 'portrait');
+  
+  // Tambahkan class baru
+  if (isIOS) html.classList.add('ios');
+  if (isAndroid) html.classList.add('android');
+  if (isMobile) html.classList.add('mobile');
+  if (isTablet) html.classList.add('tablet');
+  if (isDesktop) html.classList.add('desktop');
+  if (isTouchDevice) html.classList.add('touch-device');
+  if (!isTouchDevice) html.classList.add('pointer-device');
+  if (isLandscape) html.classList.add('landscape');
+  if (!isLandscape) html.classList.add('portrait');
+  
+  // Simpan informasi di global variable untuk akses mudah
+  window.deviceInfo = {
+    isIOS,
+    isAndroid,
+    isMobile,
+    isTablet,
+    isDesktop,
+    isTouchDevice,
+    isLandscape,
+    userAgent
+  };
+  
+  console.log('🔄 BJS Racing - Device detected:', window.deviceInfo);
+  return window.deviceInfo;
+}
+
+// Fungsi untuk menangani perubahan orientasi
+function handleOrientationChange() {
+  const isLandscape = window.matchMedia("(orientation: landscape)").matches;
+  const html = document.documentElement;
+  
+  if (isLandscape) {
+    html.classList.add('landscape');
+    html.classList.remove('portrait');
+    document.dispatchEvent(new CustomEvent('orientationlandscape'));
+    console.log('📱 Orientation changed: Landscape');
+  } else {
+    html.classList.add('portrait');
+    html.classList.remove('landscape');
+    document.dispatchEvent(new CustomEvent('orientationportrait'));
+    console.log('📱 Orientation changed: Portrait');
+  }
+}
+
+// Fungsi untuk menangani resize
+function handleResize() {
+  detectDeviceCapabilities();
+  
+  // Optimasi layout berdasarkan ukuran layar
+  const width = window.innerWidth;
+  if (width < 768) {
+    document.documentElement.classList.add('layout-mobile');
+    document.documentElement.classList.remove('layout-tablet', 'layout-desktop');
+  } else if (width >= 768 && width < 1024) {
+    document.documentElement.classList.add('layout-tablet');
+    document.documentElement.classList.remove('layout-mobile', 'layout-desktop');
+  } else {
+    document.documentElement.classList.add('layout-desktop');
+    document.documentElement.classList.remove('layout-mobile', 'layout-tablet');
+  }
+}
+
+// Inisialisasi saat halaman dimuat
+document.addEventListener('DOMContentLoaded', function() {
+  detectDeviceCapabilities();
+  handleOrientationChange();
+  handleResize();
+  
+  // Tambahkan event listeners dengan debounce
+  window.addEventListener('resize', debounce(handleResize, 250));
+  window.addEventListener('orientationchange', debounce(handleOrientationChange, 250));
+  
+  // iOS specific fixes
+  if (window.deviceInfo && window.deviceInfo.isIOS) {
+    // Fix for iOS viewport height
+    document.body.style.minHeight = '-webkit-fill-available';
+    
+    // Fix for iOS hover states
+    document.addEventListener('touchstart', function() {}, {passive: true});
+  }
+  
+  // ✅ KODE PWA YANG SUDAH ADA
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/sw.js')
+        .then(function(registration) {
+          console.log('SW registered: ', registration);
+        })
+        .catch(function(registrationError) {
+          console.log('SW registration failed: ', registrationError);
+        });
+    });
+  }
+  
+  let deferredPrompt;
+  const installButton = document.createElement('button');
+  
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    
+    installButton.style.display = 'block';
+    installButton.textContent = 'Install App';
+    installButton.classList.add('fixed', 'bottom-4', 'right-4', 'bg-orange-500', 'text-white', 'px-4', 'py-2', 'rounded-lg', 'shadow-lg');
+    document.body.appendChild(installButton);
+  });
+  
+  installButton.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      installButton.style.display = 'none';
+    }
+    
+    deferredPrompt = null;
+  });
+  
+  window.addEventListener('appinstalled', () => {
+    installButton.style.display = 'none';
+    deferredPrompt = null;
+    console.log('PWA was installed');
+  });
+});
+
+// Utility function untuk check device type
+window.isMobile = function() {
+  return window.deviceInfo?.isMobile || false;
+};
+
+window.isTablet = function() {
+  return window.deviceInfo?.isTablet || false;
+};
+
+window.isDesktop = function() {
+  return window.deviceInfo?.isDesktop || false;
+};
+</script>
+<script is:inline src="//cdn.jsdelivr.net/npm/eruda"></script>
+    <script is:inline>eruda.init();</script>
   </body>
 </html>

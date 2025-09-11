@@ -4,89 +4,73 @@
 import MainLayout from '@/layouts/MainLayout.astro';
 import AddressSection from '@/components/AddressSection.tsx';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { supabase } from '@/lib/supabaseClient.ts';
-import { useAppStore } from '@/lib/store.ts';
 
 let pageError: string | null = null;
 
 try {
-  // --- Validasi Sesi Pengguna ---
-  const { session } = Astro.locals; 
+  // --- Validasi Sesi Pengguna ---
+  const { session } = Astro.locals; 
 
-  if (!session) {
-    return Astro.redirect('/login');
-  }
+  if (!session) {
+    return Astro.redirect('/login');
+  }
 
-  // --- VALIDASI PROFIL DINONAKTIFKAN SEMENTARA UNTUK DEBUGGING ---
-  // Kode ini sudah benar untuk server-side validation.
-  // Saya membiarkannya dalam komentar sesuai dengan kode asli Anda.
-  /*
-  const { cookies } = Astro;
-  const supabase = createServerClient(
-    import.meta.env.PUBLIC_SUPABASE_URL!,
-    import.meta.env.PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(key: string) { return cookies?.get(key)?.value; },
-        set(key: string, value: string, options: CookieOptions) { cookies?.set(key, value, options); },
-        remove(key: string, options: CookieOptions) { cookies?.delete(key, options); },
-      },
-    }
-  );
+  // --- VALIDASI PROFIL DINONAKTIFKAN SEMENTARA UNTUK DEBUGGING ---
+  // Kita akan asumsikan profil ada jika sesi ada, untuk menghindari crash loop.
+  // Validasi profil akan kita pindahkan ke client-side jika diperlukan nanti.
+  /*
+  const { cookies } = Astro;
+  const supabase = createServerClient(
+    import.meta.env.PUBLIC_SUPABASE_URL!,
+    import.meta.env.PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(key: string) { return cookies?.get(key)?.value; },
+        set(key: string, value: string, options: CookieOptions) { cookies?.set(key, value, options); },
+        remove(key: string, options: CookieOptions) { cookies?.delete(key, options); },
+      },
+    }
+  );
 
-  const { data: customerProfile, error: profileError } = await supabase
-    .from("customers")
-    .select("id")
-    .eq("auth_user_id", session.user.id)
-    .maybeSingle();
+  const { data: customerProfile, error: profileError } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("auth_user_id", session.user.id)
+    .maybeSingle();
 
-  if (profileError) throw profileError;
-  if (!customerProfile) return Astro.redirect('/akun/lengkapi-profil');
-  */
+  if (profileError) throw profileError;
+  if (!customerProfile) return Astro.redirect('/akun/lengkapi-profil');
+  */
 
 } catch (error) {
-  console.error("Server-side error in /akun/index.astro:", error.message);
-  pageError = error.message || "Terjadi kesalahan saat memverifikasi data pengguna.";
+  console.error("Server-side error in /akun/index.astro:", error.message);
+  pageError = error.message || "Terjadi kesalahan saat memverifikasi data pengguna.";
 }
 ---
 
 <MainLayout title="Akun Saya - BJS Racing Store">
-  <main class="container mx-auto px-4 py-8">
-    {pageError ? (
-      <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6" role="alert">
-        <strong class="font-bold">Error Memuat Halaman:</strong>
-        <span class="block sm:inline">{pageError}</span>
-      </div>
-    ) : (
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-        <aside class="md:col-span-1">
-          <nav class="flex flex-col space-y-2">
-            <a href="/akun" class="font-semibold bg-gray-200 p-3 rounded-lg">Buku Alamat</a>
-            <a href="/akun/profil" class="hover:bg-gray-100 p-3 rounded-lg">Profil Saya</a>
-            <a href="/akun/pesanan" class="hover:bg-gray-100 p-3 rounded-lg">Riwayat Pesanan</a>
-            <form action="/api/auth/signout" method="post" class="w-full">
-              <button type="submit" class="w-full text-left hover:bg-gray-100 p-3 rounded-lg">Keluar</button>
-            </form>
-          </nav>
-        </aside>
-        <section class="md:col-span-3">
-          <AddressSection client:load />
-        </section>
-      </div>
-    )}
-  </main>
+  <main class="container mx-auto px-4 py-8">
+    {pageError ? (
+      <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6" role="alert">
+        <strong class="font-bold">Error Memuat Halaman:</strong>
+        <span class="block sm:inline">{pageError}</span>
+      </div>
+    ) : (
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <aside class="md:col-span-1">
+          <nav class="flex flex-col space-y-2">
+            <a href="/akun" class="font-semibold bg-gray-200 p-3 rounded-lg">Buku Alamat</a>
+            <a href="/akun/profil" class="hover:bg-gray-100 p-3 rounded-lg">Profil Saya</a>
+            <a href="/akun/pesanan" class="hover:bg-gray-100 p-3 rounded-lg">Riwayat Pesanan</a>
+            <form action="/api/auth/signout" method="post" class="w-full">
+              <button type="submit" class="w-full text-left hover:bg-gray-100 p-3 rounded-lg">Keluar</button>
+            </form>
+          </nav>
+        </aside>
+        <section class="md:col-span-3">
+          <AddressSection client:load />
+        </section>
+      </div>
+    )}
+  </main>
 </MainLayout>
-
-<script>
-  import { useAppStore } from '@/lib/store.ts';
-  import { supabase } from '@/lib/supabaseClient.js';
-  
-  // Memuat data keranjang saat halaman dimuat
-  document.addEventListener('astro:page-load', async () => {
-    const { fetchCart } = useAppStore.getState();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      fetchCart();
-    }
-  });
-</script>
