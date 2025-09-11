@@ -1,31 +1,11 @@
-// src/pages/api/customers.ts
+// File: src/pages/api/customers.ts
 import type { APIRoute } from "astro";
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { supabaseAdmin } from "@/lib/supabaseClient"; // <-- PERBAIKAN: Impor supabaseAdmin
 
-// Asumsi createSupabaseClient helper function sudah ada atau inisialisasi client di sini
+export const POST: APIRoute = async ({ request, locals }) => {
+  // Dapatkan sesi dari locals (lebih efisien di Astro)
+  const { session } = locals;
 
-export const POST: APIRoute = async ({ request, cookies }) => {
-  const supabase = createServerClient(
-    import.meta.env.PUBLIC_SUPABASE_URL!,
-    import.meta.env.PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(key: string) {
-          return cookies.get(key)?.value;
-        },
-        set(key: string, value: string, options: CookieOptions) {
-          cookies.set(key, value, options);
-        },
-        remove(key: string, options: CookieOptions) {
-          cookies.delete(key, options);
-        },
-      },
-    },
-  );
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
   if (!session) {
     return new Response(JSON.stringify({ message: "Otentikasi diperlukan." }), {
       status: 401,
@@ -43,8 +23,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    // --- PERBAIKAN UTAMA: Gunakan UPSERT ---
-    const { data: newCustomer, error } = await supabase
+    // --- PERBAIKAN UTAMA: Gunakan supabaseAdmin untuk operasi UPSERT ---
+    const { data: newCustomer, error } = await supabaseAdmin
       .from("customers")
       .upsert(
         {
@@ -53,16 +33,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           telepon: telepon,
         },
         {
-          onConflict: "auth_user_id", // Kolom yang digunakan untuk mendeteksi konflik
+          onConflict: "auth_user_id",
         },
       )
       .select()
-      .single(); // Ambil data yang baru di-upsert
+      .single();
 
     if (error) {
-      console.error("Supabase upsert error:", error);
+      console.error("Supabase admin upsert error:", error);
       return new Response(
-        // Kirim pesan error database yang sebenarnya (lebih baik untuk debugging)
         JSON.stringify({
           message: error.message || "Gagal menyimpan profil ke database.",
         }),
