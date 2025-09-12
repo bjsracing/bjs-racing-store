@@ -1,9 +1,9 @@
-// File: src/lib/supabaseClient.ts
-import { createBrowserClient, createServerClient } from "@supabase/ssr";
+// File: /src/lib/supabaseServer.ts (NAMA BARU)
+import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import type { APIContext } from "astro";
 
-// Klien sisi server untuk digunakan di middleware (menggunakan kunci publik)
+// 1. Klien untuk SISI SERVER (Middleware, dll.)
 export function supabaseServerClient(context: APIContext) {
   return createServerClient(
     import.meta.env.PUBLIC_SUPABASE_URL,
@@ -18,14 +18,7 @@ export function supabaseServerClient(context: APIContext) {
   );
 }
 
-// Klien sisi klien untuk digunakan di komponen React (menggunakan kunci publik)
-export const supabase = createBrowserClient(
-  import.meta.env.PUBLIC_SUPABASE_URL,
-  import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
-);
-
-// Klien ADMIN untuk digunakan di SERVER API (menggunakan service key)
-// Klien ini bisa melewati RLS dan aman digunakan di sisi server.
+// 2. Klien ADMIN untuk SISI SERVER (API Routes)
 export const supabaseAdmin = createClient(
   import.meta.env.PUBLIC_SUPABASE_URL,
   import.meta.env.SUPABASE_SERVICE_KEY,
@@ -34,5 +27,5 @@ export const supabaseAdmin = createClient(
       autoRefreshToken: false,
       persistSession: false,
     },
-  }
+  },
 );

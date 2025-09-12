@@ -1,7 +1,7 @@
 // src/components/ProductPurchase.jsx
 
 import React, { useState } from "react";
-import { useAppStore } from "../lib/store";
+import { useAppStore } from "../lib/store.ts";
 import { FiShoppingCart, FiPlus, FiMinus } from "react-icons/fi";
 
 const ProductPurchase = ({ product }) => {

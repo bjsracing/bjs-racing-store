@@ -1,7 +1,7 @@
 // src/components/CatalogFilter.jsx
 
 import React, { useState, useEffect, useMemo } from "react";
-import { supabase } from "@/lib/supabaseClient.ts";
+import { supabase } from "@/lib/supabaseBrowserClient.ts";
 import { FiSearch, FiRefreshCw } from "react-icons/fi";
 
 const CatalogFilter = ({ filters, setFilters, filterConfig }) => {

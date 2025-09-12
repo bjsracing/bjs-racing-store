@@ -1,7 +1,7 @@
 // src/components/MobileMenu.jsx
 
 import React, { useEffect } from "react";
-import { useAppStore } from "../lib/store.js";
+import { useAppStore } from "../lib/store.ts";
 import id from "../../public/locales/id/common.json";
 
 const MobileMenu = () => {

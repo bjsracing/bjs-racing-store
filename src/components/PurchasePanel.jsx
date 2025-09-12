@@ -1,7 +1,7 @@
 // src/components/PurchasePanel.jsx (Versi Final dengan Stok Dinamis Akurat)
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useAppStore } from "../lib/store.js";
+import { useAppStore } from "../lib/store.ts";
 import { FiShoppingCart, FiPlus, FiMinus } from "react-icons/fi";
 
 const PurchasePanel = ({ initialProduct, allProductVariants }) => {

@@ -1,7 +1,7 @@
 // src/components/ColorSimulator.jsx (Final dengan Palet Warna Unik)
 
 import React, { useState, useEffect, useMemo } from "react";
-import { supabase } from "@/lib/supabaseClient.ts";
+import { supabase } from "@/lib/supabaseBrowserClient.ts";
 import { useAppStore } from "../lib/store";
 import { FiShoppingCart } from "react-icons/fi";
 

@@ -1,7 +1,7 @@
 // src/components/ProductCatalog.jsx (Versi Final yang bisa menangani 2 tampilan)
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { supabase } from "@/lib/supabaseClient.ts";
+import { supabase } from "@/lib/supabaseBrowserClient.ts";
 import CatalogFilter from "./CatalogFilter.jsx";
 import ProductCard from "./ProductCard.jsx";
 import ColorSwatchCard from "./ColorSwatchCard.jsx";

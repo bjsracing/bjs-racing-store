@@ -1,7 +1,7 @@
 // src/components/RelatedProducts.jsx
 
 import React, { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabaseClient.ts";
+import { supabase } from "@/lib/supabaseBrowserClient.ts";
 import ProductCard from "./ProductCard.jsx";
 
 const RelatedProducts = ({ product }) => {

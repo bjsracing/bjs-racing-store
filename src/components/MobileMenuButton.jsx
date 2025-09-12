@@ -1,7 +1,7 @@
 // src/components/MobileMenuButton.jsx
 
 import React from "react";
-import { useAppStore } from "../lib/store.js";
+import { useAppStore } from "../lib/store.ts";
 
 const MobileMenuButton = () => {
     const { toggleMobileMenu } = useAppStore();

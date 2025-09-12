@@ -1,7 +1,7 @@
 // src/components/ProductDetailView.jsx (Versi Final dengan Stok Dinamis)
 
 import React, { useState, useEffect, useMemo } from "react";
-import { useAppStore } from "../lib/store.js";
+import { useAppStore } from "../lib/store.ts";
 import { FiShoppingCart, FiStar, FiEye, FiPlus, FiMinus } from "react-icons/fi";
 import ProductInfoTabs from "./ProductInfoTabs.jsx";
 
