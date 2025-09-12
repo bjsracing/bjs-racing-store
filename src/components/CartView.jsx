@@ -1,8 +1,7 @@
 // File: src/components/CartView.jsx
-// Perbaikan: Tombol "Lanjut ke Checkout" diubah menjadi tag <a> untuk navigasi.
 
 import React from "react";
-import { useAppStore } from "../lib/store.ts"; // Pastikan impor dari file .ts jika store sudah diganti namanya
+import { useAppStore } from "../lib/store.ts";
 
 const CartView = () => {
   const { items, removeFromCart, updateQuantity } = useAppStore();
@@ -46,7 +45,7 @@ const CartView = () => {
           const quantity = item.quantity || 0;
           return (
             <div
-              key={item.id}
+              key={item.id} // key tetap menggunakan item.id karena ini unik untuk baris keranjang
               className="flex flex-col sm:flex-row items-center gap-4 border-b pb-4 last:border-b-0"
             >
               <div className="w-20 h-20 bg-slate-100 rounded-md flex-shrink-0">
@@ -69,7 +68,8 @@ const CartView = () => {
 
               <div className="flex items-center gap-2 border rounded-md p-1">
                 <button
-                  onClick={() => updateQuantity(item.id, quantity - 1)}
+                  /* --- PERBAIKAN: Gunakan item.product_id --- */
+                  onClick={() => updateQuantity(item.product_id, quantity - 1)}
                   className="w-8 h-8 flex items-center justify-center text-slate-600 hover:bg-slate-100 rounded"
                 >
                   -
@@ -77,13 +77,18 @@ const CartView = () => {
                 <input
                   type="number"
                   value={quantity}
+                  /* --- PERBAIKAN: Gunakan item.product_id --- */
                   onChange={(e) =>
-                    updateQuantity(item.id, parseInt(e.target.value, 10) || 1)
+                    updateQuantity(
+                      item.product_id,
+                      parseInt(e.target.value, 10) || 1,
+                    )
                   }
                   className="w-12 text-center font-semibold border-none focus:ring-0 bg-transparent"
                 />
                 <button
-                  onClick={() => updateQuantity(item.id, quantity + 1)}
+                  /* --- PERBAIKAN: Gunakan item.product_id --- */
+                  onClick={() => updateQuantity(item.product_id, quantity + 1)}
                   className="w-8 h-8 flex items-center justify-center text-slate-600 hover:bg-slate-100 rounded"
                 >
                   +
@@ -97,7 +102,8 @@ const CartView = () => {
               </div>
 
               <button
-                onClick={() => removeFromCart(item.id)}
+                /* --- PERBAIKAN: Gunakan item.product_id --- */
+                onClick={() => removeFromCart(item.product_id)}
                 className="text-slate-400 hover:text-red-500 transition-colors"
               >
                 <svg
@@ -132,7 +138,6 @@ const CartView = () => {
             Pajak dan ongkos kirim dihitung saat checkout.
           </p>
 
-          {/* --- PERBAIKAN: Tombol diubah menjadi Link Navigasi --- */}
           <a
             href="/checkout"
             className="mt-4 block text-center w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"

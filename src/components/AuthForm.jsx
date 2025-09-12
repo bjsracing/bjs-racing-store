@@ -1,5 +1,4 @@
-// src/components/AuthForm.jsx
-
+// File: src/components/AuthForm.jsx
 import React, { useEffect } from "react";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
@@ -7,41 +6,35 @@ import { supabase } from "@/lib/supabaseBrowserClient.ts";
 
 const AuthForm = () => {
   useEffect(() => {
-    // Listener untuk mendeteksi perubahan status login
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // Hanya jalankan jika event adalah SIGNED_IN dan ada sesi
       if (event === "SIGNED_IN" && session) {
-        // --- LOGIKA BARU DITAMBAHKAN DI SINI ---
-        // Cek apakah profil pelanggan sudah ada di database kita
-        const { data: customerProfile, error } = await supabase
-          .from("customers")
-          .select("id")
-          .eq("auth_user_id", session.user.id)
-          .maybeSingle(); // .maybeSingle() tidak error jika data tidak ditemukan
-
-        if (error) {
-          console.error("Gagal memeriksa profil pelanggan:", error);
-          // Jika terjadi error, arahkan ke halaman utama sebagai fallback
-          window.location.href = "/";
-          return;
-        }
-
-        if (customerProfile) {
-          // PROFIL DITEMUKAN: Ini pengguna lama yang login
-          // Arahkan langsung ke halaman akun utama
-          console.log("Profil ditemukan, mengarahkan ke /akun");
-          window.location.href = "/akun";
-        } else {
-          // PROFIL TIDAK DITEMUKAN: Ini pengguna baru yang mendaftar
-          // Arahkan ke halaman untuk melengkapi profil
-          console.log(
-            "Profil tidak ditemukan, mengarahkan ke /akun/lengkapi-profil",
+        try {
+          // --- PERBAIKAN: Panggil fungsi RPC yang lebih andal ---
+          const { data: profileExists, error } = await supabase.rpc(
+            "check_if_customer_profile_exists",
           );
-          window.location.href = "/akun/lengkapi-profil";
+
+          if (error) {
+            console.error("Gagal memeriksa profil:", error);
+            window.location.href = "/"; // Fallback ke home jika error
+            return;
+          }
+
+          if (profileExists) {
+            console.log("Profil ditemukan, mengarahkan ke /akun");
+            window.location.href = "/akun";
+          } else {
+            console.log(
+              "Profil tidak ditemukan, mengarahkan ke /akun/lengkapi-profil",
+            );
+            window.location.href = "/akun/lengkapi-profil";
+          }
+        } catch (e) {
+          console.error("Error tak terduga saat memeriksa profil:", e);
+          window.location.href = "/";
         }
-        // --- AKHIR DARI LOGIKA BARU ---
       }
     });
 
