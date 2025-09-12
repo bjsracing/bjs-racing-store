@@ -1,23 +1,24 @@
 // File: src/components/CheckoutView.tsx
-// Perbaikan Final: Disesuaikan untuk mem-parsing dan menampilkan
-// struktur respons dari API RajaOngkir Starter.
-
 import React, { useState, useEffect, useMemo } from "react";
 import { useAppStore } from "../lib/store.ts";
-import type { Address } from "../lib/store.ts";
+import type { CartItem } from "../lib/store.ts"; // PERBAIKAN: Hapus 'Address' yang tidak digunakan
 
-// --- PERBAIKAN 1: Tipe data baru untuk hasil ongkos kirim ---
-// Disesuaikan dengan struktur respons dari API Starter RajaOngkir
-interface ShippingService {
-  name: string; // Nama kurir (e.g., "JNE")
-  code: string; // Kode kurir (e.g., "jne")
-  service: string; // Nama layanan (e.g., "REG")
-  description: string; // Deskripsi layanan
-  cost: number; // Biaya pengiriman
-  etd: string; // Estimasi Waktu Tiba
+// Deklarasikan 'snap' di scope window agar TypeScript tidak error
+declare global {
+  interface Window {
+    snap: any;
+  }
 }
 
-// --- PERBAIKAN 2: Daftar kurir yang didukung oleh paket Starter ---
+interface ShippingService {
+  name: string;
+  code: string;
+  service: string;
+  description: string;
+  cost: number;
+  etd: string;
+}
+
 const courierOptions = [
   { code: "jne", name: "JNE" },
   { code: "sicepat", name: "SiCepat" },
@@ -34,30 +35,24 @@ const courierOptions = [
 ];
 
 export default function CheckoutView() {
-  // --- State dari Zustand Store ---
-  const items = useAppStore((state) => state.items);
-  const addresses = useAppStore((state) => state.addresses);
-  const fetchAddresses = useAppStore((state) => state.fetchAddresses);
-  const calculateTotalWeight = useAppStore(
-    (state) => state.calculateTotalWeight,
-  );
-
-  // --- State Lokal Komponen ---
+  const { items, addresses, fetchAddresses, calculateTotalWeight, clearCart } =
+    useAppStore();
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
     null,
   );
   const [selectedCourier, setSelectedCourier] = useState<string>("");
   const [shippingServices, setShippingServices] = useState<ShippingService[]>(
     [],
-  ); // State untuk menampung daftar layanan
+  );
   const [selectedShipping, setSelectedShipping] = useState<{
     service: string;
     cost: number;
+    etd: string;
   } | null>(null);
   const [isLoadingCosts, setIsLoadingCosts] = useState(false);
   const [error, setError] = useState("");
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  // --- Kalkulasi Memoized ---
   const totalWeight = useMemo(
     () => calculateTotalWeight(),
     [items, calculateTotalWeight],
@@ -74,15 +69,12 @@ export default function CheckoutView() {
     () => subtotal + (selectedShipping?.cost || 0),
     [subtotal, selectedShipping],
   );
-
   const formatRupiah = (number: number) =>
     new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
       minimumFractionDigits: 0,
     }).format(number || 0);
-
-  // --- Efek Samping ---
 
   useEffect(() => {
     fetchAddresses();
@@ -103,34 +95,28 @@ export default function CheckoutView() {
         setSelectedShipping(null);
         return;
       }
-
       setIsLoadingCosts(true);
       setError("");
       setSelectedShipping(null);
       setShippingServices([]);
-
       const selectedAddress = addresses.find(
         (addr) => addr.id === selectedAddressId,
       );
       if (!selectedAddress || !selectedAddress.destination) return;
-
       try {
         const response = await fetch("/api/rajaongkir/cost", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            origin: "65100", // ID Asal Pengiriman Anda
+            origin: "114",
             destination: selectedAddress.destination,
             weight: totalWeight,
             courier: selectedCourier,
           }),
         });
-
         const result = await response.json();
         if (!response.ok)
           throw new Error(result.message || "Gagal menghitung ongkos kirim.");
-
-        // --- PERBAIKAN 3: Menyimpan hasil ke state yang benar ---
         setShippingServices(result || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Terjadi kesalahan.");
@@ -139,13 +125,79 @@ export default function CheckoutView() {
         setIsLoadingCosts(false);
       }
     };
-
     fetchShippingCosts();
   }, [selectedAddressId, selectedCourier, totalWeight, addresses]);
 
+  const handlePayment = async () => {
+    if (!selectedAddressId || !selectedShipping || !selectedCourier) {
+      alert("Silakan lengkapi alamat dan metode pengiriman.");
+      return;
+    }
+
+    setIsProcessingPayment(true);
+
+    const courierDetails = courierOptions.find(
+      (c) => c.code === selectedCourier,
+    );
+    const payload = {
+      address_id: selectedAddressId,
+      shipping_cost: selectedShipping.cost,
+      courier: {
+        code: selectedCourier,
+        name: courierDetails?.name,
+        service: selectedShipping.service,
+        etd: selectedShipping.etd,
+      },
+      cart_items: items.map((item: CartItem) => ({
+        product_id: item.product_id,
+        price: item.harga_jual,
+        quantity: item.quantity,
+        name: item.nama,
+        sku: item.sku,
+        image_url: item.image_url,
+      })),
+    };
+
+    try {
+      const response = await fetch("/api/payment/create-transaction", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+      if (!response.ok)
+        throw new Error(result.message || "Gagal membuat transaksi.");
+
+      const { snap_token, order_id } = result;
+
+      // PERBAIKAN: Tambahkan tipe 'any' dan underscore '_' untuk parameter yang tidak digunakan
+      window.snap.pay(snap_token, {
+        onSuccess: function (_result: any) {
+          clearCart();
+          window.location.href = `/akun/pesanan/${order_id}?status=success`;
+        },
+        onPending: function (_result: any) {
+          clearCart();
+          window.location.href = `/akun/pesanan/${order_id}?status=pending`;
+        },
+        onError: function (_result: any) {
+          alert("Pembayaran Gagal. Silakan coba lagi.");
+          setIsProcessingPayment(false);
+        },
+        onClose: function () {
+          setIsProcessingPayment(false);
+        },
+      });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Terjadi kesalahan.");
+      setIsProcessingPayment(false);
+    }
+  };
+
+  // --- Tampilan JSX (Hanya tombol pembayaran yang diubah) ---
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* Kolom Kiri: Alamat & Pengiriman */}
       <div className="lg:col-span-2 space-y-6">
         <div className="bg-white p-6 rounded-xl shadow-md">
           <h2 className="text-xl font-bold mb-4">Alamat Pengiriman</h2>
@@ -185,7 +237,6 @@ export default function CheckoutView() {
             </a>
           </div>
         </div>
-
         <div className="bg-white p-6 rounded-xl shadow-md">
           <h2 className="text-xl font-bold mb-4">Metode Pengiriman</h2>
           <select
@@ -201,15 +252,12 @@ export default function CheckoutView() {
               </option>
             ))}
           </select>
-
           {isLoadingCosts && (
             <p className="text-sm text-gray-500 mt-4 animate-pulse">
               Menghitung ongkos kirim...
             </p>
           )}
           {error && <p className="text-sm text-red-500 mt-4">{error}</p>}
-
-          {/* --- PERBAIKAN 4: Render hasil ongkir dari array tunggal --- */}
           {shippingServices.length > 0 && (
             <div className="mt-4 space-y-2">
               <p className="text-sm font-medium">Pilih Layanan Pengiriman:</p>
@@ -225,6 +273,7 @@ export default function CheckoutView() {
                       setSelectedShipping({
                         service: service.service,
                         cost: service.cost,
+                        etd: service.etd, // 5. PERBAIKAN: Sertakan ETD saat memilih layanan
                       })
                     }
                     className="flex-shrink-0"
@@ -246,8 +295,6 @@ export default function CheckoutView() {
           )}
         </div>
       </div>
-
-      {/* Kolom Kanan: Ringkasan Pesanan */}
       <div className="lg:col-span-1">
         <div className="bg-white p-6 rounded-xl shadow-md sticky top-8">
           <h2 className="text-xl font-bold mb-4">Ringkasan Pesanan</h2>
@@ -283,11 +330,15 @@ export default function CheckoutView() {
             <p>Total</p>
             <p>{formatRupiah(finalTotal)}</p>
           </div>
+          {/* 6. PERBAIKAN: Hubungkan tombol ke fungsi handlePayment dan state loading */}
           <button
-            disabled={!selectedShipping || items.length === 0}
+            onClick={handlePayment}
+            disabled={
+              !selectedShipping || items.length === 0 || isProcessingPayment
+            }
             className="mt-6 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            Lanjut ke Pembayaran
+            {isProcessingPayment ? "Memproses..." : "Lanjut ke Pembayaran"}
           </button>
         </div>
       </div>

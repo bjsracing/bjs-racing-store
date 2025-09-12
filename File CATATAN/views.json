@@ -1,0 +1,14 @@
+[
+  {
+    "view_name": "customer_overview",
+    "view_definition": " SELECT c.id,\n    c.nama_pelanggan,\n    c.telepon,\n    c.alamat,\n    c.catatan,\n    c.status,\n    c.created_at,\n    c.tipe_pelanggan,\n    c.nama_pemilik,\n    COALESCE(sum(t.total_akhir), (0)::numeric) AS total_transaksi,\n    COALESCE(sum(t.sisa_hutang), (0)::numeric) AS total_piutang,\n    COALESCE(sum(t.total_laba), (0)::numeric) AS total_laba_dihasilkan,\n        CASE\n            WHEN (COALESCE(sum(t.total_akhir), (0)::numeric) >= (7000000)::numeric) THEN 'Platinum'::text\n            WHEN (COALESCE(sum(t.total_akhir), (0)::numeric) >= (5000000)::numeric) THEN 'Gold'::text\n            WHEN (COALESCE(sum(t.total_akhir), (0)::numeric) >= (3000000)::numeric) THEN 'Silver'::text\n            WHEN (COALESCE(sum(t.total_akhir), (0)::numeric) >= (1000000)::numeric) THEN 'Bronze'::text\n            ELSE 'Umum'::text\n        END AS tingkatan\n   FROM (customers c\n     LEFT JOIN transactions t ON ((c.id = t.customer_id)))\n  GROUP BY c.id, c.tipe_pelanggan, c.nama_pemilik;"
+  },
+  {
+    "view_name": "sales_order_list_view",
+    "view_definition": " SELECT so.id,\n    so.so_number,\n    so.tanggal_pesanan,\n    so.created_at,\n    so.customer_id,\n    c.nama_pelanggan,\n    inv.id AS invoice_id,\n    inv.invoice_number,\n    inv.bukti_pembayaran_url,\n        CASE\n            WHEN (so.status = 'Batal'::text) THEN 'Batal'::text\n            WHEN (inv.status_pembayaran = 'Lunas'::text) THEN 'Selesai'::text\n            WHEN (inv.id IS NOT NULL) THEN 'Menunggu Pembayaran'::text\n            ELSE so.status\n        END AS final_status\n   FROM ((sales_orders so\n     LEFT JOIN customers c ON ((so.customer_id = c.id)))\n     LEFT JOIN invoices inv ON ((so.id = inv.sales_order_id)));"
+  },
+  {
+    "view_name": "transactions_list_view",
+    "view_definition": " SELECT t.id,\n    t.created_at,\n    t.customer_id,\n    t.total,\n    t.diskon,\n    t.total_akhir,\n    t.bayar,\n    t.kembalian,\n    t.total_laba,\n    t.items,\n    t.status_pembayaran,\n    t.sisa_hutang,\n    t.invoice_number,\n    c.nama_pelanggan\n   FROM (transactions t\n     LEFT JOIN customers c ON ((t.customer_id = c.id)));"
+  }
+]

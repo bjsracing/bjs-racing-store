@@ -1,0 +1,67 @@
+Konfirmasi diterima. Saya sudah mempelajari semua dokumentasi yang Anda berikan. Alur kerja Midtrans Snap sangat jelas, dan kita bisa merancang arsitektur yang kuat dan profesional untuk toko online Anda.
+
+Integrasi ini akan melibatkan komunikasi antara frontend, backend Anda (API di Astro), database Supabase, dan server Midtrans.
+
+---
+### ## Instruksi #44: Roadmap Development Modul Pembayaran Midtrans
+
+Berikut adalah desain arsitektur dan roadmap lengkap untuk mengintegrasikan Midtrans, yang sudah mencakup semua permintaan Anda (update stok, pencatatan transaksi, dll.) serta beberapa ide profesional tambahan.
+
+#### Gambaran Umum Arsitektur
+Alur kerjanya akan seperti ini:
+1.  **Checkout (Frontend):** Pengguna menekan tombol "Bayar Sekarang".
+2.  **API Anda (Backend):** Frontend mengirim detail checkout ke API Anda. API Anda **membuat pesanan (order)** di database Anda dengan status "pending", lalu meminta **Snap Token** ke Midtrans.
+3.  **Midtrans & Snap.js (Frontend):** API Anda mengembalikan Snap Token ke frontend. `snap.js` menggunakan token ini untuk membuka *pop-up* pembayaran.
+4.  **Notifikasi/Webhook (Backend):** Setelah pengguna membayar, Midtrans mengirim notifikasi rahasia (webhook) ke API khusus di server Anda untuk mengonfirmasi status pembayaran.
+5.  **Finalisasi (Backend):** API webhook Anda menerima notifikasi, memverifikasinya, lalu **mengubah status pesanan, mengurangi stok produk, dan mencatat transaksi** di database Anda.
+
+---
+### ## Roadmap Detail per Fase
+
+#### Fase 1: Persiapan Database (Struktur Pesanan) 🏗️
+Sebelum menulis kode, database kita harus siap menampung data pesanan dan pembayaran. Kita perlu membuat beberapa tabel baru.
+1.  **Tabel `orders`**: Ini akan menjadi tabel utama yang menyimpan setiap pesanan. Kolom penting: `id`, `order_number`, `customer_id`, `total_amount`, `shipping_cost`, `shipping_address` (JSON), `courier_details` (JSON), **`status`** (misal: "pending", "paid", "shipped", "cancelled"), `created_at`.
+2.  **Tabel `order_items`**: Tabel ini akan menyimpan produk apa saja yang dibeli dalam setiap pesanan. Kolom penting: `id`, `order_id`, `product_id`, `quantity`, `price`.
+3.  **Ide Profesional - Tabel `payments`**: Membuat tabel khusus untuk mencatat setiap upaya pembayaran dari Midtrans. Kolom penting: `id`, `order_id`, `midtrans_transaction_id`, `amount`, `payment_type`, `status`, `raw_response` (JSON). Ini sangat berguna untuk audit dan debugging.
+
+---
+#### Fase 2: Backend - API Pembuatan Transaksi (Mendapatkan Snap Token) 🔒
+Ini adalah inti dari sisi server. Kita akan membuat satu API endpoint baru, misalnya `/api/payment/create-transaction`.
+1.  **Endpoint Menerima Data**: Endpoint ini menerima `address_id`, `courier_code`, `shipping_cost`, dan detail keranjang dari frontend.
+2.  **Membuat Pesanan Lokal**: Kode di endpoint ini akan:
+    * Mengambil data keranjang (`cart_items`) dan profil pelanggan dari database Supabase.
+    * **Membuat baris baru** di tabel `orders` dan `order_items` kita dengan status "pending". Ini adalah **langkah profesional yang krusial**; kita mencatat pesanan *sebelum* mengirim pengguna untuk membayar.
+3.  **Mempersiapkan Data untuk Midtrans**: Mengumpulkan semua informasi yang dibutuhkan oleh Midtrans (`transaction_details`, `item_details`, `customer_details`) ke dalam format JSON yang benar.
+4.  **Meminta Snap Token**: Mengirim permintaan `POST` ke sandbox Midtrans (`https://app.sandbox.midtrans.com/snap/v1/transactions`) dengan header otentikasi (Base64 dari Server Key) dan body JSON.
+5.  **Menyimpan ID Transaksi**: Simpan `midtrans_transaction_id` yang diterima dari Midtrans ke tabel `payments` kita.
+6.  **Mengembalikan Token**: Kirim `token` yang diterima dari Midtrans kembali ke frontend sebagai respons.
+
+---
+#### Fase 3: Frontend - Integrasi Halaman Checkout 💳
+Ini adalah bagian yang dilihat dan diinteraksikan oleh pengguna.
+1.  **Memuat `snap.js`**: Kita akan menambahkan tag `<script>` untuk `snap.js` di `MainLayout.astro` atau khusus di halaman checkout, lengkap dengan `data-client-key` Anda.
+2.  **Logika Tombol "Bayar Sekarang"**:
+    * Saat tombol ditekan, `event.preventDefault()` akan dipanggil untuk mencegah form submit biasa.
+    * Sebuah fungsi `async` akan dipanggil untuk mengirim data checkout ke API kita (`/api/payment/create-transaction`).
+3.  **Membuka Pop-up Midtrans**:
+    * Setelah menerima `token` dari API kita, frontend akan memanggil `snap.pay(token, { ...callbacks... });`.
+4.  **Menangani Callbacks**: Kita akan menggunakan *callbacks* dari `snap.js` seperti `onSuccess`, `onPending`, dan `onError` untuk mengarahkan pengguna ke halaman yang sesuai (misalnya, "Terima Kasih Atas Pesanan Anda" atau "Pembayaran Gagal").
+
+---
+#### Fase 4: Backend - API Penerima Notifikasi (Webhook) - **Kunci Otomatisasi** ⚙️
+Ini adalah fitur paling canggih dan profesional yang memastikan sistem Anda berjalan otomatis. Kita akan membuat endpoint baru, misalnya `/api/payment/webhook`.
+1.  **Endpoint Menerima Notifikasi**: Midtrans akan mengirim `POST` request ke URL ini setiap kali status transaksi berubah.
+2.  **Verifikasi Keamanan**: Langkah pertama dan terpenting adalah memverifikasi *signature key* dari notifikasi untuk memastikan data tersebut benar-benar berasal dari Midtrans dan bukan dari pihak lain.
+3.  **Memproses Status Transaksi**:
+    * **Jika statusnya `settlement` (berhasil)**:
+        * Cari pesanan di tabel `orders` Anda berdasarkan `order_id` dari notifikasi.
+        * Ubah status pesanan menjadi "paid" atau "processing".
+        * **Kurangi stok produk**: Ambil item dari `order_items`, lalu kurangi kolom `stok` di tabel `products` Anda.
+        * Perbarui data di tabel `payments` kita.
+    * **Jika statusnya `expire` atau `cancel`**:
+        * Ubah status pesanan di tabel `orders` menjadi "cancelled".
+        * (Opsional) Kembalikan stok yang sebelumnya dialokasikan.
+4.  **Mengirim Respons ke Midtrans**: Endpoint ini harus selalu mengirim respons `200 OK` ke Midtrans untuk memberitahu bahwa notifikasi telah berhasil diterima.
+
+---
+Sesuai yang Anda sebutkan, langkah pertama kita adalah mempersiapkan database. Silakan berikan skema database Anda saat ini agar saya bisa merancang DDL (perintah `CREATE TABLE`) untuk tabel `orders`, `order_items`, dan `payments` yang kita butuhkan.

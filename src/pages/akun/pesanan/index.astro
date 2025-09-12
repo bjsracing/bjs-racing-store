@@ -1,0 +1,89 @@
+---
+// File: /src/pages/akun/pesanan/index.astro
+import MainLayout from '@/layouts/MainLayout.astro';
+import { supabaseAdmin } from '@/lib/supabaseServer.ts';
+
+// 1. Validasi Sesi & ambil data Customer
+const { session } = Astro.locals;
+if (!session) {
+  return Astro.redirect('/login?redirect=/akun/pesanan');
+}
+
+const { data: customer } = await supabaseAdmin
+  .from('customers')
+  .select('id')
+  .eq('auth_user_id', session.user.id)
+  .single();
+
+if (!customer) {
+  // Jika tidak ada profil, kemungkinan pengguna baru, arahkan untuk melengkapi
+  return Astro.redirect('/akun/lengkapi-profil');
+}
+
+// 2. Ambil semua data pesanan milik customer ini
+const { data: orders, error } = await supabaseAdmin
+  .from('orders')
+  .select('*')
+  .eq('customer_id', customer.id)
+  .order('created_at', { ascending: false });
+
+// Helper
+const formatRupiah = (number: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(number || 0);
+const formatTanggal = (dateString: string) => new Date(dateString).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+---
+
+<MainLayout title="Riwayat Pesanan - BJS Racing Store">
+  <main class="container mx-auto px-4 py-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+      {/* Sidebar Navigasi Akun */}
+      <aside class="md:col-span-1">
+        <nav class="flex flex-col space-y-2">
+          <a href="/akun" class="hover:bg-gray-100 p-3 rounded-lg">Buku Alamat</a>
+          <a href="/akun/profil" class="hover:bg-gray-100 p-3 rounded-lg">Profil Saya</a>
+          <a href="/akun/pesanan" class="font-semibold bg-gray-200 p-3 rounded-lg">Riwayat Pesanan</a>
+          <form action="/api/auth/signout" method="post" class="w-full">
+            <button type="submit" class="w-full text-left hover:bg-gray-100 p-3 rounded-lg">Keluar</button>
+          </form>
+        </nav>
+      </aside>
+
+      {/* Konten Utama: Daftar Pesanan */}
+      <section class="md:col-span-3">
+        <h1 class="text-2xl font-bold mb-6">Riwayat Pesanan Anda</h1>
+
+        {orders && orders.length > 0 ? (
+          <div class="space-y-4">
+            {orders.map(order => (
+              <a href={`/akun/pesanan/${order.id}`} class="block bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex justify-between items-center">
+                  <div>
+                    <p class="font-bold text-slate-800">{order.order_number}</p>
+                    <p class="text-sm text-slate-500">{formatTanggal(order.created_at)}</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="font-semibold text-slate-700">{formatRupiah(order.total_amount)}</p>
+                    <span class:list={[
+                      "text-xs font-semibold px-2 py-1 rounded-full",
+                      { "bg-yellow-100 text-yellow-800": order.status === 'awaiting_payment' || order.status === 'pending' },
+                      { "bg-green-100 text-green-800": order.status === 'paid' || order.status === 'processing' || order.status === 'completed' || order.status === 'shipped' },
+                      { "bg-red-100 text-red-800": order.status === 'cancelled' }
+                    ]}>
+                      {order.status.replace('_', ' ')}
+                    </span>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <div class="text-center py-10 bg-white rounded-lg shadow-sm">
+            <p class="text-slate-600">Anda belum memiliki riwayat pesanan.</p>
+            <a href="/products" class="mt-4 inline-block bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-lg">
+              Mulai Belanja
+            </a>
+          </div>
+        )}
+      </section>
+    </div>
+  </main>
+</MainLayout>

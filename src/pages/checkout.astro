@@ -1,6 +1,5 @@
 ---
 // File: src/pages/checkout.astro
-// Halaman ini memuat komponen React untuk proses checkout.
 
 import MainLayout from '@/layouts/MainLayout.astro';
 import CheckoutView from '@/components/CheckoutView.tsx';
@@ -12,16 +11,28 @@ if (!session) {
   // agar pengguna kembali ke checkout setelah login berhasil.
   return Astro.redirect('/login?redirect=/checkout');
 }
+
+// Ambil Client Key Midtrans dari environment variables
+const midtransClientKey = import.meta.env.PUBLIC_MIDTRANS_CLIENT_KEY;
 ---
 
 <MainLayout title="Checkout - BJS RACING STORE">
-  <div class="container mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold mb-8 text-center md:text-left">Checkout</h1>
+  <head>
+    <!-- =================================================================== -->
+    <!-- == PERBAIKAN 1: Tambahkan Skrip Midtrans Snap.js di sini         == -->
+    <!-- =================================================================== -->
+    <script
+      is:inline
+      type="text/javascript"
+      src="https://app.sandbox.midtrans.com/snap/snap.js"
+      data-client-key={midtransClientKey}
+    ></script>
+  </head>
 
-    {/* Memuat komponen React CheckoutView.
-      'client:load' memastikan JavaScript komponen ini dieksekusi di browser
-      agar halaman menjadi interaktif.
-    */}
-    <CheckoutView client:load />
-  </div>
+  <body>
+    <div class="container mx-auto px-4 py-8">
+      <h1 class="text-3xl font-bold mb-8 text-center md:text-left">Checkout</h1>
+      <CheckoutView client:load />
+    </div>
+  </body>
 </MainLayout>

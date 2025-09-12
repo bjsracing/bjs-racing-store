@@ -1,0 +1,802 @@
+Konfirmasi: Kita akan memakai SANDBOX Midtrans
+
+Dibawah ini link documentation Midtrans:
+
+1. Getting Started: https://docs.midtrans.com/docs/snap-preparation
+
+2. Intregation Guide: https://docs.midtrans.com/docs/snap-snap-integration-guide
+
+3. Interactive Demo: https://docs.midtrans.com/docs/snap-interactive-demo
+
+4. Advanced Feature: https://docs.midtrans.com/docs/snap-advanced-feature
+
+
+
+Dibawah ini link API References Midtrans:
+
+1. Overview: https://docs.midtrans.com/reference/snap-api-overview
+
+2. Getting Started: https://docs.midtrans.com/reference/getting-started-with-snap
+
+User performs the checkout operation
+
+Merchant server makes an API request to the Snap backend to get the SNAP_TOKEN
+
+Snap backend responds to the API call with the SNAP_TOKEN
+
+Merchant server constructs the html page and sends it back to the browser
+
+User verifies the details and clicks the pay button. Merchant's Javascript code calls snap.pay(SNAP_TOKEN, options). User then fills up the payment details and clicks the confirm button.
+
+Snap JS sends the payment details to the Snap backend
+
+Snap backend processes the details and responds with the charge status. Snap JS then calls the corresponding callback provided by the merchant's Javascript code.
+
+Snap backend notifies the merchant server about the charge status
+
+3. Backend Intregation: https://docs.midtrans.com/reference/backend-integration
+
+POST: https://app.sandbox.midtrans.com/snap/v1/transactions
+
+
+
+Backend integration goal is to acquire SNAP_TOKEN by providing payment informations. We provide a HTTP API to do this.
+
+Snap validates HTTP request by using Basic Authentication method. The username is your SERVER_KEY while the password is empty. You can see your SERVER-KEY on Settings - Access Keys.  Authorization header value is represented by AUTH_STRING. AUTH_STRING is base-64 encoded string of your username & password.  AUTH_STRING = Base64(SERVER_KEY + :)
+
+
+
+4. Endpoint: https://docs.midtrans.com/reference/endpoint
+
+
+
+HTTP Method: POST
+
+Production: https://app.midtrans.com/snap/v1/transactions
+
+Sandbox: https://app.sandbox.midtrans.com/snap/v1/transactions
+
+
+
+5. Request Headers: https://docs.midtrans.com/reference/request-headers
+
+
+
+To create valid Snap HTTP request, merchant have to add 3 headers:
+
+Accept: application/json
+
+Content-Type: application/json
+
+Authorization: Basic AUTH_STRING
+
+
+
+6. Request Body (JSON Parameter): https://docs.midtrans.com/reference/request-body-json-parameter
+
+
+
+Contoh Minimum Request:
+
+{
+
+  "transaction_details": {
+
+    "order_id": "ORDER-101",
+
+    "gross_amount": 10000
+
+  }
+
+}
+
+
+
+Contoh complete request:
+
+{
+
+  "transaction_details": {
+
+    "order_id": "ORDER-101",
+
+    "gross_amount": 10000
+
+  },
+
+  "item_details": [{
+
+    "id": "ITEM1",
+
+    "price": 10000,
+
+    "quantity": 1,
+
+    "name": "Midtrans Bear",
+
+    "brand": "Midtrans",
+
+    "category": "Toys",
+
+    "merchant_name": "Midtrans",
+
+    "url": "http://toko/toko1?item=abc"
+
+  }],
+
+  "customer_details": {
+
+    "first_name": "TEST",
+
+    "last_name": "MIDTRANSER",
+
+    "email": "test@midtrans.com",
+
+    "phone": "+628123456",
+
+    "billing_address": {
+
+      "first_name": "TEST",
+
+      "last_name": "MIDTRANSER",
+
+      "email": "test@midtrans.com",
+
+      "phone": "081 2233 44-55",
+
+      "address": "Sudirman",
+
+      "city": "Jakarta",
+
+      "postal_code": "12190",
+
+      "country_code": "IDN"
+
+    },
+
+    "shipping_address": {
+
+      "first_name": "TEST",
+
+      "last_name": "MIDTRANSER",
+
+      "email": "test@midtrans.com",
+
+      "phone": "0 8128-75 7-9338",
+
+      "address": "Sudirman",
+
+      "city": "Jakarta",
+
+      "postal_code": "12190",
+
+      "country_code": "IDN"
+
+    }
+
+  },
+
+  "enabled_payments": ["credit_card", "cimb_clicks",
+
+    "bca_klikbca", "bca_klikpay", "bri_epay", "echannel", "permata_va",
+
+    "bca_va", "bni_va", "bri_va","cimb_va", "other_va", "gopay", "indomaret",
+
+    "danamon_online", "akulaku", "shopeepay", "kredivo", "uob_ezpay","other_qris" ],
+
+
+
+  "credit_card": {
+
+    "secure": true,
+
+    "channel": "migs",
+
+    "bank": "bca",
+
+    "installment": {
+
+      "required": false,
+
+      "terms": {
+
+        "bni": [3, 6, 12],
+
+        "mandiri": [3, 6, 12],
+
+        "cimb": [3],
+
+        "bca": [3, 6, 12],
+
+        "offline": [6, 12]
+
+      }
+
+    },
+
+    "whitelist_bins": [
+
+      "48111111",
+
+      "41111111"
+
+    ],
+
+    "dynamic_descriptor": {
+
+      "merchant_name" : "Fuji Apple Inc",
+
+      "city_name": "Jakarta",
+
+      "country_code": "ID"
+
+    }
+
+  },
+
+  "bca_va": {
+
+    "va_number": "12345678911",
+
+    "sub_company_code": "00000",
+
+    "free_text": {
+
+      "inquiry": [
+
+        {
+
+          "en": "text in English",
+
+          "id": "text in Bahasa Indonesia"
+
+        }
+
+      ],
+
+      "payment": [
+
+        {
+
+          "en": "text in English",
+
+          "id": "text in Bahasa Indonesia"
+
+        }
+
+      ]
+
+    }
+
+  },
+
+  "bni_va": {
+
+    "va_number": "12345678"
+
+  },
+
+  "bri_va": {
+
+    "va_number": "1234567891234"
+
+  },
+
+  "cimb_va": {
+
+    "va_number": "1234567891234567"
+
+  },  
+
+  "permata_va": {
+
+    "va_number": "1234567890",
+
+    "recipient_name": "SUDARSONO"
+
+  },
+
+  "shopeepay": {
+
+    "callback_url": "http://shopeepay.com"
+
+  },
+
+  "gopay": {
+
+    "enable_callback": true,
+
+    "callback_url": "http://gopay.com"
+
+  },
+
+  "callbacks": {
+
+    "finish": "https://demo.midtrans.com"
+
+  },
+
+  "uob_ezpay": {
+
+    "callback_url": "http://uobezpay.com"
+
+  }, 
+
+  "expiry": {
+
+    "start_time": "2018-12-13 18:11:08 +0700",
+
+    "unit": "minutes",
+
+    "duration": 1
+
+  },
+
+"page_expiry": {
+
+    "duration": 3,
+
+    "unit": "hours"
+
+},
+
+"recurring": {
+
+    "required": true,
+
+    "start_time": "2024-06-09 15:07:00 +0700",
+
+    "interval_unit": "week"
+
+},  
+
+  "custom_field1": "custom field 1 content",
+
+  "custom_field2": "custom field 2 content",
+
+  "custom_field3": "custom field 3 content"
+
+}
+
+
+
+7. JSON Objects: https://docs.midtrans.com/reference/json-objects
+
+
+
+8. Response: https://docs.midtrans.com/reference/sample-response
+
+Response Success:
+
+{
+
+  "token": "d379aa71-99eb-4dd1-b9bb-eefe813746e9",
+
+  "redirect_url": "https://app.sandbox.midtrans.com/snap/v3/redirection/071e0c3d-dade-4148-a1b5-296ee8735b79"
+
+}
+
+
+
+9. Preference API: https://docs.midtrans.com/reference/snap-checkout-preference-api
+
+Get Snap Preferences
+
+
+
+Retrieve your current Snap Preference settings.
+
+Endpoints: /snap/v3/merchant-preferences
+
+HTTP Method: GET
+
+Headers:
+
+Content-Type: application/json
+
+
+
+Accept: application/json
+
+Production: https://app.midtrans.com/snap/v3/merchant-preferences
+
+Sandbox: https://app.sandbox.midtrans.com/snap/v3/merchant-preferences
+
+
+
+Key: Authorization
+
+Description: Basic Base64Encode(merchantServerKey:)
+
+
+
+Response JSON Body Details:
+
+Code 200:
+
+{
+
+    "merchant_id": "M007743",
+
+    "display_name": "DEMO STORE",
+
+    "finish_payment_return_url": "https://midtrans.com/finish",
+
+    "error_payment_return_url": "https://midtrans.com/error",
+
+    "locale": "en",
+
+    "other_va_processor": "bri_va",
+
+    "allow_retry": true,
+
+    "hide_order_id": false,
+
+    "brand": {
+
+        "typography": "Poppins",
+
+        "header_color": "#ffffff",
+
+        "button_color": "#0256A7",
+
+        "input_border_radius": 10,
+
+        "button_border_radius": 10,
+
+        "hide_header": false
+
+    },
+
+    "payment_channels": [
+
+        {
+
+            "name": "credit_card",
+
+            "enabled": true
+
+        },
+
+        {
+
+            "name": "bca_va",
+
+            "enabled": true
+
+        }
+
+    ]
+
+}
+
+
+
+Code 401:
+
+{
+
+    "error_messages": [
+
+        "Access denied, please check server key"
+
+    ]
+
+}
+
+
+
+Update Snap Preference:
+
+Update your current Snap Preference settings.
+
+Endpoints: /snap/v3/merchant-preferences
+
+HTTP Method: PATCH
+
+Headers:
+
+Content-Type: application/json
+
+
+
+Accept: application/json
+
+Production: https://app.midtrans.com/snap/v3/merchant-preferences
+
+Sandbox: https://app.sandbox.midtrans.com/snap/v3/merchant-preferences
+
+
+
+Request Body:
+
+Code 200:
+
+{
+
+    "display_name": "DEMO STORE",
+
+    "finish_payment_return_url": "https://midtrans.com/finish",
+
+    "error_payment_return_url": "https://midtrans.com/error",
+
+    "locale": "en",
+
+    "other_va_processor": "bri_va",
+
+    "allow_retry": true,
+
+    "hide_order_id": false,
+
+    "brand": {
+
+        "typography": "Poppins",
+
+        "header_color": "#ffffff",
+
+        "button_color": "#0256A7",
+
+        "input_border_radius": 10,
+
+        "button_border_radius": 10,
+
+        "hide_header": false
+
+    },
+
+    "payment_channels": [
+
+        {
+
+            "name": "credit_card",
+
+            "enabled": true
+
+        },
+
+        {
+
+            "name": "bca_va",
+
+            "enabled": true
+
+        },
+
+        {
+
+            "name": "permata_va",
+
+            "enabled": true
+
+        },
+
+        {
+
+            "name": "other_va",
+
+            "enabled": true
+
+        },
+
+        {
+
+            "name": "echannel",
+
+            "enabled": true
+
+        },
+
+        {
+
+            "name": "indomaret",
+
+            "enabled": true
+
+        },
+
+        {
+
+            "name": "gopay",
+
+            "enabled": true
+
+        },
+
+        {
+
+            "name": "akulaku",
+
+            "enabled": true
+
+        },
+
+        {
+
+            "name": "alfamart",
+
+            "enabled": true
+
+        },
+
+        {
+
+            "name": "bri_va",
+
+            "enabled": true
+
+        },
+
+        {
+
+            "name": "bni_va",
+
+            "enabled": true
+
+        },
+
+        {
+
+            "name": "shopeepay",
+
+            "enabled": true
+
+        },
+
+        {
+
+            "name": "kredivo",
+
+            "enabled": true
+
+        },
+
+        {
+
+            "name": "other_qris",
+
+            "enabled": true
+
+        },
+
+        {
+
+            "name": "cimb_va",
+
+            "enabled": true
+
+        }
+
+    ]
+
+}
+
+
+
+Code 400:
+
+{
+
+    "error_messages": [
+
+        "Payment type credit_card is invalid for this merchant"
+
+    ]
+
+}
+
+
+
+Code 401:
+
+{
+
+    "error_messages": [
+
+        "Access denied, please check server key"
+
+    ]
+
+}
+
+
+
+Dibawah ini FRONTEND INTREGATION Midtrans:
+
+1. Overview: https://docs.midtrans.com/reference/frontend-integration-overview
+
+Overview
+
+
+
+Frontend integration goal is to show Snap payment page within your site.
+
+Include snap.js into your page so snap module is available. Don't forget to put your CLIENT-KEY as value of data-client-key attribute in snap.js script tag. You can see your CLIENT-KEY on Settings - Access Keys.
+
+You can start payment process by calling snap.pay with SNAP_TOKEN acquired from backend integration as parameter.
+
+Snap.js location
+
+Production: https://app.midtrans.com/snap/snap.js
+
+Sandbox: https://app.sandbox.midtrans.com/snap/snap.js
+
+
+
+Viewport Meta Tag
+
+
+
+To ensure that Snap popup modal is displayed correctly on a mobile device, please include the viewport meta tag inside your <head> element.
+
+The most common implementation is the line of code below:
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+There is an alternative technique to load snap UI page instead of calling snap.js, this method called Window Redirection]
+
+
+
+HTML:
+
+<html>
+
+  <head>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <script type="text/javascript"
+
+            src="https://app.sandbox.midtrans.com/snap/snap.js"
+
+            data-client-key="<CLIENT-KEY>"></script>
+
+  </head>
+
+  <body>
+
+    <button id="pay-button">Pay!</button>
+
+    <script type="text/javascript">
+
+      var payButton = document.getElementById('pay-button');
+
+      payButton.addEventListener('click', function () {
+
+        snap.pay('<SNAP_TOKEN>');
+
+      });
+
+    </script>
+
+  </body>
+
+</html>
+
+
+
+2. Snap JS: https://docs.midtrans.com/reference/snap-js
+
+3. JS Callback: https://docs.midtrans.com/reference/js-callback
+
+4. Webview: https://docs.midtrans.com/reference/webview
+
+5. Window Redirection: https://docs.midtrans.com/reference/window-redirection
+
+
+
+Dibawah ini link MIDTRANS STATUS CODE:
+
+1. Code 2XX: https://docs.midtrans.com/reference/status-code-2xx
+
+2. Code 3XX: https://docs.midtrans.com/reference/status-code-3xx
+
+3. Code 4XX: https://docs.midtrans.com/reference/status-code-4xx
+
+4. Code 5XX: https://docs.midtrans.com/reference/status-code-5xx
+
+
+
+SILAKAN CEK, PELAJARI dan LAKUKAN ANALISA, dan catat link documentation MIDTRANS ini.
+
+
+

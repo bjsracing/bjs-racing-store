@@ -15,6 +15,7 @@ interface Product {
   berat_gram: number;
   merek?: string;
   ukuran?: string;
+  sku?: string;
 }
 
 // PERBAIKAN KECIL: Menambahkan product_id secara eksplisit untuk kejelasan

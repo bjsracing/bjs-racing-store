@@ -1,0 +1,629 @@
+Konfirmasi: saya akan memberikan informasi documentation secara bertahap, dibawah ini documentation RajaOngkir EndPoint:
+
+Base URL:
+
+This is the Live Environment where real shipping rate calculations Indonesia or International and also checking history
+
+AWB. :::success Base URL Live Environment
+
+https://rajaongkir.komerce.id/api/v1/
+
+
+EndPoint:
+
+We provide information for each path of the Endpoint that can be used in the RajaOngkir API service as follows, please
+
+note that errors in the use of EndPoint paths can have an impact on errors in requests made by users:
+
+1. Search Domestic Destination
+
+Path: destination/domestic-destination
+
+Method: GET
+
+Description: for Search origin or destination id in Indonesia Region
+
+
+2. Search International Destination
+
+Path: destination/international-destination
+
+Method: GET
+
+Description: for Search destination id in World Wide
+
+
+3. Calculate Domestic
+
+Path: calculate/domestic-cost
+
+Method: POST
+
+Description: for Search estimated shipping cost by origin and destination in Indonesia
+
+
+4. Calculate International
+
+Path: calculate/international-cost
+
+Method: POST
+
+Description: for Search estimated shipping cost by origin and destination World Wide
+
+
+5. Tracking AWB
+
+Path: track/waybill
+
+Method: POST
+
+Description: for Checking History AWB
+
+
+Best Practices:
+
+To ensure a smooth and effective integration with the RajaOngkir API, we recommend the following best practices:
+
+🔐 Always Authenticate Your Requests : Ensure your APIKEY is included in every request header. Unauthorized requests
+
+will be rejected.
+
+
+📦 Validate Inputs Before Request : Double-check that required fields (like origin, destination, courier, weight) are
+
+correctly filled before calling the cost or tracking endpoints. Invalid inputs may cause errors or inaccurate results.
+
+
+🧠 Cache Static Data : Static data such as province lists or courier names rarely changes. Cache them locally to avoid
+
+unnecessary API calls and improve performance.
+
+
+⏱ Use Debouncing for Destination Search : When implementing live search for destinations, debounce user input to limit
+
+request frequency. This prevents flooding the API and improves user experience.
+
+
+🔁 Handle API Errors Gracefully : Check for HTTP status codes and use fallback messages to guide users when something
+
+goes wrong.
+
+
+Dibawah ini documentation Authorization:
+
+How to Use APIKEY:
+
+Include your API key as a Middleware in the HEADER of each API request:
+
+key: YOUR_API_KEY
+
+
+Example Request with cURL:
+
+curl --request GET \
+
+--url https://rajaongkir.komerce.id/api/v1  --header 'key: YOUR_API_KEY'
+
+
+"This will return the list of available couriers for your checking cost and history AWB."
+
+
+Best Practices
+
+✅ Keep it secret: Never expose your API Key in frontend apps.
+
+🔐 Rotate regularly: Periodically regenerate keys to enhance security.
+
+🧪 Use sandbox for testing: Always use the test key before going live.
+
+🔎 Log usage: Monitor API activity to prevent abuse or quota overages.
+
+🔁 Refresh keys if compromised: Immediately revoke and generate a new one.
+
+
+Dibawah ini documentation 3PL Availability:
+
+COURIER LIST:
+
+The following information can be used from each available courier to check the cost of domestic, international shipments
+
+and also track delivery receipts that are being made
+
+:::danger Important Information Keep in mind that our system may only provide some information from the request you
+
+provide, it can all happen because of the absence of data that we find what you are looking for. :::
+
+
+JNE - Code: jne - Checking Domestics Cost: Yes - Checking International Cost: Yes - Checking AWB: Yes
+
+SiCepat - Code: sicepat - Checking Domestics Cost: Yes - Checking International Cost: No - Checking AWB: Yes
+
+IDExpress - Code: ide - Checking Domestics Cost: Yes - Checking International Cost: No - Checking AWB: No
+
+SAP Express - Code: sap - Checking Domestics Cost: Yes - Checking International Cost: No - Checking AWB: Yes
+
+Ninja - Code: ninja - Checking Domestics Cost: Yes - Checking International Cost: No - Checking AWB: Yes
+
+J&T Express - Code: jnt - Checking Domestics Cost: Yes - Checking International Cost: No - Checking AWB: Yes
+
+TIKI - Code: tiki - Checking Domestics Cost: Yes - Checking International Cost: Yes - Checking AWB: Yes
+
+Wahana Express - Code: wahana - Checking Domestics Cost: Yes - Checking International Cost: No - Checking AWB: Yes
+
+POS Indonesia - Code: pos - Checking Domestics Cost: Yes - Checking International Cost: Yes - Checking AWB: Yes
+
+Sentral Cargo - Code: sentral - Checking Domestics Cost: Yes - Checking International Cost: No - Checking AWB: No
+
+Lion Parcel - Code: lion - Checking Domestics Cost: Yes - Checking International Cost: No - Checking AWB: Yes
+
+Royal Express Asia - Code: rex - Checking Domestics Cost: Yes - Checking International Cost: No - Checking AWB: No
+
+
+Endpoint RajaOngkir for Direct Search Method:
+
+ABOUT:
+
+Description:
+
+
+The Direct Search Method endpoint in RajaOngkir allows users to instantly search for locations by typing a city name
+
+directly, bypassing the need to navigate through hierarchical location structures. This method returns immediate results
+
+with location IDs and available districts for the searched city, streamlining the location selection process.
+
+This endpoint is ideal for modern applications that prioritize user experience through instant search functionality,
+
+similar to how users search on Google or e-commerce platforms. Instead of clicking through provinces and cities, users
+
+can simply type "Jakarta" or "Surabaya" and get instant results.
+
+In short, this endpoint provides instant location discovery through direct city name searches, making it perfect for
+
+applications with search boxes, autocomplete features, or when users already know their destination city.
+
+Use Cases:
+
+
+Applications with search bars and autocomplete
+
+When users know the city name they're looking for
+
+Modern UX that prioritizes speed and simplicity
+
+API integrations that need quick location lookups
+
+Mobile applications where typing is preferred over multiple selections
+
+
+SEARCH DOMESTIC DESTINATION:
+
+Overview:
+
+The Search Domestic Destination endpoint allows you to retrieve destination data for domestic shipments using the
+
+RajaOngkir integration. This is typically used to populate dropdowns or validate destination locations before
+
+calculating shipping costs or creating shipments.
+
+It supports searching by value (city, district, subdistrict, or zip_code) and is essential for ensuring accurate
+
+shipping data entry in e-commerce platforms and logistics systems.
+
+
+Key Feature:
+
+✅ Real-time destination lookup
+
+Instantly retrieve location data across Indonesia based on value params.
+
+📍 Multi-level location support
+
+Returns province, city, district, subdistrict, and zip code information in a single query.
+
+🔎 Flexible search
+
+Search using partial names or keywords — ideal for autocomplete fields.
+
+⚡ Optimized for performance
+
+Lightweight endpoint designed to be used on page loads or form interactions.
+
+
+How it Works:
+
+1. Send a POST request to the endpoint with a search payload:
+
+This keyword may include city names like "jakarta" or "bandung", or subdistricts like "kemayoran".
+
+2. The API returns a list of matched locations based on the keyword:
+
+Each result includes id, label, province, city, district, subdistrict, and zip_code.
+
+3. Use the returned id when calculating shipping cost.
+
+
+Request Body: contoh (JavaScript)
+
+const myHeaders = new Headers();
+
+myHeaders.append("key", "inputapikey");
+
+
+const requestOptions = { method: "GET", headers: myHeaders, redirect: "follow" };
+
+
+fetch("https://rajaongkir.komerce.id/api/v1/destination/domestic-destination?search={{search_location}}&limit=999&offset=999",requestOptions) .then((response) => response.text()) .then((result) => console.log(result)) .catch((error) =>console.error(error));
+
+
+QUERY PARAMETER:
+
+Headers:
+
+Key: key*
+
+Type: string
+
+Description: this Value contain an secret APIKEY identic for Shipping Cost API
+
+
+Query Params:
+
+Key: search*
+
+Type: string
+
+Description: This parameter is used to search for the intended area, can use the search for city names, sub-districts, villages, and postal codes.
+
+
+Key: limit
+
+Type: int
+
+Description: The maximum number of rows (or records) to be returned by the query.
+
+
+Key: offset
+
+Type: int
+
+Description: This is often used with LIMIT to limit query results in "pages" or "sections".
+
+
+:::danger For each header and parameter that has a * sign, it is a parameter that must be Required when making a
+
+request, otherwise there will be a system error that will warn the user regarding the request made. :::
+
+
+RESPONSE:
+
+Response Structure:
+
+
+Key: meta.message
+
+Description: Response for searching address.
+
+Key: meta.code
+
+Description: Any response have different code.
+
+Key: meta.status
+
+Description: Boolean status for checking address.
+
+Key: data[].id
+
+Description: A uniqe id that is used as a parameter in the shipping cost.
+
+Key: data[].label
+
+Description: Full format for delivery location.
+
+Key: data[].province_name
+
+Description: Name of the search province.
+
+Key: data[].city_name
+
+Description: Name of the search city.
+
+Key: data[].district_name
+
+Description: Name of the search district.
+
+Key: data[].subdistrict_name
+
+Description: Name of the search subdistrict.
+
+Key: data[].zip_code
+
+Description: Name of the search zip code.
+
+
+Success Respons for Search Domestics Destination:
+
+{    "meta": {        "message": "Success Get Domestic Destinations",        "code": 200,        "status": "success"    },    "data": [        {            "id": {{ id_location }},            "label": "{{ label_location }}",            "province_name": "{{ province_location }}",            "city_name": "{{ city_location }}",            "district_name": "{{ distric_location }}",            "subdistrict_name": "{{ subdistrict_location }}",            "zip_code": "{{ zipcode_location }}"        }    ]}
+
+
+Error Respons for Search Domestic Destination:
+
+{  "meta": {    "message": "Domestic Destinations Data not found",    "code": 404,    "status": "error"  },  "data": null}
+
+
+Error Code:
+
+Code: 200
+
+Status: Success
+
+
+Code: 404
+
+Status: Error
+
+Description: Domestic Destinations Data not found
+
+How to Fix: Make sure the name of the city, sub-district, village, or zip code you are looking for is correct.
+
+
+Code: 422
+
+Status: Error
+
+Description: Parameter Missing
+
+How to Fix: Make sure the required parameters are given when requesting data.
+
+
+Code: 500
+
+Status: Error
+
+Description: Server Error
+
+
+
+Tips to Avoid Error:
+
+✅ Always validate the value input
+
+Ensure it is a non-empty string. Avoid sending numeric or symbol-only strings.
+
+🔁 Debounce user input on the frontend
+
+If you’re using this for search-as-you-type, add a debounce delay to reduce API calls.
+
+📦 Cache popular destination results
+
+For performance improvement, cache results for frequent searches (like “Jakarta”).
+
+❌ Avoid calling the endpoint without a request location
+
+Requests with an empty or missing request will return an error or no data.
+
+🔐 Set the Key header
+
+Don’t forget to include your APIKEY in the header.
+
+
+CALCULATE DOMESTICS COST:
+
+Overview:
+
+The Calculate Domestic Cost endpoint enables you to check the estimated shipping cost for deliveries within
+
+Indonesia. This feature is particularly useful for platforms that integrate with multiple shipping providers, allowing
+
+them to present accurate cost options to their users in real time. By using this API, merchants and developers can
+
+dynamically calculate shipping fees based on the origin, destination, and courier service preferences.
+
+This endpoint supports domestic couriers integrated with Komerce and is an essential tool for checkout flows and also
+
+shipping calculators.
+
+
+Key Feature:
+
+📦 Multi-Courier Support
+
+Supports a wide range of domestic couriers integrated with Komerce API.
+
+🎯 Precise Cost Calculation
+
+Returns real-time cost estimates based on origin, destination, and package weight/dimensions.
+
+🔄 Flexible Input
+
+Accepts both exact destination IDs and subdistrict level or zip_code granularity for more accurate pricing.
+
+🧾 Courier Breakdown
+
+Displays available services, estimated costs, and estimated delivery times.
+
+
+How it Works:
+
+1. Prepare the Required Data : You’ll need the origin and destination IDs, courier code, and package details such as
+
+weight and optional dimensions.
+
+2. Receive a detailed response containing available services, cost per service, and estimated delivery time.
+
+3. Use the returned data to display cost options at checkout, or calculate total shipping charges for the order.
+
+
+Request Body: contoh (JavaScript)
+
+const myHeaders = new Headers();
+
+myHeaders.append("key", "inputapikey");
+
+myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
+
+
+const urlencoded = new URLSearchParams(); urlencoded.append("origin", "{{ origin.id }}");
+
+urlencoded.append("destination", "{{ destination.id }}"); urlencoded.append("weight", "{{ weight.grams }}");
+
+urlencoded.append("courier", "{{ courier.code }}"); urlencoded.append("price", "{{ lowest/highest }}");
+
+
+const requestOptions = { method: "POST", headers: myHeaders, body: urlencoded, redirect: "follow" };
+
+
+fetch("https://rajaongkir.komerce.id/api/v1/calculate/domestic-cost", requestOptions) .then((response) =>response.text()) .then((result) => console.log(result)) .catch((error) => console.error(error));
+
+
+Query Parameter:
+
+Headers
+
+Key: key*
+
+Type: string
+
+Description: this Value contain an secret APIKEY identic for Shipping Cost API
+
+
+Body x-www-form-urlencoded
+
+Key: origin*
+
+Type: int
+
+Description: this Value contain an id during Search Domestics Destinations
+
+
+Key: destination*
+
+Type: int
+
+Description: this Value contain an id during Search Domestics Destinations
+
+
+Key: weight*
+
+Type: int
+
+Description: this Value contain an a package weight with grams estimated
+
+
+Key: courier*
+
+Type: string
+
+Description: this Value contain an Courier Name
+
+
+Key: price
+
+Type: boolean
+
+Description: this Value Contain an boolean value, lowest or highest shipping cost
+
+
+Response:
+
+Response Structure
+
+Key: meta.message
+
+Description: Response for searching address.
+
+Key: meta.code
+
+Description: Any response have different code.
+
+Key: meta.status
+
+Description: Boolean status for checking address.
+
+Key: data[].name
+
+Description: Information about availability Courier Name.
+
+Key: data[].code
+
+Description: Information about availability Code of Courier.
+
+Key: data[].service
+
+Description: Information about availability Service of Courier.
+
+Key: data[].description
+
+Description: Description about Courier.
+
+Key: data[].cost
+
+Description: Information about Courier Service Cost.
+
+Key: data[].etd
+
+Description: Information about estimated time of courier delivery.
+
+
+Success Respons for Calculate Domestic Cost:
+
+{    "meta": {        "message": "Success Calculate Domestic Shipping cost",        "code": 200,        "status": "success"    },    "data": [        {            "name": "{{ courier.name }}",            "code": "{{ courier.code }}",            "service": "{{ courier.service }}",            "description": "{{ courier.desc }}",            "cost": {{ shipping.cost }},            "etd": "{{ etd.info }}"        },    ]}
+
+
+Error Respons for Calculate Domestic Cost:
+
+{    "meta": {        "message": "{{ error.message }}",        "code": {{ error.code }},        "status": "{{ status }}"    },    "data": null}
+
+
+Status Code:
+
+Code: 200
+
+Status: Success
+
+
+Code: 400
+
+Status: Error
+
+Description: Calculate Domestic Shipping Cost not found
+
+How to Fix: This error is unavoidable because the courier may not be able to provide the desired data.
+
+
+Code: 400
+
+Status: Error
+
+Description: Missing Params
+
+How to Fix: Make sure the request parameters that are sent match the required parameters.
+
+
+Code: 422
+
+Status: Error
+
+Description: Invalid Courier
+
+How to Fix: Make sure the courier code entered is correct according to the courier code guide available for checking.
+
+
+Tips to Avoid Error:
+
+📌 Ensure subdistrict IDs are valid : Use the correct IDs from the Search Destination endpoint.
+
+⚖️ Use appropriate weight : Weight must be in grams. 1kg = 1000g. Avoid using “0” or negative numbers.
+
+🚚 Provide valid courier code : Supported courier codes include jne, jnt, sicepat, etc. Make sure the code matches
+
+supported ones from the 3PL list.
+
+🔐 Include Authorization Header : Always attach your Bearer Token using the Authorization: Bearer YOUR_API_KEY format.
+
+📉 Handle “no service available” gracefully : If no service is returned, inform the user that the route or courier may
+
+not be supported.
+
+
+Diatas adalah documentation yang kita perlukan, apakah ada informasi lainnya yang kamu butuhkan, silakan cek, analisa dan pelajari dan simpan ke memory kamu, agar kamu bisa menyesuaikan struktur documentation ini untuk pembuatan kode. Silakan konfirmasi terlebih dahulu, dan saya akan memberikan konfirmasi lanjutannya.

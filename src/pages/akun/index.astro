@@ -1,76 +1,51 @@
 ---
-// File: src/pages/akun/index.astro
-
+// File: /src/pages/akun/index.astro
 import MainLayout from '@/layouts/MainLayout.astro';
 import AddressSection from '@/components/AddressSection.tsx';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { supabaseAdmin } from '@/lib/supabaseServer.ts';
 
-let pageError: string | null = null;
+// 1. Validasi Sesi Pengguna
+const { session } = Astro.locals;
+if (!session) {
+  return Astro.redirect('/login?redirect=/akun');
+}
 
+// 2. Validasi Profil Pelanggan (Diaktifkan Kembali & Disederhanakan)
 try {
-  // --- Validasi Sesi Pengguna ---
-  const { session } = Astro.locals; 
-
-  if (!session) {
-    return Astro.redirect('/login');
-  }
-
-  // --- VALIDASI PROFIL DINONAKTIFKAN SEMENTARA UNTUK DEBUGGING ---
-  // Kita akan asumsikan profil ada jika sesi ada, untuk menghindari crash loop.
-  // Validasi profil akan kita pindahkan ke client-side jika diperlukan nanti.
-  /*
-  const { cookies } = Astro;
-  const supabase = createServerClient(
-    import.meta.env.PUBLIC_SUPABASE_URL!,
-    import.meta.env.PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(key: string) { return cookies?.get(key)?.value; },
-        set(key: string, value: string, options: CookieOptions) { cookies?.set(key, value, options); },
-        remove(key: string, options: CookieOptions) { cookies?.delete(key, options); },
-      },
-    }
-  );
-
-  const { data: customerProfile, error: profileError } = await supabase
+  const { error } = await supabaseAdmin
     .from("customers")
     .select("id")
     .eq("auth_user_id", session.user.id)
-    .maybeSingle();
+    .single(); // .single() akan error jika tidak ada data, yang kita inginkan
 
-  if (profileError) throw profileError;
-  if (!customerProfile) return Astro.redirect('/akun/lengkapi-profil');
-  */
-
-} catch (error) {
-  console.error("Server-side error in /akun/index.astro:", error.message);
-  pageError = error.message || "Terjadi kesalahan saat memverifikasi data pengguna.";
+  // Jika query error (termasuk jika tidak ada data), arahkan ke lengkapi-profil
+  if (error) {
+    return Astro.redirect('/akun/lengkapi-profil');
+  }
+} catch (e) {
+  // Tangkap error tak terduga dan redirect
+  console.error("Gagal memvalidasi profil customer:", e);
+  return Astro.redirect('/akun/lengkapi-profil');
 }
 ---
-
 <MainLayout title="Akun Saya - BJS Racing Store">
   <main class="container mx-auto px-4 py-8">
-    {pageError ? (
-      <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6" role="alert">
-        <strong class="font-bold">Error Memuat Halaman:</strong>
-        <span class="block sm:inline">{pageError}</span>
-      </div>
-    ) : (
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-        <aside class="md:col-span-1">
-          <nav class="flex flex-col space-y-2">
-            <a href="/akun" class="font-semibold bg-gray-200 p-3 rounded-lg">Buku Alamat</a>
-            <a href="/akun/profil" class="hover:bg-gray-100 p-3 rounded-lg">Profil Saya</a>
-            <a href="/akun/pesanan" class="hover:bg-gray-100 p-3 rounded-lg">Riwayat Pesanan</a>
-            <form action="/api/auth/signout" method="post" class="w-full">
-              <button type="submit" class="w-full text-left hover:bg-gray-100 p-3 rounded-lg">Keluar</button>
-            </form>
-          </nav>
-        </aside>
-        <section class="md:col-span-3">
-          <AddressSection client:load />
-        </section>
-      </div>
-    )}
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <aside class="md:col-span-1">
+        <nav class="flex flex-col space-y-2">
+          {/* Navigasi "Buku Alamat" sekarang menjadi link utama untuk halaman ini */}
+          <a href="/akun" class="font-semibold bg-gray-200 p-3 rounded-lg">Buku Alamat</a>
+          <a href="/akun/profil" class="hover:bg-gray-100 p-3 rounded-lg">Profil Saya</a>
+          <a href="/akun/pesanan" class="hover:bg-gray-100 p-3 rounded-lg">Riwayat Pesanan</a>
+          <form action="/api/auth/signout" method="post" class="w-full">
+            <button type="submit" class="w-full text-left hover:bg-gray-100 p-3 rounded-lg">Keluar</button>
+          </form>
+        </nav>
+      </aside>
+      <section class="md:col-span-3">
+        {/* Konten utama saat ini adalah AddressSection */}
+        <AddressSection client:load />
+      </section>
+    </div>
   </main>
 </MainLayout>

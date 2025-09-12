@@ -1,0 +1,153 @@
+---
+// File: /src/pages/akun/pesanan/[order_id].astro
+import MainLayout from '@/layouts/MainLayout.astro';
+import { supabaseAdmin } from '@/lib/supabaseServer.ts';
+
+// 1. Proteksi Halaman & Ambil Data dari Server
+const { session, supabase } = Astro.locals;
+const { order_id } = Astro.params;
+const statusParam = Astro.url.searchParams.get('status');
+
+if (!session) {
+  return Astro.redirect('/login');
+}
+
+// Ambil customer ID terlebih dahulu untuk keamanan
+const { data: customer } = await supabaseAdmin
+  .from('customers')
+  .select('id')
+  .eq('auth_user_id', session.user.id)
+  .single();
+
+if (!customer) {
+  // Jika profil customer tidak ditemukan, bisa jadi error atau pengguna baru
+  // Redirect ke halaman utama untuk keamanan
+  return Astro.redirect('/404');
+}
+
+// 2. Ambil data pesanan (order) yang spesifik untuk pengguna ini
+const { data: order, error } = await supabaseAdmin
+  .from('orders')
+  .select(`
+    *,
+    order_items (
+      *,
+      products (
+        nama,
+        image_url
+      )
+    )
+  `)
+  .eq('id', order_id)
+  .eq('customer_id', customer.id) // Filter keamanan paling penting!
+  .single();
+
+// Jika pesanan tidak ditemukan atau bukan milik pengguna ini, redirect ke 404
+if (error || !order) {
+  return Astro.redirect('/404');
+}
+
+// Helper untuk format Rupiah dan Tanggal
+const formatRupiah = (number: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(number || 0);
+const formatTanggal = (dateString: string) => new Date(dateString).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+// Tentukan pesan status berdasarkan parameter URL dan data DB
+let statusMessage = {
+  title: "Status Pesanan Tidak Diketahui",
+  description: "Silakan hubungi customer service kami.",
+  color: "bg-gray-100 text-gray-800"
+};
+
+const orderStatus = order.status;
+
+if (statusParam === 'success' || orderStatus === 'paid' || orderStatus === 'processing') {
+  statusMessage = {
+    title: "Pembayaran Berhasil!",
+    description: "Terima kasih atas pesanan Anda. Kami akan segera memprosesnya.",
+    color: "bg-green-100 text-green-800"
+  };
+} else if (statusParam === 'pending' || orderStatus === 'awaiting_payment') {
+  statusMessage = {
+    title: "Menunggu Pembayaran",
+    description: "Pesanan Anda telah kami terima. Silakan selesaikan pembayaran Anda.",
+    color: "bg-yellow-100 text-yellow-800"
+  };
+} else if (orderStatus === 'shipped') {
+    statusMessage = {
+    title: "Pesanan Dikirim",
+    description: `Pesanan Anda sedang dalam perjalanan dengan nomor resi: ${order.shipping_receipt_number || 'Segera Tersedia'}.`,
+    color: "bg-blue-100 text-blue-800"
+  };
+} else if (orderStatus === 'cancelled') {
+    statusMessage = {
+    title: "Pesanan Dibatalkan",
+    description: "Pesanan ini telah dibatalkan.",
+    color: "bg-red-100 text-red-800"
+  };
+}
+---
+<MainLayout title={`Detail Pesanan ${order.order_number}`}>
+  <div class="max-w-4xl mx-auto py-8">
+
+    <div class:list={["p-6 rounded-xl mb-8", statusMessage.color]}>
+      <h2 class="text-2xl font-bold">{statusMessage.title}</h2>
+      <p class="mt-2">{statusMessage.description}</p>
+    </div>
+
+    <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md">
+      <div class="flex flex-col sm:flex-row justify-between sm:items-center border-b pb-6 mb-6">
+        <div>
+          <h1 class="text-2xl font-bold">Detail Pesanan</h1>
+          <p class="text-slate-500">Nomor Pesanan: <span class="font-medium text-slate-700">{order.order_number}</span></p>
+          <p class="text-slate-500">Tanggal: <span class="font-medium text-slate-700">{formatTanggal(order.created_at)}</span></p>
+        </div>
+        <div class="text-left sm:text-right mt-4 sm:mt-0">
+          <span class="text-slate-500">Total Pembayaran</span>
+          <p class="text-3xl font-bold text-orange-600">{formatRupiah(order.total_amount)}</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div>
+          <h3 class="font-bold text-lg mb-4">Dikirim Ke:</h3>
+          <div class="text-slate-600 space-y-1">
+            <p class="font-semibold">{order.shipping_address.recipient_name}</p>
+            <p>{order.shipping_address.recipient_phone}</p>
+            <p>{order.shipping_address.full_address}</p>
+            <p>{order.shipping_address.destination_text}</p>
+          </div>
+          <h3 class="font-bold text-lg mt-6 mb-4">Metode Pengiriman:</h3>
+          <div class="text-slate-600 space-y-1">
+            <p class="font-semibold">{order.courier_details.name} - {order.courier_details.service}</p>
+            <p>Estimasi Tiba: {order.courier_details.etd}</p>
+          </div>
+        </div>
+        <div>
+          <h3 class="font-bold text-lg mb-4">Ringkasan Item:</h3>
+          <div class="space-y-4">
+            {order.order_items.map(item => (
+              <div class="flex items-center gap-4">
+                <div class="w-16 h-16 bg-slate-100 rounded-md flex-shrink-0">
+                  <img src={item.products.image_url} alt={item.products.nama} class="w-full h-full object-contain" />
+                </div>
+                <div class="flex-grow">
+                  <p class="font-semibold text-slate-800">{item.products.nama}</p>
+                  <p class="text-sm text-slate-500">{item.quantity} x {formatRupiah(item.price)}</p>
+                </div>
+                <div class="font-semibold text-slate-800">
+                  {formatRupiah(item.quantity * item.price)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center mt-12">
+        <a href="/akun/riwayat-pesanan" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-3 px-6 rounded-lg transition-colors">
+          Lihat Riwayat Pesanan
+        </a>
+      </div>
+    </div>
+  </div>
+</MainLayout>
