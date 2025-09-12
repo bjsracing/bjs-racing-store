@@ -17,8 +17,11 @@ interface Product {
   ukuran?: string;
 }
 
+// PERBAIKAN KECIL: Menambahkan product_id secara eksplisit untuk kejelasan
+// Meskipun sudah ada 'id' dari extends Product, ini membuat logika lebih mudah dibaca
 export interface CartItem extends Product {
   quantity: number;
+  product_id: string;
 }
 
 export interface Address {
@@ -51,18 +54,14 @@ interface StoreState {
   items: CartItem[];
   addresses: Address[];
   isMobileMenuOpen: boolean;
-  isCartLoading: boolean; // State baru untuk loading indicator
-
-  // Fungsi Keranjang (sekarang async dan terhubung ke DB)
+  isCartLoading: boolean;
   fetchCart: () => Promise<void>;
   addToCart: (productToAdd: Product, quantity: number) => Promise<void>;
   removeFromCart: (productId: string) => Promise<void>;
   updateQuantity: (productId: string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
-  clearLocalCart: () => void; // Fungsi baru untuk logout
+  clearLocalCart: () => void;
   calculateTotalWeight: () => number;
-
-  // Fungsi lain
   fetchAddresses: () => Promise<void>;
   addAddress: (addressData: FormDataState) => Promise<void>;
   updateAddress: (
@@ -84,7 +83,7 @@ export const useAppStore = create<StoreState>()(
     items: [],
     addresses: [],
     isMobileMenuOpen: false,
-    isCartLoading: true, // Anggap loading saat aplikasi pertama kali dimuat
+    isCartLoading: true,
 
     // --- Fungsi Keranjang Belanja (Terhubung ke Supabase) ---
     fetchCart: async () => {
@@ -106,7 +105,7 @@ export const useAppStore = create<StoreState>()(
           console.error("Gagal mengambil data keranjang:", error);
           set({ items: [] });
         } else {
-          set({ items: data || [] });
+          set({ items: (data as any[]) || [] });
         }
       } catch (e) {
         console.error("Terjadi pengecualian saat fetchCart:", e);
@@ -117,21 +116,33 @@ export const useAppStore = create<StoreState>()(
     },
 
     addToCart: async (productToAdd, quantity) => {
-      // Optimistic UI Update: Perbarui UI secara instan
+      // Optimistic UI Update
       set((state) => {
+        // --- PERBAIKAN: Gunakan productToAdd.id untuk mencari produk yang ada ---
         const existingItem = state.items.find(
-          (item) => item.id === productToAdd.id,
+          (item) => item.product_id === productToAdd.id,
         );
         if (existingItem) {
           return {
             items: state.items.map((item) =>
-              item.id === productToAdd.id
+              // --- PERBAIKAN: Gunakan product_id untuk perbandingan ---
+              item.product_id === productToAdd.id
                 ? { ...item, quantity: item.quantity + quantity }
                 : item,
             ),
           };
         }
-        return { items: [...state.items, { ...productToAdd, quantity }] };
+        // Saat menambahkan item baru, pastikan product_id juga disertakan
+        return {
+          items: [
+            ...state.items,
+            {
+              ...productToAdd,
+              quantity: quantity,
+              product_id: productToAdd.id,
+            },
+          ],
+        };
       });
 
       // Sinkronisasi dengan Database
@@ -142,7 +153,7 @@ export const useAppStore = create<StoreState>()(
 
       if (error) {
         console.error("Gagal sinkronisasi addToCart:", error);
-        get().fetchCart(); // Jika gagal, kembalikan state sesuai data di DB
+        get().fetchCart();
       }
     },
 
@@ -152,7 +163,8 @@ export const useAppStore = create<StoreState>()(
       }
       set((state) => ({
         items: state.items.map((item) =>
-          item.id === productId
+          // --- PERBAIKAN UTAMA: Bandingkan dengan 'product_id' bukan 'id' ---
+          item.product_id === productId
             ? { ...item, quantity: Math.max(0, quantity) }
             : item,
         ),
@@ -171,12 +183,13 @@ export const useAppStore = create<StoreState>()(
 
     removeFromCart: async (productId) => {
       set((state) => ({
-        items: state.items.filter((item) => item.id !== productId),
+        // --- PERBAIKAN UTAMA: Bandingkan dengan 'product_id' bukan 'id' ---
+        items: state.items.filter((item) => item.product_id !== productId),
       }));
 
       const { error } = await supabase.rpc("update_cart_item_quantity", {
         p_product_id: productId,
-        p_quantity: 0, // Mengirim 0 akan menghapus item di DB
+        p_quantity: 0,
       });
 
       if (error) {
