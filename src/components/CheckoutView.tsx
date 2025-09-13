@@ -108,7 +108,7 @@ export default function CheckoutView() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            origin: "114",
+            origin: "65100",
             destination: selectedAddress.destination,
             weight: totalWeight,
             courier: selectedCourier,
