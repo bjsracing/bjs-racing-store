@@ -43,6 +43,10 @@ const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
 
     {/* Generator tag */}
     <meta name="generator" content={Astro.generator} />
+
+    {/* PERBAIKAN: Tambahkan slot untuk skrip di head */}
+    <slot name="head-scripts" />
+    
   </head>
   <body class="bg-slate-100 text-slate-800 text-sm mobile:text-base tablet:text-lg">
 

@@ -3,7 +3,6 @@ import type { APIRoute } from "astro";
 import { supabaseAdmin } from "@/lib/supabaseServer.ts";
 import { Buffer } from "buffer";
 
-// 1. Tambahkan Tipe Data untuk item keranjang dari frontend
 interface FrontendCartItem {
     product_id: string;
     price: number;
@@ -13,7 +12,6 @@ interface FrontendCartItem {
     image_url: string;
 }
 
-// Helper untuk menghasilkan nomor pesanan unik
 function generateOrderNumber() {
     const now = new Date();
     const year = now.getFullYear();
@@ -35,8 +33,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     try {
         const body = await request.json();
         const { address_id, courier, cart_items } = body;
-
-        // 2. Beri tahu TypeScript bahwa cart_items adalah array dari tipe yang kita buat
         const typedCartItems = cart_items as FrontendCartItem[];
 
         if (
@@ -68,7 +64,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
         if (addressError) throw new Error("Alamat pengiriman tidak valid.");
 
-        // 3. Tambahkan tipe data pada parameter fungsi .reduce()
         const subtotalProducts = typedCartItems.reduce(
             (acc: number, item: FrontendCartItem) =>
                 acc + item.price * item.quantity,
@@ -95,7 +90,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
         if (orderError) throw orderError;
 
-        // 4. Tambahkan tipe data pada parameter fungsi .map()
         const orderItemsData = typedCartItems.map((item: FrontendCartItem) => ({
             order_id: newOrder.id,
             product_id: item.product_id,
@@ -118,18 +112,32 @@ export const POST: APIRoute = async ({ request, locals }) => {
             "base64",
         );
 
+        // --- PERBAIKAN UTAMA DIMULAI DI SINI ---
+
+        // 1. Siapkan daftar item produk terlebih dahulu
+        const item_details = typedCartItems.map((item: FrontendCartItem) => ({
+            id: item.product_id,
+            price: item.price,
+            quantity: item.quantity,
+            name: item.name.substring(0, 50),
+        }));
+
+        // 2. Tambahkan ongkos kirim sebagai item terpisah ke dalam daftar
+        if (shipping_cost > 0) {
+            item_details.push({
+                id: "SHIPPING",
+                price: shipping_cost,
+                quantity: 1,
+                name: `Ongkos Kirim (${courier.name} - ${courier.service})`,
+            });
+        }
+
         const midtransPayload = {
             transaction_details: {
                 order_id: orderNumber,
-                gross_amount: totalAmount,
+                gross_amount: totalAmount, // Total = (jumlah harga produk) + ongkos kirim
             },
-            // 5. Tambahkan tipe data pada parameter fungsi .map()
-            item_details: typedCartItems.map((item: FrontendCartItem) => ({
-                id: item.product_id,
-                price: item.price,
-                quantity: item.quantity,
-                name: item.name.substring(0, 50),
-            })),
+            item_details: item_details, // Kirim daftar yang SUDAH termasuk ongkos kirim
             customer_details: {
                 first_name: customer.nama_pelanggan,
                 phone: customer.telepon,
@@ -138,12 +146,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
                     first_name: address.recipient_name,
                     phone: address.recipient_phone,
                     address: address.full_address,
-                    city: address.destination_text.split(",")[0], // Ambil kota dari destination_text
+                    city: address.destination_text.split(",")[0],
                     postal_code: address.postal_code,
                     country_code: "IDN",
                 },
             },
         };
+
+        // --- AKHIR DARI PERBAIKAN ---
 
         const midtransResponse = await fetch(
             "https://app.sandbox.midtrans.com/snap/v1/transactions",
@@ -180,7 +190,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
             { status: 200 },
         );
     } catch (error) {
-        // 6. Tambahkan penanganan error yang aman untuk tipe 'unknown'
         let errorMessage = "Terjadi kesalahan pada server.";
         if (error instanceof Error) {
             errorMessage = error.message;
