@@ -8,7 +8,6 @@ export const POST: APIRoute = async ({ request }) => {
         const midtransNotification = await request.json();
         const serverKey = import.meta.env.MIDTRANS_SERVER_KEY;
 
-        // --- 1. Verifikasi Keamanan (Signature Key) ---
         const { order_id, status_code, gross_amount, signature_key } =
             midtransNotification;
         const hash = crypto
@@ -17,30 +16,26 @@ export const POST: APIRoute = async ({ request }) => {
             .digest("hex");
 
         if (hash !== signature_key) {
-            console.error("Invalid Midtrans signature key.");
-            return new Response("Invalid signature", { status: 401 });
+            console.error("Invalid Midtrans signature key received.");
+            // --- PENYEMPURNAAN 1: Tetap kirim 200 agar Midtrans tidak retry ---
+            return new Response("Invalid signature.", { status: 200 });
         }
 
-        // --- 2. Proses Notifikasi Berdasarkan Status Transaksi ---
         const { transaction_status, fraud_status } = midtransNotification;
 
-        if (transaction_status == "settlement") {
+        if (transaction_status == "settlement" && fraud_status == "accept") {
             // Pembayaran berhasil
-            if (fraud_status == "accept") {
-                // Panggil fungsi database untuk menangani semua update
-                const { error } = await supabaseAdmin.rpc(
-                    "handle_successful_payment",
-                    {
-                        p_order_number: order_id,
-                    },
+            const { error } = await supabaseAdmin.rpc(
+                "handle_successful_payment",
+                {
+                    p_order_number: order_id,
+                },
+            );
+            if (error) {
+                console.error(
+                    "Error calling handle_successful_payment:",
+                    error,
                 );
-                if (error) {
-                    console.error(
-                        "Error calling handle_successful_payment:",
-                        error,
-                    );
-                    // Tetap kirim 200 OK agar Midtrans tidak retry
-                }
             }
         } else if (
             transaction_status == "cancel" ||
@@ -48,18 +43,27 @@ export const POST: APIRoute = async ({ request }) => {
             transaction_status == "deny"
         ) {
             // Pembayaran gagal atau dibatalkan
-            await supabaseAdmin
+            const { data: orderData } = await supabaseAdmin
                 .from("orders")
                 .update({ status: "cancelled" })
-                .eq("order_number", order_id);
+                .eq("order_number", order_id)
+                .select("id")
+                .single();
+
+            // --- PENYEMPURNAAN 2: Update juga tabel payments ---
+            if (orderData) {
+                await supabaseAdmin
+                    .from("payments")
+                    .update({ status: transaction_status })
+                    .eq("order_id", orderData.id);
+            }
         }
 
-        // --- 3. Kirim Respons ke Midtrans ---
-        // Selalu kirim 200 OK agar Midtrans berhenti mengirim notifikasi untuk transaksi ini.
-        return new Response("Notification received", { status: 200 });
+        return new Response("Notification successfully processed.", {
+            status: 200,
+        });
     } catch (error) {
         console.error("Webhook processing error:", error);
-        // Tetap kirim 200 OK, tapi catat error di server Anda
         return new Response(
             "Error processing notification, but acknowledged.",
             { status: 200 },
