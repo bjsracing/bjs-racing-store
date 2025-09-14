@@ -17,59 +17,32 @@ export const POST: APIRoute = async ({ request }) => {
 
         if (hash !== signature_key) {
             console.error("Invalid Midtrans signature key received.");
+            // --- PENYEMPURNAAN 1: Tetap kirim 200 agar Midtrans tidak retry ---
             return new Response("Invalid signature.", { status: 200 });
         }
 
         const { transaction_status, fraud_status } = midtransNotification;
 
-        // --- PERBAIKAN UTAMA DIMULAI DI SINI ---
         if (transaction_status == "settlement" && fraud_status == "accept") {
-            // Pembayaran berhasil, jalankan proses secara berurutan
-
-            // 1. Jalankan fungsi kritis terlebih dahulu (update status & stok)
-            const { error: paymentError } = await supabaseAdmin.rpc(
+            // Pembayaran berhasil
+            const { error } = await supabaseAdmin.rpc(
                 "handle_successful_payment",
-                { p_order_number: order_id },
+                {
+                    p_order_number: order_id,
+                },
             );
-
-            if (paymentError) {
-                // Jika proses kritis gagal, catat error fatal dan hentikan.
+            if (error) {
                 console.error(
-                    `KRITIS: Gagal menjalankan handle_successful_payment untuk Order ID: ${order_id}. Error:`,
-                    paymentError,
+                    "Error calling handle_successful_payment:",
+                    error,
                 );
-            } else {
-                // 2. Jika fungsi kritis berhasil, lanjutkan dengan fungsi logging ke POS
-                console.log(
-                    `[Webhook] Pembayaran inti untuk Order ID: ${order_id} berhasil. Melanjutkan ke logging POS.`,
-                );
-
-                const { error: logError } = await supabaseAdmin.rpc(
-                    "log_pos_record",
-                    {
-                        p_order_number: order_id,
-                    },
-                );
-
-                if (logError) {
-                    // Jika logging gagal, ini tidak kritis. Cukup catat errornya.
-                    // Status pesanan dan stok sudah benar.
-                    console.error(
-                        `LOGGING GAGAL: Gagal menjalankan log_pos_record untuk Order ID: ${order_id}. Error:`,
-                        logError,
-                    );
-                } else {
-                    console.log(
-                        `[Webhook] Logging POS untuk Order ID: ${order_id} berhasil.`,
-                    );
-                }
             }
         } else if (
             transaction_status == "cancel" ||
             transaction_status == "expire" ||
             transaction_status == "deny"
         ) {
-            // Pembayaran gagal atau dibatalkan (logika ini sudah benar)
+            // Pembayaran gagal atau dibatalkan
             const { data: orderData } = await supabaseAdmin
                 .from("orders")
                 .update({ status: "cancelled" })
@@ -77,6 +50,7 @@ export const POST: APIRoute = async ({ request }) => {
                 .select("id")
                 .single();
 
+            // --- PENYEMPURNAAN 2: Update juga tabel payments ---
             if (orderData) {
                 await supabaseAdmin
                     .from("payments")
@@ -84,7 +58,6 @@ export const POST: APIRoute = async ({ request }) => {
                     .eq("order_id", orderData.id);
             }
         }
-        // --- AKHIR DARI PERBAIKAN ---
 
         return new Response("Notification successfully processed.", {
             status: 200,
