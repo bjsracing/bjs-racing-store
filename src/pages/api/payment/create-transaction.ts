@@ -32,7 +32,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     try {
         const body = await request.json();
-        const { address_id, courier, cart_items } = body;
+        // --- PERBAIKAN 1: Terima 'service_fee' dari frontend ---
+        const { address_id, courier, cart_items, shipping_cost, service_fee } =
+            body;
         const typedCartItems = cart_items as FrontendCartItem[];
 
         if (
@@ -64,13 +66,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
         if (addressError) throw new Error("Alamat pengiriman tidak valid.");
 
+        // --- PERBAIKAN 2: Perbarui kalkulasi total untuk menyertakan semua biaya ---
         const subtotalProducts = typedCartItems.reduce(
             (acc: number, item: FrontendCartItem) =>
                 acc + item.price * item.quantity,
             0,
         );
-        const shipping_cost = Number(body.shipping_cost) || 0;
-        const totalAmount = subtotalProducts + shipping_cost;
+        const finalShippingCost = Number(shipping_cost) || 0;
+        const finalServiceFee = Number(service_fee) || 0;
+        const totalAmount =
+            subtotalProducts + finalShippingCost + finalServiceFee;
 
         const orderNumber = generateOrderNumber();
         const { data: newOrder, error: orderError } = await supabaseAdmin
@@ -79,8 +84,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
                 order_number: orderNumber,
                 customer_id: customer.id,
                 total_amount: totalAmount,
-                shipping_cost: shipping_cost,
+                shipping_cost: finalShippingCost,
                 subtotal_products: subtotalProducts,
+                service_fee: finalServiceFee, // <-- Simpan biaya layanan ke DB
                 shipping_address: address,
                 courier_details: courier,
                 status: "awaiting_payment",
@@ -112,9 +118,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
             "base64",
         );
 
-        // --- PERBAIKAN UTAMA DIMULAI DI SINI ---
-
-        // 1. Siapkan daftar item produk terlebih dahulu
+        // --- PERBAIKAN 3: Siapkan item_details yang lengkap untuk Midtrans ---
         const item_details = typedCartItems.map((item: FrontendCartItem) => ({
             id: item.product_id,
             price: item.price,
@@ -122,22 +126,45 @@ export const POST: APIRoute = async ({ request, locals }) => {
             name: item.name.substring(0, 50),
         }));
 
-        // 2. Tambahkan ongkos kirim sebagai item terpisah ke dalam daftar
-        if (shipping_cost > 0) {
+        if (finalShippingCost > 0) {
             item_details.push({
                 id: "SHIPPING",
-                price: shipping_cost,
+                price: finalShippingCost,
                 quantity: 1,
                 name: `Ongkos Kirim (${courier.name} - ${courier.service})`,
             });
         }
 
+        if (finalServiceFee > 0) {
+            item_details.push({
+                id: "SERVICE_FEE",
+                price: finalServiceFee,
+                quantity: 1,
+                name: "Biaya Layanan",
+            });
+        }
+
+        // --- PERBAIKAN 4: Terapkan logika pembatasan metode pembayaran ---
+        let enabled_payments = [
+            "bca_va",
+            "bni_va",
+            "bri_va",
+            "permata_va",
+            "cimb_va",
+            "other_va",
+        ]; // Default: Hanya Transfer Bank
+
+        if (totalAmount <= 572000) {
+            enabled_payments.push("other_qris");
+        }
+
         const midtransPayload = {
             transaction_details: {
                 order_id: orderNumber,
-                gross_amount: totalAmount, // Total = (jumlah harga produk) + ongkos kirim
+                gross_amount: totalAmount,
             },
-            item_details: item_details, // Kirim daftar yang SUDAH termasuk ongkos kirim
+            item_details: item_details,
+            enabled_payments: enabled_payments, // <-- Sertakan daftar pembayaran yang diizinkan
             customer_details: {
                 first_name: customer.nama_pelanggan,
                 phone: customer.telepon,
@@ -152,8 +179,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
                 },
             },
         };
-
-        // --- AKHIR DARI PERBAIKAN ---
 
         const midtransResponse = await fetch(
             "https://app.sandbox.midtrans.com/snap/v1/transactions",

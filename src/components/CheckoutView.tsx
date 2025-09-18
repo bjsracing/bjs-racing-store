@@ -53,6 +53,10 @@ export default function CheckoutView() {
   const [error, setError] = useState("");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
+  // --- PERBAIKAN 1: Definisikan Biaya Layanan ---
+  const SERVICE_FEE = 2000;
+
+  // --- Kalkulasi Memoized (Diperbarui) ---
   const totalWeight = useMemo(
     () => calculateTotalWeight(),
     [items, calculateTotalWeight],
@@ -65,8 +69,10 @@ export default function CheckoutView() {
       ),
     [items],
   );
+
+  // --- PERBAIKAN 2: Perbarui kalkulasi Total Akhir untuk menyertakan Biaya Layanan ---
   const finalTotal = useMemo(
-    () => subtotal + (selectedShipping?.cost || 0),
+    () => subtotal + (selectedShipping?.cost || 0) + SERVICE_FEE,
     [subtotal, selectedShipping],
   );
   const formatRupiah = (number: number) =>
@@ -142,6 +148,7 @@ export default function CheckoutView() {
     const payload = {
       address_id: selectedAddressId,
       shipping_cost: selectedShipping.cost,
+      service_fee: SERVICE_FEE, // <-- PERBAIKAN 3: Kirim biaya layanan ke backend
       courier: {
         code: selectedCourier,
         name: courierDetails?.name,
@@ -324,6 +331,11 @@ export default function CheckoutView() {
               <p className="font-medium">
                 {selectedShipping ? formatRupiah(selectedShipping.cost) : "-"}
               </p>
+            </div>
+            {/* --- PERBAIKAN 4: Tampilkan baris Biaya Layanan --- */}
+            <div className="flex justify-between">
+              <p className="text-gray-600">Biaya Layanan</p>
+              <p className="font-medium">{formatRupiah(SERVICE_FEE)}</p>
             </div>
           </div>
           <div className="flex justify-between text-lg font-bold pt-4 mt-4 border-t">
