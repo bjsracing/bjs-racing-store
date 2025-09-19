@@ -1,0 +1,59 @@
+Tentu saja. Konfirmasi diterima, dan selamat! Saya sangat senang mendengar semuanya berjalan dengan baik.
+
+Ide Anda untuk menambahkan kurir internal adalah langkah yang sangat **cerdas dan strategis**. Ini tidak hanya menghemat *hit* API RajaOngkir, tetapi juga membuka peluang untuk menawarkan ongkos kirim yang lebih kompetitif atau bahkan gratis untuk pelanggan lokal Anda.
+
+Mari kita rencanakan arsitekturnya.
+
+---
+### ## Instruksi #85: Perencanaan - Modul Kurir Internal
+
+Untuk mengimplementasikan ini secara profesional, kita perlu membaginya menjadi tiga bagian: Database, Backend, dan Frontend.
+
+#### Fase 1: Database - Mendefinisikan Zona Layanan 🗺️
+Kita perlu cara bagi sistem untuk "mengetahui" area mana saja yang masuk dalam jangkauan kurir internal Anda. Cara terbaik adalah dengan membuat tabel baru.
+
+* **Tabel Baru:** `internal_shipping_zones`
+* **Tujuan:** Menyimpan daftar kecamatan yang terjangkau oleh kurir internal beserta ongkos kirimnya.
+* **Struktur Kolom:**
+    * `id`: Primary Key
+    * `subdistrict_id`: **ID Kecamatan dari RajaOngkir**. Ini adalah kuncinya. Kita akan menggunakan ID lokasi RajaOngkir untuk mendefinisikan area.
+    * `zone_name`: Nama zona (misal: "Jepara Kota").
+    * `shipping_cost`: Ongkos kirim tetap (flat rate) untuk zona tersebut.
+    * `is_active`: (boolean) Untuk mengaktifkan/menonaktifkan zona.
+
+#### Fase 2: Backend - Membuat API Pengecekan Area ⚙️
+Kita butuh sebuah API endpoint sederhana yang bisa dihubungi oleh frontend untuk memeriksa ketersediaan kurir internal.
+
+* **Endpoint Baru:** `/api/shipping/check-local-availability`
+* **Tujuan:** Menerima ID destinasi dari pelanggan dan memeriksa apakah ID tersebut ada di dalam tabel `internal_shipping_zones` kita.
+* **Logika:**
+    * **Input:** Menerima `destination_id`.
+    * **Proses:** Melakukan `SELECT` ke tabel `internal_shipping_zones` di mana `subdistrict_id` cocok dengan `destination_id`.
+    * **Output:**
+        * Jika **ditemukan**, API akan merespons dengan: `{ "available": true, "cost": 10000, "name": "Kurir Toko" }`.
+        * Jika **tidak ditemukan**, API akan merespons dengan: `{ "available": false }`.
+
+#### Fase 3: Frontend - Integrasi di Halaman Checkout 🎨
+Ini adalah bagian di mana keajaiban terjadi di mata pengguna. Kita akan memodifikasi `CheckoutView.tsx`.
+
+* **Logika Baru:**
+    1.  Saat pengguna memilih alamat pengiriman, sebuah `useEffect` akan terpicu.
+    2.  Di dalam `useEffect` tersebut, kita akan memanggil API baru kita (`/api/shipping/check-local-availability`) dengan `destination_id` dari alamat yang dipilih.
+    3.  Kita akan menggunakan *state* baru, misalnya `internalCourierOption`, untuk menyimpan hasil dari API tersebut.
+    4.  Daftar kurir yang ditampilkan kepada pengguna akan menjadi dinamis:
+        * Jika `internalCourierOption.available` adalah `true`, kita akan **menambahkan "Kurir Toko"** ke dalam daftar `courierOptions`.
+        * Jika `false`, daftar kurir akan tetap seperti biasa (hanya RajaOngkir).
+    5.  Jika pengguna memilih "Kurir Toko", kita akan **langsung menampilkan ongkir flat** dari `internalCourierOption.cost` dan **tidak akan memanggil API RajaOngkir**.
+
+---
+### ## Ringkasan Alur Kerja Baru
+
+1.  Pengguna memilih alamat pengiriman di halaman checkout.
+2.  Aplikasi secara otomatis di latar belakang bertanya ke server Anda, "Apakah alamat ini masuk zona Kurir Toko?"
+3.  Jika **ya**, pilihan "Kurir Toko" (dengan ongkir flat) **muncul** di daftar kurir. Jika **tidak**, pilihan itu **tidak akan muncul**.
+4.  Jika pengguna memilih "Kurir Toko", ongkir flat langsung ditampilkan, menghemat *hit* API RajaOngkir.
+5.  Jika pengguna memilih kurir lain (JNE, dll.), aplikasi akan memanggil API RajaOngkir seperti biasa.
+
+Ini adalah model arsitektur yang saya rekomendasikan. Ini modular, efisien, dan sangat fleksibel untuk dikembangkan di masa depan (misalnya, menambahkan beberapa zona lokal dengan harga berbeda).
+
+Bagaimana menurut Anda? Jika Anda setuju, kita bisa mulai dengan **Fase 1: Membuat tabel `internal_shipping_zones`**.

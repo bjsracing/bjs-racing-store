@@ -1,15 +1,15 @@
 // File: src/components/CheckoutView.tsx
 import React, { useState, useEffect, useMemo } from "react";
 import { useAppStore } from "../lib/store.ts";
-import type { CartItem } from "../lib/store.ts"; // PERBAIKAN: Hapus 'Address' yang tidak digunakan
+import type { CartItem } from "../lib/store.ts";
 
-// Deklarasikan 'snap' di scope window agar TypeScript tidak error
 declare global {
   interface Window {
     snap: any;
   }
 }
 
+// PERBAIKAN 1: Tipe data 'ShippingService' sekarang digunakan untuk semua jenis kurir
 interface ShippingService {
   name: string;
   code: string;
@@ -17,16 +17,23 @@ interface ShippingService {
   description: string;
   cost: number;
   etd: string;
+  available?: boolean; // Tambahkan properti opsional 'available'
 }
 
-const courierOptions = [
-  { code: "pos", name: "POS Indonesia" },
-  { code: "jnt", name: "J&T Express" },
+// Daftar kurir dari RajaOngkir (sekarang menjadi 'rajaOngkirCouriers')
+const rajaOngkirCouriers = [
   { code: "jne", name: "JNE" },
   { code: "sicepat", name: "SiCepat" },
+  { code: "jnt", name: "J&T Express" },
+  { code: "sap", name: "SAP Express" },
+  { code: "ninja", name: "Ninja Xpress" },
+  { code: "ide", name: "ID Express" },
   { code: "tiki", name: "TIKI" },
   { code: "wahana", name: "Wahana Express" },
+  { code: "pos", name: "POS Indonesia" },
+  { code: "sentral", name: "Sentral Cargo" },
   { code: "lion", name: "Lion Parcel" },
+  { code: "rex", name: "Royal Express Asia" },
 ];
 
 export default function CheckoutView() {
@@ -47,11 +54,23 @@ export default function CheckoutView() {
   const [isLoadingCosts, setIsLoadingCosts] = useState(false);
   const [error, setError] = useState("");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [internalCourierOption, setInternalCourierOption] =
+    useState<ShippingService | null>(null);
 
-  // --- PERBAIKAN 1: Definisikan Biaya Layanan ---
   const SERVICE_FEE = 2000;
 
-  // --- Kalkulasi Memoized (Diperbarui) ---
+  // PERBAIKAN 2: Gunakan variabel 'rajaOngkirCouriers' yang benar dan gabungkan dengan opsi internal
+  const dynamicCourierOptions = useMemo(() => {
+    const options = [...rajaOngkirCouriers];
+    if (internalCourierOption?.available) {
+      options.unshift({
+        code: internalCourierOption.code,
+        name: internalCourierOption.name,
+      });
+    }
+    return options;
+  }, [internalCourierOption]);
+
   const totalWeight = useMemo(
     () => calculateTotalWeight(),
     [items, calculateTotalWeight],
@@ -64,8 +83,6 @@ export default function CheckoutView() {
       ),
     [items],
   );
-
-  // --- PERBAIKAN 2: Perbarui kalkulasi Total Akhir untuk menyertakan Biaya Layanan ---
   const finalTotal = useMemo(
     () => subtotal + (selectedShipping?.cost || 0) + SERVICE_FEE,
     [subtotal, selectedShipping],
@@ -90,20 +107,57 @@ export default function CheckoutView() {
   }, [addresses, selectedAddressId]);
 
   useEffect(() => {
-    const fetchShippingCosts = async () => {
-      if (!selectedAddressId || !selectedCourier || totalWeight === 0) {
-        setShippingServices([]);
-        setSelectedShipping(null);
+    const checkInternalCourier = async () => {
+      if (!selectedAddressId) {
+        setInternalCourierOption(null);
         return;
       }
-      setIsLoadingCosts(true);
-      setError("");
-      setSelectedShipping(null);
-      setShippingServices([]);
       const selectedAddress = addresses.find(
         (addr) => addr.id === selectedAddressId,
       );
       if (!selectedAddress || !selectedAddress.destination) return;
+      try {
+        const response = await fetch(
+          `/api/shipping/check-local-availability?destination_id=${selectedAddress.destination}`,
+        );
+        const result = await response.json();
+        setInternalCourierOption(result.available ? result : null);
+      } catch (err) {
+        console.error("Gagal mengecek kurir internal:", err);
+        setInternalCourierOption(null);
+      }
+    };
+    checkInternalCourier();
+  }, [selectedAddressId, addresses]);
+
+  useEffect(() => {
+    const fetchShippingCosts = async () => {
+      setShippingServices([]);
+      setSelectedShipping(null);
+      setError("");
+
+      if (!selectedAddressId || !selectedCourier || totalWeight === 0) return;
+
+      if (selectedCourier === "internal" && internalCourierOption?.available) {
+        setShippingServices([internalCourierOption]);
+        setSelectedShipping({
+          service: internalCourierOption.service,
+          cost: internalCourierOption.cost,
+          etd: internalCourierOption.etd,
+        });
+        return;
+      } else if (selectedCourier === "internal") {
+        return;
+      }
+
+      setIsLoadingCosts(true);
+      const selectedAddress = addresses.find(
+        (addr) => addr.id === selectedAddressId,
+      );
+      if (!selectedAddress || !selectedAddress.destination) {
+        setIsLoadingCosts(false);
+        return;
+      }
       try {
         const response = await fetch("/api/rajaongkir/cost", {
           method: "POST",
@@ -127,7 +181,13 @@ export default function CheckoutView() {
       }
     };
     fetchShippingCosts();
-  }, [selectedAddressId, selectedCourier, totalWeight, addresses]);
+  }, [
+    selectedAddressId,
+    selectedCourier,
+    totalWeight,
+    addresses,
+    internalCourierOption,
+  ]);
 
   const handlePayment = async () => {
     if (!selectedAddressId || !selectedShipping || !selectedCourier) {
@@ -137,13 +197,15 @@ export default function CheckoutView() {
 
     setIsProcessingPayment(true);
 
-    const courierDetails = courierOptions.find(
-      (c) => c.code === selectedCourier,
+    // --- PERBAIKAN DI SINI: Gunakan 'dynamicCourierOptions' dan tambahkan tipe untuk 'c' ---
+    const courierDetails = dynamicCourierOptions.find(
+      (c: { code: string; name: string }) => c.code === selectedCourier,
     );
+
     const payload = {
       address_id: selectedAddressId,
       shipping_cost: selectedShipping.cost,
-      service_fee: SERVICE_FEE, // <-- PERBAIKAN 3: Kirim biaya layanan ke backend
+      service_fee: SERVICE_FEE,
       courier: {
         code: selectedCourier,
         name: courierDetails?.name,
@@ -173,7 +235,6 @@ export default function CheckoutView() {
 
       const { snap_token, order_id } = result;
 
-      // PERBAIKAN: Tambahkan tipe 'any' dan underscore '_' untuk parameter yang tidak digunakan
       window.snap.pay(snap_token, {
         onSuccess: function (_result: any) {
           clearCart();
@@ -241,19 +302,22 @@ export default function CheckoutView() {
         </div>
         <div className="bg-white p-6 rounded-xl shadow-md">
           <h2 className="text-xl font-bold mb-4">Metode Pengiriman</h2>
+
+          {/* --- PERBAIKAN 5: Gunakan daftar kurir dinamis --- */}
           <select
             value={selectedCourier}
             onChange={(e) => setSelectedCourier(e.target.value)}
-            className="w-full p-3 border rounded-md bg-gray-50 focus:border-blue-500 focus:ring-blue-500"
+            className="w-full p-3 border rounded-md bg-gray-50 ..."
             disabled={!selectedAddressId}
           >
             <option value="">-- Pilih Kurir --</option>
-            {courierOptions.map((courier) => (
+            {dynamicCourierOptions.map((courier) => (
               <option key={courier.code} value={courier.code}>
                 {courier.name}
               </option>
             ))}
           </select>
+
           {isLoadingCosts && (
             <p className="text-sm text-gray-500 mt-4 animate-pulse">
               Menghitung ongkos kirim...
