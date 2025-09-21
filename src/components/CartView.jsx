@@ -28,10 +28,16 @@ const CartView = () => {
           Mari jelajahi produk kami dan temukan yang Anda butuhkan!
         </p>
         <a
-          href="/products" // Arahkan ke halaman produk utama
+          href="/pilok" // Arahkan ke halaman produk utama
           className="mt-6 inline-block bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
         >
-          Mulai Belanja
+          Mulai Belanja Pilok
+        </a>
+        <a
+          href="/pilok" // Arahkan ke halaman produk utama
+          className="mt-6 inline-block bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+        >
+          Mulai Belanja Onderdil / Aksesoris
         </a>
       </div>
     );
