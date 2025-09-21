@@ -197,7 +197,6 @@ export default function CheckoutView() {
 
     setIsProcessingPayment(true);
 
-    // --- PERBAIKAN DI SINI: Gunakan 'dynamicCourierOptions' dan tambahkan tipe untuk 'c' ---
     const courierDetails = dynamicCourierOptions.find(
       (c: { code: string; name: string }) => c.code === selectedCourier,
     );
@@ -230,8 +229,21 @@ export default function CheckoutView() {
       });
 
       const result = await response.json();
-      if (!response.ok)
-        throw new Error(result.message || "Gagal membuat transaksi.");
+
+      // --- PERBAIKAN UTAMA DI SINI ---
+      if (!response.ok) {
+        // Cek khusus jika error karena stok tidak cukup (status 409)
+        if (response.status === 409) {
+          alert(result.message); // Tampilkan pesan error dari server
+          useAppStore.getState().fetchCart(); // Muat ulang data keranjang dari DB
+          window.location.href = "/cart"; // Arahkan kembali ke keranjang
+        } else {
+          // Untuk error lainnya
+          throw new Error(result.message || "Gagal membuat transaksi.");
+        }
+        return; // Hentikan eksekusi
+      }
+      // --- AKHIR PERBAIKAN ---
 
       const { snap_token, order_id } = result;
 
