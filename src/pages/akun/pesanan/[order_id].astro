@@ -50,7 +50,6 @@ if (error || !order) {
 
 // Helper untuk format Rupiah dan Tanggal
 const formatRupiah = (number: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(number || 0);
-const formatTanggal = (dateString: string) => new Date(dateString).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 // Tentukan pesan status berdasarkan parameter URL dan data DB
 let statusMessage = {
@@ -100,7 +99,7 @@ if (statusParam === 'success' || orderStatus === 'paid' || orderStatus === 'proc
         <div>
           <h1 class="text-2xl font-bold">Detail Pesanan</h1>
           <p class="text-slate-500">Nomor Pesanan: <span class="font-medium text-slate-700">{order.order_number}</span></p>
-          <p class="text-slate-500">Tanggal: <span class="font-medium text-slate-700">{formatTanggal(order.created_at)}</span></p>
+          <p class="text-slate-500">Tanggal: <span class="font-medium text-slate-700">{formatToWIB(order.created_at)}</span></p>
         </div>
         <div class="text-left sm:text-right mt-4 sm:mt-0">
           <span class="text-slate-500">Total Pembayaran</span>
