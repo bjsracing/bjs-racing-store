@@ -16,13 +16,13 @@ interface Product {
   merek?: string;
   ukuran?: string;
   sku?: string;
+  stok?: number; // PERBAIKAN 1: Tambahkan 'stok' sebagai properti opsional di Product
 }
 
-// PERBAIKAN KECIL: Menambahkan product_id secara eksplisit untuk kejelasan
-// Meskipun sudah ada 'id' dari extends Product, ini membuat logika lebih mudah dibaca
 export interface CartItem extends Product {
   quantity: number;
   product_id: string;
+  stok: number; // PERBAIKAN 2: Pastikan 'stok' wajib ada di CartItem
 }
 
 export interface Address {
@@ -51,11 +51,20 @@ export interface FormDataState {
   city_id?: string;
 }
 
+export interface Toast {
+  id: string;
+  type: "success" | "error" | "warning" | "info";
+  message: string;
+  duration?: number;
+}
+
 interface StoreState {
   items: CartItem[];
   addresses: Address[];
   isMobileMenuOpen: boolean;
   isCartLoading: boolean;
+  toasts: Toast[];
+
   fetchCart: () => Promise<void>;
   addToCart: (productToAdd: Product, quantity: number) => Promise<void>;
   removeFromCart: (productId: string) => Promise<void>;
@@ -63,6 +72,10 @@ interface StoreState {
   clearCart: () => Promise<void>;
   clearLocalCart: () => void;
   calculateTotalWeight: () => number;
+
+  addToast: (toast: Omit<Toast, "id">) => void;
+  removeToast: (toastId: string) => void;
+
   fetchAddresses: () => Promise<void>;
   addAddress: (addressData: FormDataState) => Promise<void>;
   updateAddress: (
@@ -80,13 +93,12 @@ interface StoreState {
 
 export const useAppStore = create<StoreState>()(
   devtools((set, get) => ({
-    // --- Initial State ---
     items: [],
     addresses: [],
     isMobileMenuOpen: false,
     isCartLoading: true,
+    toasts: [],
 
-    // --- Fungsi Keranjang Belanja (Terhubung ke Supabase) ---
     fetchCart: async () => {
       set({ isCartLoading: true });
       try {
@@ -97,16 +109,14 @@ export const useAppStore = create<StoreState>()(
           set({ items: [], isCartLoading: false });
           return;
         }
-
         const { data, error } = await supabase.rpc("get_cart_items", {
           p_user_id: user.id,
         });
-
         if (error) {
           console.error("Gagal mengambil data keranjang:", error);
           set({ items: [] });
         } else {
-          set({ items: (data as any[]) || [] });
+          set({ items: (data as CartItem[]) || [] });
         }
       } catch (e) {
         console.error("Terjadi pengecualian saat fetchCart:", e);
@@ -117,36 +127,47 @@ export const useAppStore = create<StoreState>()(
     },
 
     addToCart: async (productToAdd, quantity) => {
+      const { items, addToast, fetchCart } = get();
+      const existingItem = items.find(
+        (item) => item.product_id === productToAdd.id,
+      );
+      const newQuantity = (existingItem?.quantity || 0) + quantity;
+
+      // Validasi stok
+      const availableStock = productToAdd.stok ?? 0;
+      if (newQuantity > availableStock) {
+        addToast({
+          type: "warning",
+          message: `Stok ${productToAdd.nama} tidak mencukupi (sisa ${availableStock}).`,
+        });
+        return;
+      }
+
       // Optimistic UI Update
       set((state) => {
-        // --- PERBAIKAN: Gunakan productToAdd.id untuk mencari produk yang ada ---
-        const existingItem = state.items.find(
-          (item) => item.product_id === productToAdd.id,
-        );
         if (existingItem) {
           return {
             items: state.items.map((item) =>
-              // --- PERBAIKAN: Gunakan product_id untuk perbandingan ---
               item.product_id === productToAdd.id
-                ? { ...item, quantity: item.quantity + quantity }
+                ? { ...item, quantity: newQuantity }
                 : item,
             ),
           };
         }
-        // Saat menambahkan item baru, pastikan product_id juga disertakan
+        // PERBAIKAN 3: Pastikan objek baru yang dibuat sesuai dengan tipe CartItem (memiliki 'stok')
         return {
           items: [
             ...state.items,
             {
               ...productToAdd,
-              quantity: quantity,
+              quantity,
               product_id: productToAdd.id,
+              stok: availableStock,
             },
           ],
         };
       });
 
-      // Sinkronisasi dengan Database
       const { error } = await supabase.rpc("upsert_cart_item", {
         p_product_id: productToAdd.id,
         p_quantity: quantity,
@@ -154,20 +175,48 @@ export const useAppStore = create<StoreState>()(
 
       if (error) {
         console.error("Gagal sinkronisasi addToCart:", error);
-        get().fetchCart();
+        addToast({ type: "error", message: "Gagal memperbarui keranjang." });
+        fetchCart();
+      } else {
+        addToast({
+          type: "success",
+          message: `${productToAdd.nama} ditambahkan.`,
+        });
       }
     },
 
     updateQuantity: async (productId, quantity) => {
+      const { items, addToast, fetchCart, removeFromCart } = get();
       if (quantity < 1) {
-        return get().removeFromCart(productId);
+        return removeFromCart(productId);
       }
+
+      const itemToUpdate = items.find((item) => item.product_id === productId);
+      if (!itemToUpdate) return;
+
+      // Logika Validasi Stok Utama
+      if (quantity > itemToUpdate.stok) {
+        addToast({
+          type: "warning",
+          message: `Stok tidak mencukupi. Sisa ${itemToUpdate.stok}.`,
+        });
+        set((state) => ({
+          items: state.items.map((item) =>
+            item.product_id === productId
+              ? { ...item, quantity: itemToUpdate.stok }
+              : item,
+          ),
+        }));
+        await supabase.rpc("update_cart_item_quantity", {
+          p_product_id: productId,
+          p_quantity: itemToUpdate.stok,
+        });
+        return;
+      }
+
       set((state) => ({
         items: state.items.map((item) =>
-          // --- PERBAIKAN UTAMA: Bandingkan dengan 'product_id' bukan 'id' ---
-          item.product_id === productId
-            ? { ...item, quantity: Math.max(0, quantity) }
-            : item,
+          item.product_id === productId ? { ...item, quantity } : item,
         ),
       }));
 
@@ -178,21 +227,18 @@ export const useAppStore = create<StoreState>()(
 
       if (error) {
         console.error("Gagal sinkronisasi updateQuantity:", error);
-        get().fetchCart();
+        fetchCart();
       }
     },
 
     removeFromCart: async (productId) => {
       set((state) => ({
-        // --- PERBAIKAN UTAMA: Bandingkan dengan 'product_id' bukan 'id' ---
         items: state.items.filter((item) => item.product_id !== productId),
       }));
-
       const { error } = await supabase.rpc("update_cart_item_quantity", {
         p_product_id: productId,
         p_quantity: 0,
       });
-
       if (error) {
         console.error("Gagal sinkronisasi removeFromCart:", error);
         get().fetchCart();
@@ -211,18 +257,26 @@ export const useAppStore = create<StoreState>()(
     clearLocalCart: () => {
       set({ items: [], isCartLoading: false });
     },
-
     calculateTotalWeight: () => {
       return get().items.reduce(
         (total, item) => total + (item.berat_gram || 0) * item.quantity,
         0,
       );
     },
-
-    // --- State Menu Mobile ---
     toggleMobileMenu: () =>
       set((state) => ({ isMobileMenuOpen: !state.isMobileMenuOpen })),
     closeMobileMenu: () => set({ isMobileMenuOpen: false }),
+
+    addToast: (toast) => {
+      const id =
+        Date.now().toString() + Math.random().toString(36).slice(2, 11); // PERBAIKAN 4: Ganti .substr() dengan .slice()
+      set((state) => ({ toasts: [...state.toasts, { ...toast, id }] }));
+    },
+    removeToast: (toastId) => {
+      set((state) => ({
+        toasts: state.toasts.filter((t) => t.id !== toastId),
+      }));
+    },
 
     // --- State Modul Alamat ---
     fetchAddresses: async () => {

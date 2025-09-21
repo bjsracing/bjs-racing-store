@@ -1,5 +1,4 @@
 // File: src/components/CartView.jsx
-
 import React from "react";
 import { useAppStore } from "../lib/store.ts";
 
@@ -29,7 +28,7 @@ const CartView = () => {
           Mari jelajahi produk kami dan temukan yang Anda butuhkan!
         </p>
         <a
-          href="/pilok" // Arahkan ke halaman produk utama
+          href="/products" // Arahkan ke halaman produk utama
           className="mt-6 inline-block bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
         >
           Mulai Belanja
@@ -43,9 +42,12 @@ const CartView = () => {
       <div className="space-y-4">
         {items.map((item) => {
           const quantity = item.quantity || 0;
+          // PERBAIKAN 1: Tentukan apakah tombol tambah harus dinonaktifkan
+          const isPlusDisabled = quantity >= item.stok;
+
           return (
             <div
-              key={item.id} // key tetap menggunakan item.id karena ini unik untuk baris keranjang
+              key={item.id}
               className="flex flex-col sm:flex-row items-center gap-4 border-b pb-4 last:border-b-0"
             >
               <div className="w-20 h-20 bg-slate-100 rounded-md flex-shrink-0">
@@ -61,6 +63,10 @@ const CartView = () => {
                 <p className="text-sm text-slate-500">
                   {item.merek} - {item.ukuran}
                 </p>
+                {/* PERBAIKAN 2: Tampilkan sisa stok */}
+                <p className="text-xs text-slate-400 mt-1">
+                  Sisa Stok: {item.stok}
+                </p>
                 <p className="font-semibold text-orange-500 mt-1">
                   {formatRupiah(item.harga_jual)}
                 </p>
@@ -68,7 +74,6 @@ const CartView = () => {
 
               <div className="flex items-center gap-2 border rounded-md p-1">
                 <button
-                  /* --- PERBAIKAN: Gunakan item.product_id --- */
                   onClick={() => updateQuantity(item.product_id, quantity - 1)}
                   className="w-8 h-8 flex items-center justify-center text-slate-600 hover:bg-slate-100 rounded"
                 >
@@ -77,19 +82,21 @@ const CartView = () => {
                 <input
                   type="number"
                   value={quantity}
-                  /* --- PERBAIKAN: Gunakan item.product_id --- */
                   onChange={(e) =>
                     updateQuantity(
                       item.product_id,
                       parseInt(e.target.value, 10) || 1,
                     )
                   }
+                  // PERBAIKAN 3: Batasi input maksimal sesuai stok
+                  max={item.stok}
                   className="w-12 text-center font-semibold border-none focus:ring-0 bg-transparent"
                 />
                 <button
-                  /* --- PERBAIKAN: Gunakan item.product_id --- */
                   onClick={() => updateQuantity(item.product_id, quantity + 1)}
-                  className="w-8 h-8 flex items-center justify-center text-slate-600 hover:bg-slate-100 rounded"
+                  // PERBAIKAN 4: Terapkan kondisi disabled pada tombol
+                  disabled={isPlusDisabled}
+                  className="w-8 h-8 flex items-center justify-center text-slate-600 hover:bg-slate-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   +
                 </button>
@@ -102,7 +109,6 @@ const CartView = () => {
               </div>
 
               <button
-                /* --- PERBAIKAN: Gunakan item.product_id --- */
                 onClick={() => removeFromCart(item.product_id)}
                 className="text-slate-400 hover:text-red-500 transition-colors"
               >
@@ -128,6 +134,7 @@ const CartView = () => {
 
       <div className="mt-8 flex flex-col sm:flex-row justify-end">
         <div className="w-full max-w-sm">
+          {/* ... Bagian Subtotal dan Tombol Checkout tidak berubah ... */}
           <div className="flex justify-between text-lg">
             <span className="text-slate-600">Subtotal</span>
             <span className="font-bold text-slate-800">
@@ -137,7 +144,6 @@ const CartView = () => {
           <p className="text-xs text-slate-400 text-right mt-1">
             Pajak dan ongkos kirim dihitung saat checkout.
           </p>
-
           <a
             href="/checkout"
             className="mt-4 block text-center w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
