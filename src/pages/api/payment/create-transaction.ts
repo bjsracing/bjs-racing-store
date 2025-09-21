@@ -49,6 +49,42 @@ export const POST: APIRoute = async ({ request, locals }) => {
             );
         }
 
+        // ===================================================================
+        // == PERBAIKAN: BLOK VALIDASI STOK KRITIS (RACE CONDITION)         ==
+        // ===================================================================
+        // 1. Ambil semua ID produk dari keranjang
+        const productIds = typedCartItems.map((item) => item.product_id);
+
+        // 2. Ambil stok terkini dari database untuk semua produk tersebut
+        const { data: productsInStock, error: stockCheckError } =
+            await supabaseAdmin
+                .from("products")
+                .select("id, nama, stok")
+                .in("id", productIds);
+
+        if (stockCheckError)
+            throw new Error("Gagal memverifikasi stok produk.");
+
+        // 3. Loop dan validasi setiap item di keranjang
+        for (const item of typedCartItems) {
+            const product = productsInStock.find(
+                (p) => p.id === item.product_id,
+            );
+
+            if (!product || item.quantity > product.stok) {
+                // Jika produk tidak ditemukan atau stok tidak cukup, hentikan proses
+                return new Response(
+                    JSON.stringify({
+                        message: `Stok untuk produk "${item.name}" tidak mencukupi. Sisa stok: ${product?.stok || 0}. Silakan perbarui keranjang Anda.`,
+                    }),
+                    { status: 409 }, // 409 Conflict adalah status yang tepat untuk stok tidak cukup
+                );
+            }
+        }
+        // ===================================================================
+        // == AKHIR DARI BLOK VALIDASI                                      ==
+        // ===================================================================
+
         const { data: customer, error: customerError } = await supabaseAdmin
             .from("customers")
             .select("id, nama_pelanggan, telepon")
