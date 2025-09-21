@@ -29,7 +29,7 @@ const CartView = () => {
         </p>
         <a
           href="/pilok" // Arahkan ke halaman produk utama
-          className="mt-6 inline-block bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+          className="mt-6 inline-block bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition-colors mt-2"
         >
           Mulai Belanja Pilok
         </a>
