@@ -1,0 +1,41 @@
+Tentu. Ini adalah langkah penting untuk mengisi data yang akan digunakan oleh filter canggih di halaman "Onderdil & Aksesoris".
+
+Sesuai diskusi kita, cara terbaik untuk mengelola data ini adalah dengan membangun antarmuka (UI) di dalam **sistem POS** Anda yang sudah ada, sehingga Anda tidak perlu mengedit database secara manual.
+
+Berikut adalah rencana dan cara kerjanya.
+
+---
+### ## Instruksi #113: Membangun Manajemen Kompatibilitas di Sistem POS
+
+Anda perlu membuat tiga fitur baru di dalam dashboard admin POS Anda.
+
+#### 1. Halaman Manajemen Merek Motor
+* **Tujuan:** Untuk menambah, melihat, mengedit, dan menghapus data di tabel `vehicle_brands` (contoh: Honda, Yamaha, Suzuki).
+* **UI yang Dibuat:**
+    * Sebuah halaman baru di POS Anda, misalnya "Data Merek Motor".
+    * Tampilkan daftar semua merek yang sudah ada.
+    * Sediakan form sederhana dengan satu input teks ("Nama Merek") dan tombol "Simpan" untuk menambahkan merek baru.
+
+#### 2. Halaman Manajemen Tipe Motor
+* **Tujuan:** Untuk mengelola data di tabel `vehicle_models` (contoh: Vario 125, Beat FI, NMAX).
+* **UI yang Dibuat:**
+    * Halaman baru "Data Tipe Motor".
+    * Sediakan **dropdown** untuk memilih **Merek Motor** terlebih dahulu.
+    * Di bawahnya, ada input teks untuk "Nama Tipe Motor" dan tombol "Simpan".
+    * Tampilkan daftar tipe motor yang sudah ada, idealnya dikelompokkan berdasarkan mereknya.
+
+#### 3. Antarmuka Kompatibilitas di Halaman Edit Produk
+Ini adalah bagian yang paling penting, di mana Anda menghubungkan produk dengan tipe motor. Fitur ini seharusnya ada di dalam halaman **"Edit Produk"** Anda yang sudah ada di sistem POS.
+
+* **Tujuan:** Untuk mengelola data di tabel penghubung `product_vehicle_compatibility`.
+* **UI yang Dibuat di Halaman Edit Produk:**
+    * **Tampilkan Daftar Kompatibilitas**: Di bawah detail produk, tampilkan daftar semua tipe motor yang saat ini cocok dengan produk tersebut. Setiap item di daftar ini harus memiliki tombol "Hapus".
+    * **Form Tambah Kompatibilitas**: Sediakan form untuk menambahkan kecocokan baru:
+        1.  Dropdown untuk memilih **Merek Motor**.
+        2.  Dropdown kedua untuk **Tipe Motor**, yang opsinya akan otomatis terisi sesuai merek yang dipilih di atas.
+        3.  Tombol "+" atau "Tambahkan" untuk menyimpan hubungan baru ini ke tabel `product_vehicle_compatibility`.
+
+**Analogi:** Anggap saja ini seperti fitur "tagging". Anda bisa membuat tag baru (Merek/Tipe Motor), dan di setiap produk, Anda bisa menempelkan beberapa tag yang relevan.
+
+---
+Ini adalah roadmap untuk membangun fitur tersebut di dalam sistem POS Anda. Anda bisa mulai dari Langkah 1. Beri tahu saya jika Anda memiliki pertanyaan saat mengimplementasikannya.

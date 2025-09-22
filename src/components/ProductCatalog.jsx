@@ -9,12 +9,11 @@ const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
     const [allProducts, setAllProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     
-    // PERBAIKAN 1: Tambahkan 'kategori' ke dalam state filter
     const [filters, setFilters] = useState({
         searchTerm: "",
         sort: "terlaris",
         price: "",
-        kategori: "semua", // <-- Tambahan baru
+        kategori: "semua",
         merek: "semua",
         lini_produk: "semua",
         color_variant: "semua",
@@ -35,20 +34,28 @@ const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
             ? 'search_onderdil_products' 
             : 'search_and_sort_products';
 
-        // PERBAIKAN 2: Susun ulang parameter agar lebih bersih dan akurat
+        // --- PERBAIKAN UTAMA: Logika baru untuk menentukan filter kategori ---
+        let finalCategoryFilter = null;
+        if (filters.kategori !== "semua") {
+            // Prioritas 1: Gunakan pilihan dari dropdown filter jika ada
+            finalCategoryFilter = filters.kategori;
+        } else if (filterConfig.category) {
+            // Prioritas 2: Gunakan kategori default dari halaman (e.g., "Pilok")
+            finalCategoryFilter = filterConfig.category;
+        }
+        // Jika keduanya tidak ada, maka nilainya tetap null (tampilkan semua)
+
         let params = {
             p_sort_by: sortBy,
             p_search_term: filters.searchTerm,
-            p_kategori: filters.kategori === "semua" ? null : filters.kategori,
+            p_kategori: finalCategoryFilter, // Gunakan nilai final
             p_merek: filters.merek === "semua" ? null : filters.merek
         };
 
         if (isOnderdilPage) {
-            // Tambahkan parameter khusus untuk halaman Onderdil
             params.p_vehicle_brand_id = filters.merek_motor === "semua" ? null : parseInt(filters.merek_motor, 10);
             params.p_vehicle_model_id = filters.tipe_motor === "semua" ? null : parseInt(filters.tipe_motor, 10);
         } else {
-            // Tambahkan parameter khusus untuk halaman Pilok
             params.p_lini_produk = filters.lini_produk === "semua" ? null : filters.lini_produk;
             params.p_color_variant = filters.color_variant === "semua" ? null : filters.color_variant;
             params.p_ukuran = filters.ukuran === "semua" ? null : filters.ukuran;
