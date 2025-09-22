@@ -99,6 +99,8 @@ export const useAppStore = create<StoreState>()(
     isCartLoading: true,
     toasts: [],
 
+    // Di dalam file: /src/lib/store.ts
+
     fetchCart: async () => {
       set({ isCartLoading: true });
       try {
@@ -109,14 +111,43 @@ export const useAppStore = create<StoreState>()(
           set({ items: [], isCartLoading: false });
           return;
         }
+
         const { data, error } = await supabase.rpc("get_cart_items", {
           p_user_id: user.id,
         });
+
         if (error) {
           console.error("Gagal mengambil data keranjang:", error);
           set({ items: [] });
         } else {
-          set({ items: (data as CartItem[]) || [] });
+          const fetchedItems = (data as CartItem[]) || [];
+          let wasCartAdjusted = false;
+
+          // --- LOGIKA BARU DIMULAI DI SINI ---
+          // 1. Validasi dan sesuaikan kuantitas setiap item
+          const adjustedItems = fetchedItems
+            .map((item) => {
+              if (item.quantity > item.stok) {
+                wasCartAdjusted = true;
+                // Jika kuantitas di keranjang > stok, pangkas ke jumlah stok
+                return { ...item, quantity: item.stok };
+              }
+              return item;
+              // 2. Hapus item yang stoknya sudah 0
+            })
+            .filter((item) => item.stok > 0 && item.quantity > 0);
+
+          set({ items: adjustedItems });
+          // --- AKHIR DARI LOGIKA BARU ---
+
+          // 3. Beri notifikasi ke pengguna jika keranjangnya disesuaikan
+          if (wasCartAdjusted) {
+            get().addToast({
+              type: "warning",
+              message:
+                "Beberapa item di keranjang Anda disesuaikan karena perubahan stok.",
+            });
+          }
         }
       } catch (e) {
         console.error("Terjadi pengecualian saat fetchCart:", e);
