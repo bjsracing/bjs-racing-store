@@ -1,0 +1,40 @@
+Konfirmasi diterima. Saya setuju sepenuhnya. Ini adalah pendekatan yang paling efisien. Dengan menganalisis apa yang sudah Anda bangun untuk halaman "Pilok", kita bisa menghemat banyak waktu dan memastikan arsitektur untuk halaman "Onderdil" ini konsisten dan bahkan lebih baik.
+
+Mari kita mulai diskusi mendalam ini.
+
+---
+### ## Instruksi #101: Roadmap Pembangunan Halaman Onderdil & Aksesoris
+
+Berdasarkan fitur-fitur canggih yang Anda inginkan, berikut adalah roadmap yang saya usulkan untuk kita diskusikan.
+
+#### Fase 1: Desain Ulang & Penyesuaian Database
+Ini adalah fondasi yang paling penting. Filter bertingkat yang Anda inginkan (Merek Motor -> Tipe Motor) memerlukan struktur data yang terdefinisi dengan baik.
+* **Tujuan:** Menyiapkan database agar bisa menyimpan dan menghubungkan data produk dengan data kendaraan secara efisien.
+* **Diskusi Kunci:**
+    1.  **Bagaimana kita menyimpan data kendaraan?** Saran saya adalah kita membuat dua tabel baru: `vehicle_brands` (e.g., Honda, Yamaha) dan `vehicle_models` (e.g., Vario 125, NMAX). Tabel `vehicle_models` akan terhubung ke `vehicle_brands`.
+    2.  **Bagaimana kita menghubungkan produk ke kendaraan?** Kita akan memerlukan sebuah "tabel penghubung" (many-to-many relationship), misalnya `product_vehicle_compatibility`, yang akan berisi `product_id` dan `vehicle_model_id`. Ini memungkinkan satu produk (misalnya, busi) cocok untuk banyak tipe motor.
+    3.  **Bagaimana kita menangani "pencarian cerdas"?** Untuk alias seperti "rante" -> "rantai", kita bisa menambahkan kolom baru di tabel `products` bernama `tags` (bertipe array teks) atau `keywords`.
+
+---
+#### Fase 2: Pengembangan Backend (Fungsi Supabase)
+* **Tujuan:** Membuat sebuah fungsi RPC baru yang sangat kuat di Supabase untuk menangani semua logika pencarian, filter, dan pengurutan dalam satu panggilan API yang efisien.
+* **Evaluasi:** Anda akan memberikan fungsi yang sudah ada untuk halaman Pilok. Kita akan mengevaluasinya dan merancangnya ulang agar bisa:
+    * Menerima parameter filter yang lebih kompleks (merek motor, tipe motor, dll.).
+    * Melakukan pencarian *full-text search* yang mencakup nama produk, deskripsi, dan kolom `tags` baru kita.
+    * Menggabungkan data dari tabel `products`, `vehicle_models`, dll., untuk menghasilkan data yang siap ditampilkan di frontend.
+
+---
+#### Fase 3: Pembangunan Frontend (Komponen Astro & React)
+* **Tujuan:** Membangun antarmuka pengguna (UI) yang intuitif untuk filter dan menampilkan hasil produk.
+* **Analisis:** Anda akan memberikan kode halaman "Pilok". Kita akan menganalisis bagaimana komponen filter Anda saat ini bekerja dan merencanakan cara untuk mengembangkannya menjadi sistem filter bertingkat yang dinamis. Misalnya, saat pengguna memilih "Honda", dropdown "Tipe Motor" akan secara otomatis hanya menampilkan model-model Honda.
+
+---
+### ## Mari Mulai Diskusi
+
+Untuk memulai **Fase 1 (Desain Database)**, saya memerlukan pemahaman yang jelas tentang struktur data Anda saat ini.
+
+Silakan berikan saya dua hal berikut:
+1.  **Skrip `CREATE TABLE` untuk tabel `products` Anda saat ini.** Ini akan memberi tahu saya semua kolom yang sudah ada. Anda bisa mendapatkannya dengan klik kanan pada tabel `products` di Supabase dan memilih "Copy CREATE TABLE script".
+2.  **Fungsi Supabase** yang Anda gunakan untuk halaman produk "Pilok".
+
+Setelah saya menerima data ini, kita bisa mulai merancang DDL (perintah `CREATE TABLE`) untuk tabel-tabel baru yang kita butuhkan.

@@ -1,0 +1,29 @@
+---
+// File: src/pages/onderdil.astro
+import MainLayout from '../layouts/MainLayout.astro';
+import ProductCatalog from '../components/ProductCatalog.jsx';
+import id from '../../public/locales/id/common.json';
+
+// Konfigurasi khusus untuk halaman ini: tampilkan filter Merek Produk & Merek Motor
+const filterConfig = {
+  category: "Onderdil", // Bisa juga "Aksesoris", atau null jika mau menampilkan keduanya
+  showMerekFilter: true,
+  showVehicleBrandFilter: true, // Filter Merek Motor
+  showVehicleModelFilter: true, // Filter Tipe Motor
+  
+  // Sembunyikan filter yang tidak relevan untuk onderdil
+  showLiniProdukFilter: false,
+  showColorVariantFilter: false,
+  showUkuranFilter: false,
+}
+---
+
+<MainLayout title="Onderdil & Aksesoris - BJS RACING STORE">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold mb-1">Onderdil & Aksesoris</h1>
+        <p class="text-sm text-slate-500 mb-6">Cari onderdil dan aksesoris berkualitas untuk motor Anda.</p>
+        
+        {/* Gunakan komponen ProductCatalog yang sudah ada dengan konfigurasi baru */}
+        <ProductCatalog client:load filterConfig={filterConfig} />
+    </div>
+</MainLayout>

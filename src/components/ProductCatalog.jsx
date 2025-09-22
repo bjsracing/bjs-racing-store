@@ -1,5 +1,4 @@
-// src/components/ProductCatalog.jsx (Versi Final yang bisa menangani 2 tampilan)
-
+// src/components/ProductCatalog.jsx
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabaseBrowserClient.ts";
 import CatalogFilter from "./CatalogFilter.jsx";
@@ -9,6 +8,8 @@ import ColorSwatchCard from "./ColorSwatchCard.jsx";
 const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
     const [allProducts, setAllProducts] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // PERBAIKAN 1: Tambahkan state baru untuk filter kendaraan
     const [filters, setFilters] = useState({
         searchTerm: "",
         sort: "terlaris",
@@ -17,6 +18,8 @@ const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
         lini_produk: "semua",
         color_variant: "semua",
         ukuran: "semua",
+        merek_motor: "semua",
+        tipe_motor: "semua",
     });
 
     const fetchProducts = useCallback(async () => {
@@ -25,23 +28,44 @@ const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
         if (filters.price === "terendah") sortBy = "harga_asc";
         if (filters.price === "tertinggi") sortBy = "harga_desc";
 
-        const { data, error } = await supabase.rpc("search_and_sort_products", {
+        // PERBAIKAN 2: Logika untuk memilih fungsi & parameter yang tepat
+        const isOnderdilPage = filterConfig.showVehicleBrandFilter;
+
+        const functionName = isOnderdilPage
+            ? "search_onderdil_products"
+            : "search_and_sort_products";
+
+        let params = {
             p_kategori: filterConfig.category || null,
-            p_merek:
-                filterConfig.brand ||
-                (filters.merek === "semua" ? null : filters.merek),
-            p_lini_produk:
-                filters.lini_produk === "semua" ? null : filters.lini_produk,
-            p_color_variant:
-                filters.color_variant === "semua"
-                    ? null
-                    : filters.color_variant,
-            p_ukuran: filters.ukuran === "semua" ? null : filters.ukuran,
+            p_merek: filters.merek === "semua" ? null : filters.merek,
             p_sort_by: sortBy,
             p_search_term: filters.searchTerm,
-        });
+        };
 
-        if (error) console.error("Gagal memuat produk:", error.message);
+        if (isOnderdilPage) {
+            params.p_vehicle_brand_id =
+                filters.merek_motor === "semua" ? null : filters.merek_motor;
+            params.p_vehicle_model_id =
+                filters.tipe_motor === "semua" ? null : filters.tipe_motor;
+        } else {
+            // Parameter khusus untuk halaman Pilok
+            params.p_lini_produk =
+                filters.lini_produk === "semua" ? null : filters.lini_produk;
+            params.p_color_variant =
+                filters.color_variant === "semua"
+                    ? null
+                    : filters.color_variant;
+            params.p_ukuran =
+                filters.ukuran === "semua" ? null : filters.ukuran;
+        }
+
+        const { data, error } = await supabase.rpc(functionName, params);
+
+        if (error)
+            console.error(
+                `Gagal memuat produk (${functionName}):`,
+                error.message,
+            );
         else setAllProducts(data || []);
 
         setLoading(false);
@@ -51,10 +75,9 @@ const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
         fetchProducts();
     }, [fetchProducts]);
 
-    // Kelompokkan produk untuk tampilan Katalog Warna
+    // Logika groupedProducts untuk Katalog Warna (tidak berubah)
     const groupedProducts = useMemo(() => {
         if (cardType !== "colorSwatch") return null;
-
         const uniqueProducts = new Map();
         allProducts.forEach((p) => {
             if (!uniqueProducts.has(p.nama) && p.color_swatch_url) {
@@ -62,7 +85,6 @@ const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
             }
         });
         const uniqueProductList = Array.from(uniqueProducts.values());
-
         return uniqueProductList.reduce((acc, product) => {
             const variant = product.color_variant || "Lainnya";
             if (!acc[variant]) acc[variant] = [];
@@ -71,6 +93,7 @@ const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
         }, {});
     }, [allProducts, cardType]);
 
+    // --- Tampilan JSX (tidak ada perubahan fungsional) ---
     return (
         <div>
             <CatalogFilter
@@ -82,7 +105,6 @@ const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
             {loading ? (
                 <p className="text-center py-20">Memuat produk...</p>
             ) : cardType === "colorSwatch" ? (
-                // Tampilan untuk Katalog Warna
                 Object.keys(groupedProducts).length > 0 ? (
                     <div className="space-y-12">
                         {Object.entries(groupedProducts).map(
@@ -111,8 +133,7 @@ const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
                         Warna tidak ditemukan.
                     </p>
                 )
-            ) : // Tampilan untuk Katalog Produk biasa
-            allProducts.length > 0 ? (
+            ) : allProducts.length > 0 ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                     {allProducts.map((product) => (
                         <ProductCard key={product.id} product={product} />
