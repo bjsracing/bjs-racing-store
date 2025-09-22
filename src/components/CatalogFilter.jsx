@@ -153,6 +153,7 @@ const CatalogFilter = ({ filters, setFilters, filterConfig }) => {
             searchTerm: "",
             sort: "terlaris",
             price: "",
+            kategori: "semua",
             merek: "semua",
             lini_produk: "semua",
             color_variant: "semua",
