@@ -5,37 +5,46 @@ import { supabase } from "@/lib/supabaseBrowserClient.ts";
 import { FiSearch, FiRefreshCw } from "react-icons/fi";
 
 const CatalogFilter = ({ filters, setFilters, filterConfig }) => {
+    // State baru untuk menampung data master
+    const [categories, setCategories] = useState([]);
     const [vehicleBrands, setVehicleBrands] = useState([]);
     const [vehicleModels, setVehicleModels] = useState([]);
     const [allProducts, setAllProducts] = useState([]);
 
     useEffect(() => {
         const fetchFilterData = async () => {
+            // Ambil data produk untuk filter Pilok
             let productQuery = supabase
                 .from("products")
                 .select("merek, lini_produk, color_variant, ukuran")
                 .eq("status", "Aktif");
             if (filterConfig.category) {
-                productQuery = productQuery.eq(
-                    "kategori",
-                    filterConfig.category,
-                );
+                productQuery = productQuery.eq("kategori", filterConfig.category);
             }
             const { data: productData } = await productQuery;
             setAllProducts(productData || []);
 
+            // PERBAIKAN 1: Ambil data Kategori jika filter diaktifkan
+            if (filterConfig.showCategoryFilter) {
+                const { data: categoryData } = await supabase
+                    .from('products')
+                    .select('kategori')
+                    .not('kategori', 'in', '("Pilok", "Jasa")')
+                    .not('kategori', 'is', null);
+                
+                if (categoryData) {
+                    const uniqueCategories = [...new Set(categoryData.map(p => p.kategori))].sort();
+                    setCategories(uniqueCategories);
+                }
+            }
+
+            // Ambil data kendaraan jika filter kendaraan aktif
             if (filterConfig.showVehicleBrandFilter) {
-                const { data: brandsData } = await supabase
-                    .from("vehicle_brands")
-                    .select("*")
-                    .order("name");
+                const { data: brandsData } = await supabase.from('vehicle_brands').select('*').order('name');
                 setVehicleBrands(brandsData || []);
             }
             if (filterConfig.showVehicleModelFilter) {
-                const { data: modelsData } = await supabase
-                    .from("vehicle_models")
-                    .select("*")
-                    .order("name");
+                const { data: modelsData } = await supabase.from('vehicle_models').select('*').order('name');
                 setVehicleModels(modelsData || []);
             }
         };
@@ -88,6 +97,7 @@ const CatalogFilter = ({ filters, setFilters, filterConfig }) => {
             lini_produk: liniProdukOptions,
             color_variant: colorVariantOptions,
             ukuran: ukuranOptions,
+            kategori: categories, // PERBAIKAN 2: Sediakan opsi kategori
             vehicle_brands: vehicleBrands,
             vehicle_models: filteredModels,
         };
@@ -152,144 +162,111 @@ const CatalogFilter = ({ filters, setFilters, filterConfig }) => {
         });
 
     return (
-        <div className="bg-white p-4 rounded-lg shadow-sm mb-6 space-y-4">
-            <div className="relative">
-                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                    type="text"
-                    name="searchTerm"
-                    value={filters.searchTerm}
-                    onChange={handleInputChange}
-                    className="w-full p-2 pl-10 border rounded-lg text-sm"
-                    placeholder="Cari di toko ini..."
-                />
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {filterConfig.showMerekFilter && (
-                    <select
-                        name="merek"
-                        value={filters.merek}
-                        onChange={handleInputChange}
-                        className="w-full p-2 border rounded-lg bg-white text-sm"
-                    >
-                        <option value="semua">Semua Merek Produk</option>
-                        {options.merek.map((o) => (
-                            <option key={o} value={o}>
-                                {o}
-                            </option>
-                        ))}
-                    </select>
-                )}
-                {filterConfig.showVehicleBrandFilter && (
-                    <select
-                        name="merek_motor"
-                        value={filters.merek_motor}
-                        onChange={handleInputChange}
-                        className="w-full p-2 border rounded-lg bg-white text-sm"
-                    >
-                        <option value="semua">Semua Merek Motor</option>
-                        {options.vehicle_brands.map((brand) => (
-                            <option key={brand.id} value={brand.id}>
-                                {brand.name}
-                            </option>
-                        ))}
-                    </select>
-                )}
-                {filterConfig.showVehicleModelFilter && (
-                    <select
-                        name="tipe_motor"
-                        value={filters.tipe_motor}
-                        onChange={handleInputChange}
-                        className="w-full p-2 border rounded-lg bg-white text-sm"
-                    >
-                        <option value="semua">Semua Tipe Motor</option>
-                        {options.vehicle_models.map((model) => (
-                            <option key={model.id} value={model.id}>
-                                {model.name}
-                            </option>
-                        ))}
-                    </select>
-                )}
-                {filterConfig.showLiniProdukFilter && (
-                    <select
-                        name="lini_produk"
-                        value={filters.lini_produk}
-                        onChange={handleInputChange}
-                        className="w-full p-2 border rounded-lg bg-white text-sm"
-                    >
-                        <option value="semua">Semua Lini Produk</option>
-                        {options.lini_produk.map((o) => (
-                            <option key={o} value={o}>
-                                {o}
-                            </option>
-                        ))}
-                    </select>
-                )}
-                {filterConfig.showColorVariantFilter && (
-                    <select
-                        name="color_variant"
-                        value={filters.color_variant}
-                        onChange={handleInputChange}
-                        className="w-full p-2 border rounded-lg bg-white text-sm"
-                    >
-                        <option value="semua">Semua Varian Warna</option>
-                        {options.color_variant.map((o) => (
-                            <option key={o} value={o}>
-                                {o}
-                            </option>
-                        ))}
-                    </select>
-                )}
-                {filterConfig.showUkuranFilter && (
-                    <select
-                        name="ukuran"
-                        value={filters.ukuran}
-                        onChange={handleInputChange}
-                        className="w-full p-2 border rounded-lg bg-white text-sm"
-                    >
-                        <option value="semua">Semua Ukuran</option>
-                        {options.ukuran.map((o) => (
-                            <option key={o} value={o}>
-                                {o}
-                            </option>
-                        ))}
-                    </select>
-                )}
-                <button
-                    onClick={resetFilters}
-                    className="flex items-center justify-center gap-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-4 rounded-lg text-sm"
-                >
-                    <FiRefreshCw size={16} /> Reset
-                </button>
-            </div>
-            <div className="flex items-center gap-2 border-t pt-4">
-                <span className="text-sm font-semibold text-slate-700 mr-2">
-                    Urutkan:
-                </span>
-                <button
-                    onClick={() => handleSortChange("sort", "terlaris")}
-                    className={`px-4 py-2 text-sm rounded-md ${filters.sort === "terlaris" && !filters.price ? "bg-orange-500 text-white" : "bg-slate-100"}`}
-                >
-                    Terlaris
-                </button>
-                <button
-                    onClick={() => handleSortChange("sort", "terbaru")}
-                    className={`px-4 py-2 text-sm rounded-md ${filters.sort === "terbaru" && !filters.price ? "bg-orange-500 text-white" : "bg-slate-100"}`}
-                >
-                    Terbaru
-                </button>
-                <select
-                    value={filters.price}
-                    onChange={(e) => handleSortChange("price", e.target.value)}
-                    className="p-2 border rounded-lg bg-white text-sm"
-                >
-                    <option value="">Harga</option>
-                    <option value="terendah">Terendah</option>
-                    <option value="tertinggi">Tertinggi</option>
-                </select>
-            </div>
-        </div>
-    );
-}; // <-- PERBAIKAN: Kurung kurawal penutup ini yang kemungkinan besar hilang.
+    <div className="bg-white p-4 rounded-lg shadow-sm mb-6 space-y-4">
+      {/* Kolom Pencarian */}
+      <div className="relative">
+        <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <input
+          type="text"
+          name="searchTerm"
+          value={filters.searchTerm}
+          onChange={handleInputChange}
+          className="w-full p-2 pl-10 border rounded-lg text-sm"
+          placeholder="Cari di toko ini..."
+        />
+      </div>
+      
+      {/* Jajaran Dropdown Filter */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        
+        {/* --- FILTER KATEGORI BARU DITAMBAHKAN DI SINI --- */}
+        {filterConfig.showCategoryFilter && (
+            <select name="kategori" value={filters.kategori} onChange={handleInputChange} className="w-full p-2 border rounded-lg bg-white text-sm">
+                <option value="semua">Semua Kategori</option>
+                {options.kategori.map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+        )}
+
+        {/* Filter Merek Produk (seperti Federal, Aspira) */}
+        {filterConfig.showMerekFilter && (
+          <select name="merek" value={filters.merek} onChange={handleInputChange} className="w-full p-2 border rounded-lg bg-white text-sm">
+            <option value="semua">Semua Merek Produk</option>
+            {options.merek.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+        )}
+        
+        {/* Filter Kendaraan */}
+        {filterConfig.showVehicleBrandFilter && (
+          <select name="merek_motor" value={filters.merek_motor} onChange={handleInputChange} className="w-full p-2 border rounded-lg bg-white text-sm">
+            <option value="semua">Semua Merek Motor</option>
+            {options.vehicle_brands.map(brand => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
+          </select>
+        )}
+        {filterConfig.showVehicleModelFilter && (
+          <select name="tipe_motor" value={filters.tipe_motor} onChange={handleInputChange} className="w-full p-2 border rounded-lg bg-white text-sm">
+            <option value="semua">Semua Tipe Motor</option>
+            {options.vehicle_models.map(model => <option key={model.id} value={model.id}>{model.name}</option>)}
+          </select>
+        )}
+        
+        {/* Filter untuk Pilok (tetap ada) */}
+        {filterConfig.showLiniProdukFilter && (
+          <select name="lini_produk" value={filters.lini_produk} onChange={handleInputChange} className="w-full p-2 border rounded-lg bg-white text-sm">
+            <option value="semua">Semua Lini Produk</option>
+            {options.lini_produk.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+        )}
+        {filterConfig.showColorVariantFilter && (
+          <select name="color_variant" value={filters.color_variant} onChange={handleInputChange} className="w-full p-2 border rounded-lg bg-white text-sm">
+            <option value="semua">Semua Varian Warna</option>
+            {options.color_variant.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+        )}
+        {filterConfig.showUkuranFilter && (
+          <select name="ukuran" value={filters.ukuran} onChange={handleInputChange} className="w-full p-2 border rounded-lg bg-white text-sm">
+            <option value="semua">Semua Ukuran</option>
+            {options.ukuran.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+        )}
+
+        {/* Tombol Reset */}
+        <button
+          onClick={resetFilters}
+          className="flex items-center justify-center gap-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-4 rounded-lg text-sm"
+        >
+          <FiRefreshCw size={16} /> Reset
+        </button>
+      </div>
+
+      {/* Jajaran Tombol Urutkan */}
+      <div className="flex items-center gap-2 border-t pt-4">
+        <span className="text-sm font-semibold text-slate-700 mr-2">
+          Urutkan:
+        </span>
+        <button
+          onClick={() => handleSortChange("sort", "terlaris")}
+          className={`px-4 py-2 text-sm rounded-md ${filters.sort === "terlaris" && !filters.price ? "bg-orange-500 text-white" : "bg-slate-100"}`}
+        >
+          Terlaris
+        </button>
+        <button
+          onClick={() => handleSortChange("sort", "terbaru")}
+          className={`px-4 py-2 text-sm rounded-md ${filters.sort === "terbaru" && !filters.price ? "bg-orange-500 text-white" : "bg-slate-100"}`}
+        >
+          Terbaru
+        </button>
+        <select
+          value={filters.price}
+          onChange={(e) => handleSortChange("price", e.target.value)}
+          className="p-2 border rounded-lg bg-white text-sm"
+        >
+          <option value="">Harga</option>
+          <option value="terendah">Terendah</option>
+          <option value="tertinggi">Tertinggi</option>
+        </select>
+      </div>
+    </div>
+  );
+};
 
 export default CatalogFilter;

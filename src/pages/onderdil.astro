@@ -4,14 +4,14 @@ import MainLayout from '../layouts/MainLayout.astro';
 import ProductCatalog from '../components/ProductCatalog.jsx';
 import id from '../../public/locales/id/common.json';
 
-// Konfigurasi khusus untuk halaman ini: tampilkan filter Merek Produk & Merek Motor
+// PERBAIKAN: Tambahkan showCategoryFilter: true
 const filterConfig = {
-  category: "Onderdil", // Bisa juga "Aksesoris", atau null jika mau menampilkan keduanya
+  showCategoryFilter: true, // <-- Tampilkan filter kategori baru
   showMerekFilter: true,
-  showVehicleBrandFilter: true, // Filter Merek Motor
-  showVehicleModelFilter: true, // Filter Tipe Motor
+  showVehicleBrandFilter: true,
+  showVehicleModelFilter: true,
   
-  // Sembunyikan filter yang tidak relevan untuk onderdil
+  // Sembunyikan filter yang tidak relevan
   showLiniProdukFilter: false,
   showColorVariantFilter: false,
   showUkuranFilter: false,
@@ -23,7 +23,6 @@ const filterConfig = {
         <h1 class="text-2xl font-bold mb-1">Onderdil & Aksesoris</h1>
         <p class="text-sm text-slate-500 mb-6">Cari onderdil dan aksesoris berkualitas untuk motor Anda.</p>
         
-        {/* Gunakan komponen ProductCatalog yang sudah ada dengan konfigurasi baru */}
         <ProductCatalog client:load filterConfig={filterConfig} />
     </div>
 </MainLayout>

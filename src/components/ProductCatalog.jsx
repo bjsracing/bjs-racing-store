@@ -8,12 +8,13 @@ import ColorSwatchCard from "./ColorSwatchCard.jsx";
 const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
     const [allProducts, setAllProducts] = useState([]);
     const [loading, setLoading] = useState(true);
-
-    // PERBAIKAN 1: Tambahkan state baru untuk filter kendaraan
+    
+    // PERBAIKAN 1: Tambahkan 'kategori' ke dalam state filter
     const [filters, setFilters] = useState({
         searchTerm: "",
         sort: "terlaris",
         price: "",
+        kategori: "semua", // <-- Tambahan baru
         merek: "semua",
         lini_produk: "semua",
         color_variant: "semua",
@@ -28,44 +29,35 @@ const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
         if (filters.price === "terendah") sortBy = "harga_asc";
         if (filters.price === "tertinggi") sortBy = "harga_desc";
 
-        // PERBAIKAN 2: Logika untuk memilih fungsi & parameter yang tepat
         const isOnderdilPage = filterConfig.showVehicleBrandFilter;
+        
+        const functionName = isOnderdilPage 
+            ? 'search_onderdil_products' 
+            : 'search_and_sort_products';
 
-        const functionName = isOnderdilPage
-            ? "search_onderdil_products"
-            : "search_and_sort_products";
-
+        // PERBAIKAN 2: Susun ulang parameter agar lebih bersih dan akurat
         let params = {
-            p_kategori: filterConfig.category || null,
-            p_merek: filters.merek === "semua" ? null : filters.merek,
             p_sort_by: sortBy,
             p_search_term: filters.searchTerm,
+            p_kategori: filters.kategori === "semua" ? null : filters.kategori,
+            p_merek: filters.merek === "semua" ? null : filters.merek
         };
 
         if (isOnderdilPage) {
-            params.p_vehicle_brand_id =
-                filters.merek_motor === "semua" ? null : filters.merek_motor;
-            params.p_vehicle_model_id =
-                filters.tipe_motor === "semua" ? null : filters.tipe_motor;
+            // Tambahkan parameter khusus untuk halaman Onderdil
+            params.p_vehicle_brand_id = filters.merek_motor === "semua" ? null : parseInt(filters.merek_motor, 10);
+            params.p_vehicle_model_id = filters.tipe_motor === "semua" ? null : parseInt(filters.tipe_motor, 10);
         } else {
-            // Parameter khusus untuk halaman Pilok
-            params.p_lini_produk =
-                filters.lini_produk === "semua" ? null : filters.lini_produk;
-            params.p_color_variant =
-                filters.color_variant === "semua"
-                    ? null
-                    : filters.color_variant;
-            params.p_ukuran =
-                filters.ukuran === "semua" ? null : filters.ukuran;
+            // Tambahkan parameter khusus untuk halaman Pilok
+            params.p_lini_produk = filters.lini_produk === "semua" ? null : filters.lini_produk;
+            params.p_color_variant = filters.color_variant === "semua" ? null : filters.color_variant;
+            params.p_ukuran = filters.ukuran === "semua" ? null : filters.ukuran;
         }
 
         const { data, error } = await supabase.rpc(functionName, params);
 
         if (error)
-            console.error(
-                `Gagal memuat produk (${functionName}):`,
-                error.message,
-            );
+            console.error(`Gagal memuat produk (${functionName}):`, error.message);
         else setAllProducts(data || []);
 
         setLoading(false);
@@ -75,7 +67,6 @@ const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
         fetchProducts();
     }, [fetchProducts]);
 
-    // Logika groupedProducts untuk Katalog Warna (tidak berubah)
     const groupedProducts = useMemo(() => {
         if (cardType !== "colorSwatch") return null;
         const uniqueProducts = new Map();
@@ -93,7 +84,6 @@ const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
         }, {});
     }, [allProducts, cardType]);
 
-    // --- Tampilan JSX (tidak ada perubahan fungsional) ---
     return (
         <div>
             <CatalogFilter
@@ -118,9 +108,7 @@ const ProductCatalog = ({ filterConfig, cardType = "product" }) => {
                                             <ColorSwatchCard
                                                 key={product.id}
                                                 product={product}
-                                                allProductsInCatalog={
-                                                    allProducts
-                                                }
+                                                allProductsInCatalog={allProducts}
                                             />
                                         ))}
                                     </div>
