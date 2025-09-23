@@ -1,0 +1,36 @@
+Konfirmasi diterima. Visi Anda untuk halaman detail produk Onderdil sangat bagus dan akan membuat toko Anda jauh lebih profesional dan setara dengan e-commerce besar.
+
+Untuk pertanyaan Anda: Ya, karena perombakan ini sangat masif dan memiliki logika tampilan yang berbeda, pendekatan terbaik dan paling bersih adalah **membuat file komponen baru yang terpisah**, misalnya `OnderdilDetailView.jsx`.
+
+File `[id].astro` akan kita buat menjadi "router" pintar yang akan memutuskan untuk menampilkan komponen detail untuk Pilok atau komponen detail untuk Onderdil, tergantung kategori produknya.
+
+---
+### ## Instruksi #119: Rencana Rombak Halaman Detail Produk Onderdil
+
+Berikut adalah roadmap lengkap untuk membangun fitur ini secara bertahap.
+
+#### Fase 1: Persiapan Database (Kunci dari Fitur Varian & Multi-Gambar)
+Sebelum kita menyentuh kode, database harus siap.
+* **Tujuan:** Menambahkan kolom untuk mengelompokkan varian produk dan untuk menyimpan URL gambar tambahan.
+* **Aksi:** Kita akan menjalankan `ALTER TABLE` pada tabel `products`.
+
+---
+#### Fase 2: "Router" di Halaman Induk (`[id].astro`)
+* **Tujuan:** Membuat file `[id].astro` cukup pintar untuk menampilkan komponen yang tepat berdasarkan kategori produk.
+* **Aksi:** Kita akan memodifikasi logika di dalam `---` (frontmatter) dan di dalam `<body>` file ini untuk melakukan render kondisional.
+
+---
+#### Fase 3: Membangun Komponen Baru (`OnderdilDetailView.jsx`)
+* **Tujuan:** Membuat komponen React baru yang berisi semua logika dan tampilan canggih khusus untuk produk non-Pilok.
+* **Aksi:** Kita akan membuat file `OnderdilDetailView.jsx` dari nol, yang akan berisi:
+    1.  Logika `useState` untuk melacak varian yang dipilih.
+    2.  Tampilan **galeri/carousel gambar** yang dinamis.
+    3.  Tampilan judul yang menggunakan `kode`, `nama`, dan `merek`.
+    4.  Tombol-tombol pilihan varian (ukuran, dll.) yang interaktif.
+
+---
+### ## Mari Kita Mulai
+
+Jika Anda setuju dengan rencana arsitektur ini, kita bisa mulai dengan **Fase 1: Menjalankan skrip SQL untuk mempersiapkan database Anda.**
+
+Silakan konfirmasi jika Anda siap untuk saya berikan skrip SQL-nya.
