@@ -1,7 +1,8 @@
 ---
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-import CartInitializer from '../components/CartInitializer.jsx'; // <-- 1. TAMBAHKAN IMPORT INI
+import CartInitializer from '../components/CartInitializer.jsx';
+import UpdateNotifier from '../components/UpdateNotifier.jsx';
 
 const { session } = Astro.locals;
 
@@ -53,6 +54,8 @@ const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
     {/* --- PERBAIKAN UTAMA DI SINI --- */}
     {/* Mengubah 'client:load' menjadi 'client:idle' untuk menunda eksekusi */}
     <CartInitializer client:idle />
+
+    <UpdateNotifier client:idle />
 
     <Header session={session} />
 
