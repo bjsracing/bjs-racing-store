@@ -3,30 +3,32 @@
 export const prerender = false;
 
 import MainLayout from '../../layouts/MainLayout.astro';
-import { supabaseAdmin } from "@/lib/supabaseServer.ts"; // Gunakan admin client untuk akses server
+import { supabaseAdmin } from "@/lib/supabaseServer.ts";
 import ProductDetailView from '../../components/ProductDetailView.jsx';
 import ImageUploader from '../../components/ImageUploader.jsx';
 
 const { id } = Astro.params;
 const { session } = Astro.locals;
 
-// 1. Ambil data produk yang sedang dilihat
+// 1. Ambil data produk utama berdasarkan ID dari URL
 const { data: product, error: productError } = await supabaseAdmin.from('products').select('*').eq('id', id).single();
 
-// Jika produk tidak ditemukan, redirect ke 404
+// Jika produk tidak ditemukan, alihkan ke halaman 404
 if (productError || !product) { 
   return Astro.redirect('/404'); 
 }
 
-// 2. Ambil semua varian produk berdasarkan nama & merek
+// 2. Ambil SEMUA varian yang berada dalam satu grup dengan produk utama
+//    Ini mengasumsikan varian dikelompokkan berdasarkan nama, merek, dan lini produk yang sama
 const { data: allProducts, error: variantsError } = await supabaseAdmin
   .from('products')
   .select('*')
   .eq('nama', product.nama)
   .eq('merek', product.merek)
-  .eq('lini_produk', product.lini_produk);
+  .eq('lini_produk', product.lini_produk)
+  .order('ukuran', { ascending: true }); // Pengurutan opsional
 
-// Cek role admin
+// 3. Cek apakah pengguna adalah admin
 let isAdmin = false;
 if (session) {
     const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', session.user.id).single();
@@ -36,18 +38,12 @@ if (session) {
 
 <MainLayout title={product.nama}>
     <div class="container mx-auto px-4 py-8">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-            
-            {/* KOLOM KIRI: TAMPILAN GAMBAR (TETAP STATIS) */}
-            <div class="relative aspect-square bg-white rounded-lg flex items-center justify-center p-2 shadow-xl border">
-                {product.image_url ? ( <img src={product.image_url} alt={product.nama} class="w-full h-full object-contain" /> ) : ( <div class="w-full h-full bg-slate-100 rounded-md"></div> )}
-                {/* ... Badges bisa tetap di sini atau dipindah ke dalam komponen React ... */}
-            </div>
-
-            {/* KOLOM KANAN: SEKARANG DIURUS SEPENUHNYA OLEH REACT */}
-            <ProductDetailView client:load initialProduct={product} allProductVariants={allProducts || []} />
-
-        </div>
+        {/* Sekarang, semua tampilan diurus oleh satu komponen React ini */}
+        <ProductDetailView 
+            client:load 
+            initialProduct={product} 
+            allProductVariants={allProducts || []} 
+        />
 
         {isAdmin && ( <ImageUploader client:load productId={product.id} /> )}
     </div>
