@@ -2,6 +2,7 @@
 // File: /src/pages/akun/profil.astro
 import MainLayout from '@/layouts/MainLayout.astro';
 import ProfileView from '@/components/ProfileView.jsx'; // Komponen baru yang akan kita buat
+import LogoutButton from '@/components/LogoutButton.jsx';
 
 // Proteksi halaman
 const { session } = Astro.locals;
@@ -21,7 +22,7 @@ if (!session) {
           <a href="/akun/pesanan" class="hover:bg-gray-100 p-3 rounded-lg">Riwayat Pesanan</a>
           <form action="/api/auth/signout" method="post" class="w-full">
             <button type="submit" class="w-full text-left hover:bg-gray-100 p-3 rounded-lg">Keluar</button>
-          </form>
+          <LogoutButton client:load />
         </nav>
       </aside>
 

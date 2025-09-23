@@ -64,6 +64,7 @@ interface StoreState {
   isMobileMenuOpen: boolean;
   isCartLoading: boolean;
   toasts: Toast[];
+  signOut: () => Promise<void>;
 
   fetchCart: () => Promise<void>;
   addToCart: (productToAdd: Product, quantity: number) => Promise<void>;
@@ -98,6 +99,28 @@ export const useAppStore = create<StoreState>()(
     isMobileMenuOpen: false,
     isCartLoading: true,
     toasts: [],
+
+    // tambahkan implementasi fungsi signOut:
+    signOut: async () => {
+      const { clearLocalCart, addToast } = get();
+
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        console.error("Error signing out:", error);
+        addToast({
+          type: "error",
+          message: "Gagal keluar, silakan coba lagi.",
+        });
+      } else {
+        clearLocalCart(); // Bersihkan state keranjang di frontend
+        addToast({ type: "success", message: "Anda berhasil keluar." });
+        // Arahkan ke halaman utama setelah 1 detik
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 1000);
+      }
+    },
 
     // Di dalam file: /src/lib/store.ts
 
