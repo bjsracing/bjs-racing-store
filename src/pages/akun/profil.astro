@@ -1,0 +1,36 @@
+---
+// File: /src/pages/akun/profil.astro
+import MainLayout from '@/layouts/MainLayout.astro';
+import ProfileView from '@/components/ProfileView.jsx'; // Komponen baru yang akan kita buat
+
+// Proteksi halaman
+const { session } = Astro.locals;
+if (!session) {
+  return Astro.redirect('/login?redirect=/akun/profil');
+}
+---
+<MainLayout title="Profil Saya - BJS Racing Store">
+  <main class="container mx-auto px-4 py-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+
+      {/* Sidebar Navigasi Akun */}
+      <aside class="md:col-span-1">
+        <nav class="flex flex-col space-y-2">
+          <a href="/akun" class="hover:bg-gray-100 p-3 rounded-lg">Buku Alamat</a>
+          <a href="/akun/profil" class="font-semibold bg-gray-200 p-3 rounded-lg">Profil Saya</a>
+          <a href="/akun/pesanan" class="hover:bg-gray-100 p-3 rounded-lg">Riwayat Pesanan</a>
+          <form action="/api/auth/signout" method="post" class="w-full">
+            <button type="submit" class="w-full text-left hover:bg-gray-100 p-3 rounded-lg">Keluar</button>
+          </form>
+        </nav>
+      </aside>
+
+      {/* Konten Utama */}
+      <section class="md:col-span-3">
+        <h1 class="text-2xl font-bold mb-6">Profil Saya</h1>
+        <ProfileView client:load />
+      </section>
+
+    </div>
+  </main>
+</MainLayout>
