@@ -11,22 +11,39 @@ import ImageUploader from '../../components/ImageUploader.jsx';
 const { id } = Astro.params;
 const { session } = Astro.locals;
 
-// 1. Ambil data produk utama berdasarkan ID dari URL
+// 1. Ambil data produk utama (tidak ada perubahan)
 const { data: product, error: productError } = await supabaseAdmin.from('products').select('*').eq('id', id).single();
 
 if (productError || !product) { 
   return Astro.redirect('/404'); 
 }
 
-// 2. Ambil SEMUA varian yang berada dalam satu grup dengan produk utama
-//    PERBAIKAN: Gunakan 'group_id' untuk mengambil varian agar lebih akurat
-const { data: allProducts, error: variantsError } = await supabaseAdmin
-  .from('products')
-  .select('*')
-  .eq('group_id', product.group_id) // Gunakan group_id yang sudah kita siapkan
-  .order('nama', { ascending: true });
+// --- PERBAIKAN UTAMA DIMULAI DI SINI ---
+let allProducts = []; // Deklarasikan variabel untuk menampung varian
 
-// 3. Cek apakah pengguna adalah admin
+// 2. Gunakan logika yang berbeda untuk mengambil varian berdasarkan kategori
+if (product.kategori === 'Pilok') {
+    // Jika produk adalah Pilok, gunakan LOGIKA LAMA (berdasarkan nama, merek, lini produk)
+    const { data: variants } = await supabaseAdmin
+        .from('products')
+        .select('*')
+        .eq('nama', product.nama)
+        .eq('merek', product.merek)
+        .eq('lini_produk', product.lini_produk)
+        .order('ukuran', { ascending: true });
+    allProducts = variants;
+} else {
+    // Jika produk BUKAN Pilok, gunakan LOGIKA BARU (berdasarkan group_id)
+    const { data: variants } = await supabaseAdmin
+        .from('products')
+        .select('*')
+        .eq('group_id', product.group_id)
+        .order('nama', { ascending: true });
+    allProducts = variants;
+}
+// --- AKHIR DARI PERBAIKAN ---
+
+// 3. Cek apakah pengguna adalah admin (tidak ada perubahan)
 let isAdmin = false;
 if (session) {
     const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', session.user.id).single();
@@ -37,16 +54,14 @@ if (session) {
 <MainLayout title={product.nama}>
     <div class="container mx-auto px-4 py-8">
         
-        {/* --- PERBAIKAN UTAMA: LOGIKA ROUTER KOMPONEN --- */}
+        {/* Logika router komponen di sini sudah benar dan tidak perlu diubah */}
         {product.kategori === 'Pilok' ? (
-            // Jika kategori adalah Pilok, tampilkan komponen lama
             <ProductDetailView 
                 client:load 
                 initialProduct={product} 
                 allProductVariants={allProducts || []} 
             />
         ) : (
-            // Jika kategori BUKAN Pilok (misal: Onderdil), tampilkan komponen baru
             <OnderdilDetailView
                 client:load
                 initialProduct={product}
