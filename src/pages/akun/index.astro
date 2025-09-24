@@ -4,6 +4,7 @@ import MainLayout from '@/layouts/MainLayout.astro';
 import AddressSection from '@/components/AddressSection.tsx';
 import { supabaseAdmin } from '@/lib/supabaseServer.ts';
 import LogoutButton from '@/components/LogoutButton.jsx';
+import AccountSidebar from '@/components/AccountSidebar.astro';
 
 // 1. Validasi Sesi Pengguna
 const { session } = Astro.locals;
@@ -32,15 +33,10 @@ try {
 <MainLayout title="Akun Saya - BJS Racing Store">
   <main class="container mx-auto px-4 py-8">
     <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-      <aside class="md:col-span-1">
-        <nav class="flex flex-col space-y-2">
-          {/* Navigasi "Buku Alamat" sekarang menjadi link utama untuk halaman ini */}
-          <a href="/akun" class="font-semibold bg-gray-200 p-3 rounded-lg">Buku Alamat</a>
-          <a href="/akun/profil" class="hover:bg-gray-100 p-3 rounded-lg">Profil Saya</a>
-          <a href="/akun/pesanan" class="hover:bg-gray-100 p-3 rounded-lg">Riwayat Pesanan</a>
-          <LogoutButton client:load />
-        </nav>
-      </aside>
+    
+      {/* --- PERBAIKAN: Gunakan komponen sidebar terpusat --- */}
+      <AccountSidebar currentPage={Astro.url.pathname} />
+      
       <section class="md:col-span-3">
         {/* Konten utama saat ini adalah AddressSection */}
         <AddressSection client:load />
