@@ -4,21 +4,22 @@ import { useAppStore } from "@/lib/store";
 import AddressForm from "./AddressForm";
 import type { Address } from "@/lib/store";
 
-// --- Komponen Kartu Alamat (Dengan Tipe Data Lengkap) ---
+// --- Komponen Kartu Alamat (Diperbarui) ---
 function AddressCard({
   address,
   onEdit,
   onDelete,
-  onSetPrimary, // Prop baru
+  onSetPrimary,
 }: {
   address: Address;
   onEdit: () => void;
   onDelete: () => void;
-  onSetPrimary: () => void; // PERBAIKAN 1: Tambahkan tipe untuk prop baru
+  onSetPrimary: () => void;
 }) {
   return (
+    // PERBAIKAN 1: Tambahkan border oranye jika alamat ini adalah alamat utama
     <div
-      className={`bg-white shadow-md rounded-xl flex flex-col transition-all duration-300 ${address.is_primary ? "border-2 border-orange-500" : "border border-transparent"}`}
+      className={`bg-white shadow-md rounded-xl flex flex-col transition-all duration-300 ${address.is_primary ? "border-2 border-orange-500" : "border border-gray-200"}`}
     >
       <div className="p-5 space-y-3 flex-grow">
         <div className="flex justify-between items-start">
@@ -26,6 +27,7 @@ function AddressCard({
             <h3 className="font-bold text-lg text-slate-800 break-words">
               {address.label || "Alamat"}
             </h3>
+            {/* PERBAIKAN 2: Tampilkan badge "Utama" */}
             {address.is_primary && (
               <span className="flex-shrink-0 bg-orange-100 text-orange-600 text-xs font-bold px-3 py-1 rounded-full">
                 Utama
@@ -43,6 +45,7 @@ function AddressCard({
         </div>
       </div>
       <div className="flex justify-end items-center space-x-2 p-4 border-t border-gray-100 bg-gray-50 rounded-b-xl">
+        {/* Tombol "Jadikan Utama" hanya muncul jika BUKAN alamat utama */}
         {!address.is_primary && (
           <button
             onClick={onSetPrimary}
@@ -53,13 +56,13 @@ function AddressCard({
         )}
         <button
           onClick={onEdit}
-          className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors px-3 py-1 rounded-md hover:bg-blue-50"
+          className="text-sm font-medium text-blue-600 hover:text-blue-800 ..."
         >
           Ubah
         </button>
         <button
           onClick={onDelete}
-          className="text-sm font-medium text-red-600 hover:text-red-800 transition-colors px-3 py-1 rounded-md hover:bg-red-50"
+          className="text-sm font-medium text-red-600 hover:text-red-800 ..."
         >
           Hapus
         </button>
@@ -68,7 +71,7 @@ function AddressCard({
   );
 }
 
-// --- Komponen Utama Section Alamat ---
+// --- Komponen Utama (tidak ada perubahan logika, hanya memastikan 'addToast' ada) ---
 export default function AddressSection() {
   const { addresses, fetchAddresses, deleteAddress, addToast } = useAppStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -78,7 +81,6 @@ export default function AddressSection() {
     fetchAddresses();
   }, [fetchAddresses]);
 
-  // PERBAIKAN 2: Gunakan 'addToast' dari store untuk notifikasi
   const handleSetPrimary = async (addressId: string) => {
     try {
       const response = await fetch("/api/addresses/set-primary", {
@@ -101,7 +103,6 @@ export default function AddressSection() {
     setAddressToEdit(null);
     setIsModalOpen(true);
   };
-
   const handleEdit = (address: Address) => {
     setAddressToEdit(address);
     setIsModalOpen(true);
