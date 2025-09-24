@@ -1,0 +1,42 @@
+Tentu. Sangat bagus Modul Akun dasar Anda sekarang sudah selesai dan stabil. Mari kita tingkatkan menjadi dashboard yang profesional sesuai rencana.
+
+---
+### ## Instruksi #121: Roadmap - Peningkatan Halaman Akun Menjadi Dashboard
+
+Kita akan merombak halaman `/akun/index.astro` dari yang semula hanya menampilkan daftar alamat, menjadi halaman sambutan yang lebih dinamis dan informatif.
+
+#### Fase 1: Backend - Menyiapkan Data untuk Dashboard
+Halaman dashboard membutuhkan beberapa data ringkasan. Cara paling efisien adalah dengan membuat satu fungsi Supabase baru yang mengambil semua data ini sekaligus.
+
+* **Aksi:** Kita akan membuat fungsi RPC baru, misalnya `get_account_dashboard_data()`, yang akan mengembalikan:
+    1.  **Data Pengguna**: `nama_pelanggan`.
+    2.  **Pesanan Terakhir**: Detail satu pesanan terakhir (`order_number`, `status`, `total_amount`).
+    3.  **Alamat Utama**: Detail alamat yang ditandai `is_primary`.
+
+---
+#### Fase 2: Frontend - Membangun Tampilan Dashboard
+Kita akan merombak total file `/src/pages/akun/index.astro` dan membuat komponen baru untuk menampilkan ringkasan.
+
+* **Aksi 1: Perbarui `/src/pages/akun/index.astro`**:
+    * Logika di *frontmatter* (`---`) akan diubah untuk memanggil fungsi `get_account_dashboard_data()` yang baru.
+    * Tampilannya akan diubah menjadi layout dashboard.
+* **Aksi 2: Buat Komponen Baru**:
+    * Kita akan memisahkan logika `Buku Alamat` yang sudah ada ke dalam komponennya sendiri agar halaman utama tetap bersih.
+    * Kita akan membuat komponen baru untuk menampilkan ringkasan pesanan terakhir dan alamat utama.
+
+---
+### ## Rencana Fitur Keamanan & Voucher (Setelah Dashboard Selesai)
+
+#### 1. Fitur "Ubah Password"
+* **Lokasi:** Ini bisa menjadi tab atau halaman baru di dalam `/akun`, misalnya `/akun/keamanan`.
+* **Implementasi:** Kita akan menggunakan fungsi `updateUser()` dari Supabase Auth di sisi klien untuk menangani perubahan password. Ini relatif mudah dan aman.
+
+#### 2. Fitur "Voucher Saya"
+* **Ketergantungan:** Fitur ini baru bisa kita bangun **setelah** kita membuat Modul Diskon & Voucher.
+* **Implementasi:** Kita akan membuat tab "Voucher Saya" yang akan mengambil dan menampilkan daftar voucher yang berlaku untuk pengguna tersebut dari tabel `vouchers` yang akan kita buat nanti.
+
+---
+### ## Langkah Selanjutnya
+Mari kita mulai dengan **Fase 1**. Untuk merancang fungsi `get_account_dashboard_data()` dengan benar, saya perlu memastikan kembali struktur beberapa tabel.
+
+**Apakah Anda siap untuk saya berikan skrip SQL untuk membuat fungsi `get_account_dashboard_data()`?**

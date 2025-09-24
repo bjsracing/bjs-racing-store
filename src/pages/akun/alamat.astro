@@ -1,0 +1,33 @@
+---
+// File: /src/pages/akun/alamat.astro
+import MainLayout from '@/layouts/MainLayout.astro';
+import AddressSection from '@/components/AddressSection.tsx';
+import LogoutButton from '@/components/LogoutButton.jsx';
+
+// Proteksi halaman
+const { session } = Astro.locals;
+if (!session) {
+  return Astro.redirect('/login?redirect=/akun/alamat');
+}
+---
+<MainLayout title="Buku Alamat - BJS Racing Store">
+  <main class="container mx-auto px-4 py-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+
+      <aside class="md:col-span-1">
+        <nav class="flex flex-col space-y-2">
+          <a href="/akun" class="hover:bg-gray-100 p-3 rounded-lg">Ringkasan Akun</a>
+          <a href="/akun/profil" class="hover:bg-gray-100 p-3 rounded-lg">Profil Saya</a>
+          <a href="/akun/pesanan" class="hover:bg-gray-100 p-3 rounded-lg">Riwayat Pesanan</a>
+          <a href="/akun/alamat" class="font-semibold bg-gray-200 p-3 rounded-lg">Buku Alamat</a>
+          <LogoutButton client:load />
+        </nav>
+      </aside>
+
+      <section class="md:col-span-3">
+        <AddressSection client:load />
+      </section>
+
+    </div>
+  </main>
+</MainLayout>
