@@ -5,6 +5,7 @@ import { supabaseAdmin } from '@/lib/supabaseServer.ts';
 import { formatToWIB } from '@/lib/utils.ts';
 
 // 1. Proteksi Halaman & Ambil Data dari Server
+const { session } = Astro.locals;
 const { order_id } = Astro.params;
 const statusParam = Astro.url.searchParams.get('status');
 
