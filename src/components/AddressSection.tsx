@@ -1,25 +1,26 @@
 // File: src/components/AddressSection.tsx
-// Deskripsi: Refactor untuk menggunakan Zustand state management.
-
 import React, { useState, useEffect } from "react";
-// PERBAIKAN: Impor useAppStore dari Zustand, hapus impor Nano Stores
 import { useAppStore } from "@/lib/store";
-import AddressForm from "./AddressForm"; // Impor komponen form React
-import type { Address } from "@/lib/store"; // Impor tipe data dari store Zustand
+import AddressForm from "./AddressForm";
+import type { Address } from "@/lib/store";
 
-// --- Komponen Kartu Alamat (Internal) ---
+// --- Komponen Kartu Alamat (Dengan Tipe Data Lengkap) ---
 function AddressCard({
   address,
   onEdit,
   onDelete,
+  onSetPrimary, // Prop baru
 }: {
   address: Address;
   onEdit: () => void;
   onDelete: () => void;
+  onSetPrimary: () => void; // PERBAIKAN 1: Tambahkan tipe untuk prop baru
 }) {
   return (
-    <div className="bg-white shadow-md rounded-xl flex flex-col transition-shadow hover:shadow-lg">
-      <div className="p-5 space-y-3">
+    <div
+      className={`bg-white shadow-md rounded-xl flex flex-col transition-all duration-300 ${address.is_primary ? "border-2 border-orange-500" : "border border-transparent"}`}
+    >
+      <div className="p-5 space-y-3 flex-grow">
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-3 mb-2">
             <h3 className="font-bold text-lg text-slate-800 break-words">
@@ -41,21 +42,23 @@ function AddressCard({
           </p>
         </div>
       </div>
-      <div className="flex justify-end items-center space-x-4 p-4 border-t border-gray-100 bg-gray-50 rounded-b-xl">
+      <div className="flex justify-end items-center space-x-2 p-4 border-t border-gray-100 bg-gray-50 rounded-b-xl">
+        {!address.is_primary && (
+          <button
+            onClick={onSetPrimary}
+            className="text-sm font-medium text-green-600 hover:text-green-800 transition-colors px-3 py-1 rounded-md hover:bg-green-50"
+          >
+            Jadikan Utama
+          </button>
+        )}
         <button
-          onClick={(e) => {
-            e.preventDefault();
-            onEdit();
-          }}
+          onClick={onEdit}
           className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors px-3 py-1 rounded-md hover:bg-blue-50"
         >
           Ubah
         </button>
         <button
-          onClick={(e) => {
-            e.preventDefault();
-            onDelete();
-          }}
+          onClick={onDelete}
           className="text-sm font-medium text-red-600 hover:text-red-800 transition-colors px-3 py-1 rounded-md hover:bg-red-50"
         >
           Hapus
@@ -67,17 +70,32 @@ function AddressCard({
 
 // --- Komponen Utama Section Alamat ---
 export default function AddressSection() {
-  // PERBAIKAN: Menggunakan hook useAppStore (Zustand) untuk data reaktif
-  const addresses = useAppStore((state) => state.addresses);
-  const fetchAddresses = useAppStore((state) => state.fetchAddresses);
-  const deleteAddress = useAppStore((state) => state.deleteAddress);
-
+  const { addresses, fetchAddresses, deleteAddress, addToast } = useAppStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [addressToEdit, setAddressToEdit] = useState<Address | null>(null);
 
   useEffect(() => {
     fetchAddresses();
   }, [fetchAddresses]);
+
+  // PERBAIKAN 2: Gunakan 'addToast' dari store untuk notifikasi
+  const handleSetPrimary = async (addressId: string) => {
+    try {
+      const response = await fetch("/api/addresses/set-primary", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address_id: addressId }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Gagal menjadikan alamat utama.");
+      }
+      addToast({ type: "success", message: "Alamat utama berhasil diubah." });
+      fetchAddresses();
+    } catch (error) {
+      addToast({ type: "error", message: (error as Error).message });
+    }
+  };
 
   const handleAddNew = () => {
     setAddressToEdit(null);
@@ -93,10 +111,9 @@ export default function AddressSection() {
     if (confirm("Apakah Anda yakin ingin menghapus alamat ini?")) {
       try {
         await deleteAddress(addressId);
+        addToast({ type: "success", message: "Alamat berhasil dihapus." });
       } catch (error) {
-        alert(
-          error instanceof Error ? error.message : "Gagal menghapus alamat.",
-        );
+        addToast({ type: "error", message: (error as Error).message });
       }
     }
   };
@@ -112,7 +129,6 @@ export default function AddressSection() {
           Tambah Alamat Baru
         </button>
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {addresses.length === 0 ? (
           <p className="col-span-full text-center text-gray-500 py-10">
@@ -125,11 +141,11 @@ export default function AddressSection() {
               address={address}
               onEdit={() => handleEdit(address)}
               onDelete={() => handleDelete(address.id)}
+              onSetPrimary={() => handleSetPrimary(address.id)}
             />
           ))
         )}
       </div>
-
       <AddressForm
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
