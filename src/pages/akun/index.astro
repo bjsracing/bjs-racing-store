@@ -1,6 +1,7 @@
 ---
 // File: /src/pages/akun/index.astro
 import MainLayout from '@/layouts/MainLayout.astro';
+import { supabaseAdmin } from '@/lib/supabaseServer.ts';
 import { formatToWIB } from '@/lib/utils.ts';
 import AccountSidebar from '@/components/AccountSidebar.astro';
 
@@ -9,10 +10,30 @@ if (!session) {
   return Astro.redirect('/login?redirect=/akun');
 }
 
-// --- PERBAIKAN: Panggil API endpoint, bukan RPC ---
-const response = await Astro.locals.supabase.auth.api.fetch('/api/dashboard');
-const dashboardData = await response.json();
-// ----------------------------------------------------
+// --- PERBAIKAN UTAMA: Gunakan 'fetch' standar dengan URL absolut dan teruskan cookie ---
+let dashboardData = null;
+let fetchError = null;
+
+try {
+  const apiURL = new URL('/api/dashboard', Astro.url.origin);
+  const response = await fetch(apiURL, {
+    headers: {
+      // Teruskan cookie pengguna agar API tahu siapa yang membuat permintaan
+      'Cookie': Astro.request.headers.get('Cookie') || ''
+    }
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json();
+    throw new Error(errorBody.message || 'Gagal memuat data dashboard.');
+  }
+
+  dashboardData = await response.json();
+
+} catch (e) {
+  console.error("Error fetching dashboard data:", e);
+  fetchError = (e as Error).message;
+}
 
 const { customer_name, latest_order, primary_address } = dashboardData || {};
 
@@ -25,47 +46,51 @@ const formatRupiah = (number: number) => new Intl.NumberFormat("id-ID", { style:
       <AccountSidebar currentPage={Astro.url.pathname} />
 
       <section class="md:col-span-3 space-y-6">
-        <h1 class="text-2xl font-bold">Selamat Datang, {customer_name || 'Pelanggan'}!</h1>
-        
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          <div class="bg-white p-6 rounded-xl shadow-sm">
-            <h2 class="font-bold text-lg mb-4">Pesanan Terakhir</h2>
-            {latest_order ? (
-              <div>
-                <div class="flex justify-between items-center">
-                  <a href={`/akun/pesanan/${latest_order.id}`} class="font-semibold text-blue-600 hover:underline">{latest_order.order_number}</a>
-                  <span class:list={[
-                    "capitalize text-xs font-semibold px-2 py-1 rounded-full",
-                    { "bg-yellow-100 text-yellow-800": ['awaiting_payment', 'pending'].includes(latest_order.status) },
-                    { "bg-green-100 text-green-800": ['paid', 'processing', 'shipped', 'completed'].includes(latest_order.status) },
-                    { "bg-red-100 text-red-800": latest_order.status === 'cancelled' }
-                  ]}>
-                    {latest_order.status.replace('_', ' ')}
-                  </span>
-                </div>
-                <p class="text-sm text-slate-500 mt-1">{formatToWIB(latest_order.created_at)}</p>
-                <p class="text-lg font-bold text-slate-800 mt-2">{formatRupiah(latest_order.total_amount)}</p>
-              </div>
-            ) : (
-              <p class="text-slate-500">Anda belum memiliki riwayat pesanan.</p>
-            )}
+        {fetchError ? (
+          <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            <strong>Gagal memuat data:</strong> {fetchError}
           </div>
+        ) : (
+          <>
+            <h1 class="text-2xl font-bold">Selamat Datang, {customer_name || 'Pelanggan'}!</h1>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Widget Pesanan Terakhir */}
+              <div class="bg-white p-6 rounded-xl shadow-sm">
+                <h2 class="font-bold text-lg mb-4">Pesanan Terakhir</h2>
+                {latest_order ? (
+                  <div>
+                    <div class="flex justify-between items-center">
+                      <a href={`/akun/pesanan/${latest_order.id}`} class="font-semibold text-blue-600 hover:underline">{latest_order.order_number}</a>
+                      <span class:list={["capitalize text-xs font-semibold px-2 py-1 rounded-full", { "bg-yellow-100 text-yellow-800": ['awaiting_payment', 'pending'].includes(latest_order.status) }, { "bg-green-100 text-green-800": ['paid', 'processing', 'completed', 'shipped'].includes(latest_order.status) }, { "bg-red-100 text-red-800": latest_order.status === 'cancelled' }]}>
+                        {latest_order.status.replace('_', ' ')}
+                      </span>
+                    </div>
+                    <p class="text-sm text-slate-500 mt-1">{formatToWIB(latest_order.created_at)}</p>
+                    <p class="text-lg font-bold text-slate-800 mt-2">{formatRupiah(latest_order.total_amount)}</p>
+                  </div>
+                ) : (
+                  <p class="text-slate-500">Anda belum memiliki riwayat pesanan.</p>
+                )}
+              </div>
 
-          <div class="bg-white p-6 rounded-xl shadow-sm">
-            <h2 class="font-bold text-lg mb-4">Alamat Utama</h2>
-            {primary_address ? (
-              <div class="text-slate-600 space-y-1 text-sm">
-                <p class="font-semibold text-slate-800">{primary_address.recipient_name}</p>
-                <p>{primary_address.recipient_phone}</p>
-                <p>{primary_address.full_address}</p>
-                <p>{primary_address.destination_text}</p>
+              {/* Widget Alamat Utama */}
+              <div class="bg-white p-6 rounded-xl shadow-sm">
+                <h2 class="font-bold text-lg mb-4">Alamat Utama</h2>
+                {primary_address ? (
+                  <div class="text-slate-600 space-y-1 text-sm">
+                    <p class="font-semibold text-slate-800">{primary_address.recipient_name}</p>
+                    <p>{primary_address.recipient_phone}</p>
+                    <p>{primary_address.full_address}</p>
+                    <p>{primary_address.destination_text}</p>
+                  </div>
+                ) : (
+                  <p class="text-slate-500">Anda belum mengatur alamat utama.</p>
+                )}
               </div>
-            ) : (
-              <p class="text-slate-500">Anda belum mengatur alamat utama.</p>
-            )}
-          </div>
-        </div>
+            </div>
+          </>
+        )}
       </section>
     </div>
   </main>
