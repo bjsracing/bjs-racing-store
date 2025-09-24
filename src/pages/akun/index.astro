@@ -10,12 +10,15 @@ if (!session) {
   return Astro.redirect('/login?redirect=/akun');
 }
 
+// Panggil fungsi RPC untuk mendapatkan semua data dashboard
 const { data: dashboardData, error } = await supabaseAdmin.rpc('get_account_dashboard_data');
+
 if (error) {
   console.error("Error fetching dashboard data:", error);
 }
 
 const { customer_name, latest_order, primary_address } = dashboardData || {};
+
 const formatRupiah = (number: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(number || 0);
 ---
 <MainLayout title="Dashboard Akun - BJS Racing Store">
@@ -35,7 +38,12 @@ const formatRupiah = (number: number) => new Intl.NumberFormat("id-ID", { style:
               <div>
                 <div class="flex justify-between items-center">
                   <a href={`/akun/pesanan/${latest_order.id}`} class="font-semibold text-blue-600 hover:underline">{latest_order.order_number}</a>
-                  <span class:list={["text-xs font-semibold px-2 py-1 rounded-full", { "bg-yellow-100 text-yellow-800": latest_order.status === 'awaiting_payment' }, { "bg-green-100 text-green-800": ['paid', 'processing', 'shipped', 'completed'].includes(latest_order.status) }, { "bg-red-100 text-red-800": latest_order.status === 'cancelled' } ]}>
+                  <span class:list={[
+                    "capitalize text-xs font-semibold px-2 py-1 rounded-full",
+                    { "bg-yellow-100 text-yellow-800": ['awaiting_payment', 'pending'].includes(latest_order.status) },
+                    { "bg-green-100 text-green-800": ['paid', 'processing', 'shipped', 'completed'].includes(latest_order.status) },
+                    { "bg-red-100 text-red-800": latest_order.status === 'cancelled' }
+                  ]}>
                     {latest_order.status.replace('_', ' ')}
                   </span>
                 </div>
