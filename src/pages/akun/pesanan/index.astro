@@ -42,8 +42,6 @@ const formatTanggal = (dateString: string) => new Date(dateString).toLocaleDateS
           <a href="/akun" class="hover:bg-gray-100 p-3 rounded-lg">Buku Alamat</a>
           <a href="/akun/profil" class="hover:bg-gray-100 p-3 rounded-lg">Profil Saya</a>
           <a href="/akun/pesanan" class="font-semibold bg-gray-200 p-3 rounded-lg">Riwayat Pesanan</a>
-          <form action="/api/auth/signout" method="post" class="w-full">
-            <button type="submit" class="w-full text-left hover:bg-gray-100 p-3 rounded-lg">Keluar</button>
           <LogoutButton client:load />
         </nav>
       </aside>
