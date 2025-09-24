@@ -1,7 +1,6 @@
 ---
 // File: /src/pages/akun/index.astro
 import MainLayout from '@/layouts/MainLayout.astro';
-import { supabaseAdmin } from '@/lib/supabaseServer.ts';
 import { formatToWIB } from '@/lib/utils.ts';
 import AccountSidebar from '@/components/AccountSidebar.astro';
 
@@ -10,18 +9,10 @@ if (!session) {
   return Astro.redirect('/login?redirect=/akun');
 }
 
-// Panggil fungsi RPC untuk mendapatkan semua data dashboard
-const { data: dashboardData, error } = await supabaseAdmin.rpc('get_account_dashboard_data');
-
-// --- TAMBAHKAN KODE DEBUGGING DI SINI ---
-console.log("===================================");
-console.log("DEBUG: Data diterima dari RPC get_account_dashboard_data:");
-console.log(JSON.stringify(dashboardData, null, 2));
-console.log("===================================");
-
-if (error) {
-  console.error("Error fetching dashboard data:", error);
-}
+// --- PERBAIKAN: Panggil API endpoint, bukan RPC ---
+const response = await Astro.locals.supabase.auth.api.fetch('/api/dashboard');
+const dashboardData = await response.json();
+// ----------------------------------------------------
 
 const { customer_name, latest_order, primary_address } = dashboardData || {};
 
