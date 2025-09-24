@@ -1,44 +1,66 @@
 ---
 // File: /src/pages/akun/index.astro
 import MainLayout from '@/layouts/MainLayout.astro';
-import AddressSection from '@/components/AddressSection.tsx';
 import { supabaseAdmin } from '@/lib/supabaseServer.ts';
+import { formatToWIB } from '@/lib/utils.ts';
 import AccountSidebar from '@/components/AccountSidebar.astro';
 
-// 1. Validasi Sesi Pengguna
 const { session } = Astro.locals;
 if (!session) {
   return Astro.redirect('/login?redirect=/akun');
 }
 
-// 2. Validasi Profil Pelanggan (Diaktifkan Kembali & Disederhanakan)
-try {
-  const { error } = await supabaseAdmin
-    .from("customers")
-    .select("id")
-    .eq("auth_user_id", session.user.id)
-    .single(); // .single() akan error jika tidak ada data, yang kita inginkan
-
-  // Jika query error (termasuk jika tidak ada data), arahkan ke lengkapi-profil
-  if (error) {
-    return Astro.redirect('/akun/lengkapi-profil');
-  }
-} catch (e) {
-  // Tangkap error tak terduga dan redirect
-  console.error("Gagal memvalidasi profil customer:", e);
-  return Astro.redirect('/akun/lengkapi-profil');
+const { data: dashboardData, error } = await supabaseAdmin.rpc('get_account_dashboard_data');
+if (error) {
+  console.error("Error fetching dashboard data:", error);
 }
+
+const { customer_name, latest_order, primary_address } = dashboardData || {};
+const formatRupiah = (number: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(number || 0);
 ---
-<MainLayout title="Akun Saya - BJS Racing Store">
+<MainLayout title="Dashboard Akun - BJS Racing Store">
   <main class="container mx-auto px-4 py-8">
     <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-    
-      {/* --- PERBAIKAN: Gunakan komponen sidebar terpusat --- */}
-      <AccountSidebar currentPage={Astro.url.pathname} />
       
-      <section class="md:col-span-3">
-        {/* Konten utama saat ini adalah AddressSection */}
-        <AddressSection client:load />
+      <AccountSidebar currentPage={Astro.url.pathname} />
+
+      <section class="md:col-span-3 space-y-6">
+        <h1 class="text-2xl font-bold">Selamat Datang, {customer_name || 'Pelanggan'}!</h1>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          <div class="bg-white p-6 rounded-xl shadow-sm">
+            <h2 class="font-bold text-lg mb-4">Pesanan Terakhir</h2>
+            {latest_order ? (
+              <div>
+                <div class="flex justify-between items-center">
+                  <a href={`/akun/pesanan/${latest_order.id}`} class="font-semibold text-blue-600 hover:underline">{latest_order.order_number}</a>
+                  <span class:list={["text-xs font-semibold px-2 py-1 rounded-full", { "bg-yellow-100 text-yellow-800": latest_order.status === 'awaiting_payment' }, { "bg-green-100 text-green-800": ['paid', 'processing', 'shipped', 'completed'].includes(latest_order.status) }, { "bg-red-100 text-red-800": latest_order.status === 'cancelled' } ]}>
+                    {latest_order.status.replace('_', ' ')}
+                  </span>
+                </div>
+                <p class="text-sm text-slate-500 mt-1">{formatToWIB(latest_order.created_at)}</p>
+                <p class="text-lg font-bold text-slate-800 mt-2">{formatRupiah(latest_order.total_amount)}</p>
+              </div>
+            ) : (
+              <p class="text-slate-500">Anda belum memiliki riwayat pesanan.</p>
+            )}
+          </div>
+
+          <div class="bg-white p-6 rounded-xl shadow-sm">
+            <h2 class="font-bold text-lg mb-4">Alamat Utama</h2>
+            {primary_address ? (
+              <div class="text-slate-600 space-y-1 text-sm">
+                <p class="font-semibold text-slate-800">{primary_address.recipient_name}</p>
+                <p>{primary_address.recipient_phone}</p>
+                <p>{primary_address.full_address}</p>
+                <p>{primary_address.destination_text}</p>
+              </div>
+            ) : (
+              <p class="text-slate-500">Anda belum mengatur alamat utama.</p>
+            )}
+          </div>
+        </div>
       </section>
     </div>
   </main>
