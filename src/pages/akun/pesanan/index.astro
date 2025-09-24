@@ -2,6 +2,7 @@
 // File: /src/pages/akun/pesanan/index.astro
 import MainLayout from '@/layouts/MainLayout.astro';
 import { supabaseAdmin } from '@/lib/supabaseServer.ts';
+import LogoutButton from '@/components/LogoutButton.jsx';
 
 // 1. Validasi Sesi & ambil data Customer
 const { session } = Astro.locals;
@@ -43,7 +44,7 @@ const formatTanggal = (dateString: string) => new Date(dateString).toLocaleDateS
           <a href="/akun/pesanan" class="font-semibold bg-gray-200 p-3 rounded-lg">Riwayat Pesanan</a>
           <form action="/api/auth/signout" method="post" class="w-full">
             <button type="submit" class="w-full text-left hover:bg-gray-100 p-3 rounded-lg">Keluar</button>
-          </form>
+          <LogoutButton client:load />
         </nav>
       </aside>
 

@@ -22,8 +22,13 @@ export const GET: APIRoute = async ({ locals }) => {
 
     return new Response(JSON.stringify(customer), { status: 200 });
   } catch (error) {
+    // --- PERBAIKAN DI SINI ---
+    let errorMessage = "Gagal memuat profil.";
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
     console.error("API GET /api/profile Error:", error);
-    return new Response(JSON.stringify({ message: error.message }), {
+    return new Response(JSON.stringify({ message: errorMessage }), {
       status: 500,
     });
   }
@@ -41,7 +46,6 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   try {
     const { nama_pelanggan, telepon } = await request.json();
 
-    // Validasi input
     if (!nama_pelanggan || !telepon) {
       return new Response(
         JSON.stringify({ message: "Nama dan telepon wajib diisi." }),
@@ -55,7 +59,7 @@ export const PUT: APIRoute = async ({ request, locals }) => {
         nama_pelanggan: nama_pelanggan,
         telepon: telepon,
       })
-      .eq("auth_user_id", session.user.id) // Pastikan hanya mengubah profil milik sendiri
+      .eq("auth_user_id", session.user.id)
       .select("nama_pelanggan, telepon")
       .single();
 
@@ -63,8 +67,13 @@ export const PUT: APIRoute = async ({ request, locals }) => {
 
     return new Response(JSON.stringify(data), { status: 200 });
   } catch (error) {
+    // --- PERBAIKAN DI SINI ---
+    let errorMessage = "Gagal menyimpan profil.";
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
     console.error("API PUT /api/profile Error:", error);
-    return new Response(JSON.stringify({ message: error.message }), {
+    return new Response(JSON.stringify({ message: errorMessage }), {
       status: 500,
     });
   }
