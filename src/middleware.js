@@ -1,11 +1,11 @@
-// src/middleware.js (Versi Final untuk Astro)
-
+// src/middleware.js
 import { createServerClient } from "@supabase/ssr";
 import { defineMiddleware } from "astro:middleware";
 
-// --- PENAMBAHAN 1: Tentukan halaman yang akan dilindungi ---
-const protectedRoutes = ["/cart", "/checkout", "/akun"]; // Tambahkan halaman lain jika perlu, misal: /pilok
-const authRoutes = ["/login", "/register"]; // Halaman yang seharusnya tidak diakses jika sudah login
+// Daftar halaman yang butuh login
+const protectedRoutes = ["/cart", "/checkout", "/akun"];
+// Daftar halaman yang tidak boleh diakses jika sudah login
+const authRoutes = ["/login", "/register"];
 
 export const onRequest = defineMiddleware(async (context, next) => {
   context.locals.supabase = createServerClient(
@@ -25,16 +25,34 @@ export const onRequest = defineMiddleware(async (context, next) => {
   } = await context.locals.supabase.auth.getSession();
   context.locals.session = session;
 
-  // --- PENAMBAHAN 2: Logika "Penjaga" ---
+  const pathname = context.url.pathname;
 
-  // Jika pengguna belum login dan mencoba akses halaman terproteksi
-  if (!session && protectedRoutes.includes(context.url.pathname)) {
-    return context.redirect("/login", 302);
+  // Gerbang 1: Cek otentikasi (apakah sudah login?)
+  if (!session && protectedRoutes.some((route) => pathname.startsWith(route))) {
+    return context.redirect("/login?redirect=" + pathname, 302);
+  }
+  if (session && authRoutes.includes(pathname)) {
+    return context.redirect("/akun", 302);
   }
 
-  // Jika pengguna sudah login dan mencoba akses halaman login/register
-  if (session && authRoutes.includes(context.url.pathname)) {
-    return context.redirect("/akun", 302); // Alihkan ke halaman akun atau dashboard
+  // --- PERBAIKAN UTAMA DI SINI ---
+  // Gerbang 2: Cek otorisasi (apakah profil sudah lengkap?)
+  if (session) {
+    // Cek ini sekarang berjalan untuk SEMUA HALAMAN TERPROTEKSI
+    if (
+      protectedRoutes.some((route) => pathname.startsWith(route)) &&
+      pathname !== "/akun/lengkapi-profil"
+    ) {
+      const { data: customerProfile } = await context.locals.supabase
+        .from("customers")
+        .select("id", { count: "exact", head: true }) // Query lebih cepat, hanya cek keberadaan
+        .eq("auth_user_id", session.user.id);
+
+      // Jika data customer tidak ada (count: 0), paksa redirect
+      if (customerProfile.count === 0) {
+        return context.redirect("/akun/lengkapi-profil", 302);
+      }
+    }
   }
 
   return next();
