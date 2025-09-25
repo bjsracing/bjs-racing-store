@@ -2,18 +2,24 @@
 import React, { useState } from "react";
 import { supabase } from "@/lib/supabaseBrowserClient.ts";
 import { useAppStore } from "@/lib/store";
+// 1. Impor ikon mata
+import { FiEye, FiEyeOff } from "react-icons/fi";
 
 export default function ChangePasswordView() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+
+  // 2. State baru untuk melacak visibilitas password
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const addToast = useAppStore((state) => state.addToast);
   const signOut = useAppStore((state) => state.signOut);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validasi 1: Cek apakah password cocok
     if (newPassword !== confirmPassword) {
       addToast({
         type: "error",
@@ -21,7 +27,6 @@ export default function ChangePasswordView() {
       });
       return;
     }
-    // Validasi 2: Cek panjang password
     if (newPassword.length < 6) {
       addToast({
         type: "error",
@@ -35,17 +40,13 @@ export default function ChangePasswordView() {
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
-
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (error) throw new Error(error.message);
 
       addToast({
         type: "success",
         message: "Password berhasil diubah. Anda akan segera logout.",
       });
 
-      // Praktik keamanan terbaik: Logout pengguna setelah ganti password
       setTimeout(() => {
         signOut();
       }, 2000);
@@ -61,6 +62,7 @@ export default function ChangePasswordView() {
   return (
     <div className="bg-white p-6 rounded-xl shadow-md">
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* --- 3. Perbaikan Kolom Password Baru --- */}
         <div>
           <label
             htmlFor="new_password"
@@ -68,16 +70,27 @@ export default function ChangePasswordView() {
           >
             Password Baru
           </label>
-          <input
-            type="password"
-            id="new_password"
-            name="new_password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            required
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
-          />
+          <div className="relative mt-1">
+            <input
+              type={showNewPassword ? "text" : "password"}
+              id="new_password"
+              name="new_password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+              className="block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
+            />
+            <button
+              type="button"
+              className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500"
+              onClick={() => setShowNewPassword(!showNewPassword)}
+            >
+              {showNewPassword ? <FiEyeOff /> : <FiEye />}
+            </button>
+          </div>
         </div>
+
+        {/* --- 4. Perbaikan Kolom Konfirmasi Password Baru --- */}
         <div>
           <label
             htmlFor="confirm_password"
@@ -85,15 +98,24 @@ export default function ChangePasswordView() {
           >
             Konfirmasi Password Baru
           </label>
-          <input
-            type="password"
-            id="confirm_password"
-            name="confirm_password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
-          />
+          <div className="relative mt-1">
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              id="confirm_password"
+              name="confirm_password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              className="block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
+            />
+            <button
+              type="button"
+              className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            >
+              {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
+            </button>
+          </div>
         </div>
         <div className="text-right">
           <button
