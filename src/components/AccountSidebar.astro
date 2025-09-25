@@ -2,22 +2,20 @@
 // File: src/components/AccountSidebar.astro
 import LogoutButton from '@/components/LogoutButton.jsx';
 
-// Komponen ini akan menerima URL halaman saat ini sebagai 'prop'
 const { currentPage } = Astro.props;
 
-// Daftar semua link navigasi
 const navLinks = [
     { href: "/akun", label: "Ringkasan Akun" },
     { href: "/akun/profil", label: "Profil Saya" },
     { href: "/akun/pesanan", label: "Riwayat Pesanan" },
     { href: "/akun/alamat", label: "Buku Alamat" },
+    { href: "/akun/keamanan", label: "Ubah Password" }, // <-- LINK BARU
 ];
 ---
 
 <aside class="md:col-span-1">
     <nav class="flex flex-col space-y-2">
         {navLinks.map(link => {
-            // Cek apakah link ini adalah halaman yang sedang aktif
             const isActive = currentPage === link.href;
             const linkClass = isActive
                 ? "font-semibold bg-gray-200 p-3 rounded-lg"
