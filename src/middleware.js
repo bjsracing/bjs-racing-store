@@ -2,10 +2,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { defineMiddleware } from "astro:middleware";
 
-// Daftar halaman yang butuh login
 const protectedRoutes = ["/cart", "/checkout", "/akun"];
-// Daftar halaman yang tidak boleh diakses jika sudah login
 const authRoutes = ["/login", "/register"];
+// Halaman yang dikecualikan dari pengecekan profil lengkap
+const profileExceptions = ["/akun/lengkapi-profil"];
 
 export const onRequest = defineMiddleware(async (context, next) => {
   context.locals.supabase = createServerClient(
@@ -38,18 +38,25 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // --- PERBAIKAN UTAMA DI SINI ---
   // Gerbang 2: Cek otorisasi (apakah profil sudah lengkap?)
   if (session) {
-    // Cek ini sekarang berjalan untuk SEMUA HALAMAN TERPROTEKSI
+    // Cek ini berjalan untuk SEMUA HALAMAN TERPROTEKSI, kecuali halaman pengecualian
     if (
       protectedRoutes.some((route) => pathname.startsWith(route)) &&
-      pathname !== "/akun/lengkapi-profil"
+      !profileExceptions.some((route) => pathname.startsWith(route))
     ) {
-      const { data: customerProfile } = await context.locals.supabase
+      // Query yang benar untuk menghitung baris
+      const { count, error } = await context.locals.supabase
         .from("customers")
-        .select("id", { count: "exact", head: true }) // Query lebih cepat, hanya cek keberadaan
+        .select("*", { count: "exact", head: true })
         .eq("auth_user_id", session.user.id);
 
-      // Jika data customer tidak ada (count: 0), paksa redirect
-      if (customerProfile.count === 0) {
+      if (error) {
+        console.error("Middleware profile check error:", error);
+        // Jika ada error saat query, biarkan lolos agar tidak mengunci pengguna
+        return next();
+      }
+
+      // Jika hitungan profil adalah 0, paksa redirect
+      if (count === 0) {
         return context.redirect("/akun/lengkapi-profil", 302);
       }
     }
