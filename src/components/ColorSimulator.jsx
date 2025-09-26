@@ -60,7 +60,7 @@ const ColorSimulator = ({ initialProductId }) => {
   const [selectedSize, setSelectedSize] = useState(null);
   const [simulationImageUrl, setSimulationImageUrl] = useState("");
   const [loading, setLoading] = useState(true);
-  const { addToCart } = useAppStore();
+  const { addToCart, addToast } = useAppStore();
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -223,22 +223,57 @@ const ColorSimulator = ({ initialProductId }) => {
     return Array.from(uniqueSizes.values());
   }, [allColorProducts, selectedColorProduct]);
 
-  const handleAddToCart = () => {
-    if (!selectedColorProduct || !selectedSize)
-      return alert("Silakan pilih ukuran terlebih dahulu.");
+  // Lalu, ganti seluruh fungsi handleAddToCart yang lama dengan fungsi lengkap di bawah ini:
+  const handleAddToCart = async () => {
+    // Validasi dasar: pastikan warna dan ukuran sudah dipilih
+    if (!selectedColorProduct || !selectedSize) {
+      addToast({
+        type: "info",
+        message: "Silakan pilih warna dan ukuran terlebih dahulu.",
+      });
+      return;
+    }
+
+    // Cari produk yang tepat untuk ditambahkan berdasarkan pilihan
     const productToAdd = allColorProducts.find(
       (p) =>
         p.nama === selectedColorProduct.nama &&
         p.merek === selectedColorProduct.merek &&
         p.ukuran === selectedSize,
     );
-    if (productToAdd) {
-      addToCart(productToAdd, 1);
-      alert(
-        `1 x ${productToAdd.nama} (${productToAdd.ukuran}) berhasil ditambahkan.`,
-      );
-    } else {
-      alert("Produk dengan ukuran yang dipilih tidak ditemukan.");
+
+    if (!productToAdd) {
+      addToast({
+        type: "error",
+        message: "Produk dengan ukuran yang dipilih tidak ditemukan.",
+      });
+      return;
+    }
+
+    try {
+      // Panggil fungsi addToCart dari store yang sudah memiliki validasi internal
+      await addToCart(productToAdd, 1);
+    } catch (error) {
+      // Tangkap dan tangani error spesifik yang dikirim oleh store
+      if (error.message === "NOT_AUTHENTICATED") {
+        addToast({
+          type: "info",
+          message: "Silakan login terlebih dahulu untuk berbelanja.",
+        });
+        window.location.href = "/login";
+      } else if (error.message === "CUSTOMER_PROFILE_MISSING") {
+        addToast({
+          type: "warning",
+          message: "Profil Anda belum lengkap. Mohon lengkapi data diri.",
+        });
+        window.location.href = "/akun/lengkapi-profil";
+      } else {
+        addToast({
+          type: "error",
+          message: "Terjadi kesalahan. Silakan coba lagi.",
+        });
+        console.error("Add to cart error:", error);
+      }
     }
   };
 

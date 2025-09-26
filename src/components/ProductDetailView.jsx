@@ -7,7 +7,7 @@ import ProductInfoTabs from "./ProductInfoTabs.jsx";
 const ProductDetailView = ({ initialProduct, allProductVariants }) => {
     const [selectedVariant, setSelectedVariant] = useState(initialProduct);
     const [quantity, setQuantity] = useState(1);
-    const { addToCart } = useAppStore();
+    const { addToCart, addToast } = useAppStore();
 
     useEffect(() => {
         if (quantity > selectedVariant.stok) {
@@ -48,8 +48,39 @@ const ProductDetailView = ({ initialProduct, allProductVariants }) => {
         setQuantity(newQuantity);
     };
 
-    const handleAddToCart = () => {
-        addToCart(selectedVariant, quantity);
+    // Lalu, ganti seluruh fungsi handleAddToCart yang lama dengan fungsi lengkap di bawah ini:
+    const handleAddToCart = async () => {
+        // Tombol sudah di-disable jika stok habis, jadi tidak perlu cek lagi.
+
+        try {
+            // Panggil fungsi addToCart dari store yang sudah memiliki validasi internal
+            await addToCart(selectedVariant, quantity);
+        } catch (error) {
+            // Tangkap dan tangani error spesifik yang dikirim oleh store
+            if (error.message === "NOT_AUTHENTICATED") {
+                addToast({
+                    type: "info",
+                    message: "Silakan login terlebih dahulu untuk berbelanja.",
+                });
+                // Arahkan ke halaman login
+                window.location.href = "/login";
+            } else if (error.message === "CUSTOMER_PROFILE_MISSING") {
+                addToast({
+                    type: "warning",
+                    message:
+                        "Profil Anda belum lengkap. Mohon lengkapi data diri.",
+                });
+                // Arahkan ke halaman lengkapi profil
+                window.location.href = "/akun/lengkapi-profil";
+            } else {
+                // Untuk error umum lainnya
+                addToast({
+                    type: "error",
+                    message: "Terjadi kesalahan. Silakan coba lagi.",
+                });
+                console.error("Add to cart error:", error);
+            }
+        }
     };
 
     // --- LOGIKA BADGES & DISKON (SEKARANG DINAMIS) ---

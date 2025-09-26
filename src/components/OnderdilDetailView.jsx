@@ -15,7 +15,7 @@ const OnderdilDetailView = ({ initialProduct, allProductVariants }) => {
     const [selectedVariant, setSelectedVariant] = useState(initialProduct);
     const [quantity, setQuantity] = useState(1);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
-    const { addToCart } = useAppStore();
+    const { addToCart, addToast } = useAppStore();
 
     // Efek untuk mereset kuantitas jika stok varian baru tidak mencukupi
     useEffect(() => {
@@ -80,8 +80,38 @@ const OnderdilDetailView = ({ initialProduct, allProductVariants }) => {
         setQuantity(newQuantity);
     };
 
-    const handleAddToCart = () => {
-        addToCart(selectedVariant, quantity);
+    // Ganti seluruh fungsi handleAddToCart yang lama dengan ini:
+    const handleAddToCart = async () => {
+        // Tombol sudah di-disable jika stok habis
+        if (selectedVariant.stok <= 0) return;
+
+        try {
+            // Panggil fungsi addToCart dari store
+            await addToCart(selectedVariant, quantity);
+        } catch (error) {
+            // Tangani error jika pengguna belum login atau profil belum lengkap
+            if (error.message === "NOT_AUTHENTICATED") {
+                addToast({
+                    type: "info",
+                    message: "Silakan login terlebih dahulu untuk berbelanja.",
+                });
+                window.location.href = "/login";
+            } else if (error.message === "CUSTOMER_PROFILE_MISSING") {
+                addToast({
+                    type: "warning",
+                    message:
+                        "Profil Anda belum lengkap. Mohon lengkapi data diri.",
+                });
+                window.location.href = "/akun/lengkapi-profil";
+            } else {
+                // Untuk error umum lainnya
+                addToast({
+                    type: "error",
+                    message: "Terjadi kesalahan. Silakan coba lagi.",
+                });
+                console.error("Add to cart error:", error);
+            }
+        }
     };
 
     return (
