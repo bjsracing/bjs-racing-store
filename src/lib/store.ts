@@ -61,6 +61,7 @@ export interface Toast {
 
 interface StoreState {
   session: Session | null;
+  setSession: (session: Session | null) => void;
   items: CartItem[];
   addresses: Address[];
   isMobileMenuOpen: boolean;
@@ -102,6 +103,8 @@ export const useAppStore = create<StoreState>()(
     isMobileMenuOpen: false,
     isCartLoading: true,
     toasts: [],
+
+    setSession: (session) => set({ session }),
 
     // tambahkan implementasi fungsi signOut:
     signOut: async () => {
