@@ -223,9 +223,7 @@ const ColorSimulator = ({ initialProductId }) => {
     return Array.from(uniqueSizes.values());
   }, [allColorProducts, selectedColorProduct]);
 
-  // Lalu, ganti seluruh fungsi handleAddToCart yang lama dengan fungsi lengkap di bawah ini:
   const handleAddToCart = async () => {
-    // Validasi dasar: pastikan warna dan ukuran sudah dipilih
     if (!selectedColorProduct || !selectedSize) {
       addToast({
         type: "info",
@@ -234,11 +232,12 @@ const ColorSimulator = ({ initialProductId }) => {
       return;
     }
 
-    // Cari produk yang tepat untuk ditambahkan berdasarkan pilihan
+    // PERBAIKAN 2: Logika pencarian produk yang disempurnakan
     const productToAdd = allColorProducts.find(
       (p) =>
         p.nama === selectedColorProduct.nama &&
         p.merek === selectedColorProduct.merek &&
+        p.lini_produk === selectedColorProduct.lini_produk && // Tambahkan cek lini produk
         p.ukuran === selectedSize,
     );
 
@@ -250,11 +249,10 @@ const ColorSimulator = ({ initialProductId }) => {
       return;
     }
 
+    // PERBAIKAN 3: Gunakan logika try...catch yang sudah terstandarisasi
     try {
-      // Panggil fungsi addToCart dari store yang sudah memiliki validasi internal
       await addToCart(productToAdd, 1);
     } catch (error) {
-      // Tangkap dan tangani error spesifik yang dikirim oleh store
       if (error.message === "NOT_AUTHENTICATED") {
         addToast({
           type: "info",
