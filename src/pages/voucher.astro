@@ -1,25 +1,14 @@
 ---
-// File: /src/pages/akun/voucher.astro
+// File: /src/pages/voucher.astro
 import MainLayout from '@/layouts/MainLayout.astro';
-import AccountSidebar from '@/components/AccountSidebar.astro';
-import MyVouchersView from '@/components/MyVouchersView.jsx';
-
-const { session } = Astro.locals;
-if (!session) {
-  return Astro.redirect('/login?redirect=/akun/voucher');
-}
+import VouchersView from '@/components/VouchersView.jsx'; // Komponen baru yang akan kita buat
 ---
-<MainLayout title="Voucher Saya - BJS Racing Store">
-  <main class="container mx-auto px-4 py-8">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-      
-      <AccountSidebar currentPage={Astro.url.pathname} />
 
-      <section class="md:col-span-3">
-        <h1 class="text-2xl font-bold mb-6">Voucher Saya</h1>
-        <MyVouchersView client:load />
-      </section>
-      
-    </div>
-  </main>
+<MainLayout title="Voucher & Promo - BJS Racing Store">
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-2">Voucher & Promo</h1>
+    <p class="text-slate-500 mb-8">Klaim voucher di bawah ini untuk mendapatkan diskon spesial!</p>
+
+    <VouchersView client:load />
+  </div>
 </MainLayout>
