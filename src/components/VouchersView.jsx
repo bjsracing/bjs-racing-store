@@ -2,14 +2,21 @@
 import React, { useState, useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 
-// Komponen kecil untuk satu kartu voucher
+// Komponen Ikon baru untuk setiap jenis voucher
+const VoucherIcon = ({ type }) => {
+  if (type === "free_shipping") return <span className="text-3xl">🚚</span>;
+  if (type === "percentage") return <span className="text-3xl">%</span>;
+  if (type === "fixed_amount") return <span className="text-3xl">Rp</span>;
+  return null;
+};
+
+// Komponen Kartu Voucher yang telah disempurnakan
 const VoucherCard = ({ voucher, onClaim, session }) => {
   const [isClaimed, setIsClaimed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleClaim = async () => {
     if (!session) {
-      // Jika belum login, arahkan ke halaman login
       window.location.href = "/login?redirect=/voucher";
       return;
     }
@@ -27,23 +34,49 @@ const VoucherCard = ({ voucher, onClaim, session }) => {
       month: "long",
       year: "numeric",
     });
+  const formatRupiah = (number) =>
+    new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(number || 0);
 
   return (
-    <div className="bg-white border-l-4 border-orange-500 rounded-r-lg shadow-md flex items-center p-4 gap-4">
-      <div className="flex-grow">
-        <p className="font-bold text-lg text-slate-800">{voucher.code}</p>
-        <p className="text-sm text-slate-600 mt-1">{voucher.description}</p>
-        <p className="text-xs text-slate-400 mt-2">
-          Berlaku hingga: {formatDate(voucher.valid_until)}
+    <div className="bg-white rounded-lg shadow-md flex overflow-hidden">
+      {/* Bagian Kiri: Ikon & Warna */}
+      <div className="flex-shrink-0 w-24 bg-orange-50 flex flex-col items-center justify-center p-4">
+        <VoucherIcon type={voucher.type} />
+        <p className="text-xs font-bold text-orange-600 mt-2 uppercase text-center">
+          {voucher.type === "free_shipping" ? "Gratis Ongkir" : "Diskon Toko"}
         </p>
       </div>
-      <button
-        onClick={handleClaim}
-        disabled={isClaimed || isLoading}
-        className="px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-      >
-        {isLoading ? "..." : isClaimed ? "Diklaim" : "Klaim"}
-      </button>
+      {/* Bagian Kanan: Detail & Tombol */}
+      <div className="flex-grow p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex-grow">
+          <p className="font-bold text-lg text-slate-800">
+            {voucher.description}
+          </p>
+          <div className="text-xs text-slate-500 mt-2 space-y-1">
+            {voucher.min_purchase > 0 && (
+              <span>Min. Belanja: {formatRupiah(voucher.min_purchase)}</span>
+            )}
+            {voucher.max_discount && <span className="mx-2">|</span>}
+            {voucher.max_discount && (
+              <span>Diskon s/d: {formatRupiah(voucher.max_discount)}</span>
+            )}
+          </div>
+          <p className="text-xs text-slate-400 mt-2">
+            Berlaku hingga: {formatDate(voucher.valid_until)}
+          </p>
+        </div>
+        <button
+          onClick={handleClaim}
+          disabled={isClaimed || isLoading}
+          className="w-full sm:w-auto px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex-shrink-0"
+        >
+          {isLoading ? "..." : isClaimed ? "Diklaim" : "Klaim"}
+        </button>
+      </div>
     </div>
   );
 };
