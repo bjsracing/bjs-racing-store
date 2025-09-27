@@ -158,8 +158,8 @@ const ColorSimulator = ({ initialProductId }) => {
         p.merek === selectedBrand &&
         p.lini_produk === selectedLine &&
         p.color_variant === selectedVariant &&
-        p.color_swatch_url,
-      p.status === "Aktif",
+        p.color_swatch_url &&
+        p.status === "Aktif",
     );
     const uniqueColors = new Map();
     filteredProducts.forEach((p) => {
