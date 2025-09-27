@@ -208,24 +208,29 @@ const ColorSimulator = ({ initialProductId }) => {
     if (!selectedColorProduct || !selectedSize) {
       addToast({
         type: "info",
-        message: "Silakan pilih ukuran terlebih dahulu.",
+        message: "Silakan pilih warna dan ukuran terlebih dahulu.",
       });
       return;
     }
+
+    // --- PERBAIKAN DI SINI: Tambahkan pengecekan status 'Aktif' ---
     const productToAdd = allColorProducts.find(
       (p) =>
         p.nama === selectedColorProduct.nama &&
         p.merek === selectedColorProduct.merek &&
         p.lini_produk === selectedColorProduct.lini_produk &&
-        p.ukuran === selectedSize,
+        p.ukuran === selectedSize &&
+        p.status === "Aktif", // Pastikan hanya memilih produk yang aktif
     );
+
     if (!productToAdd) {
       addToast({
         type: "error",
-        message: "Produk dengan ukuran yang dipilih tidak ditemukan.",
+        message: "Produk aktif dengan ukuran yang dipilih tidak ditemukan.",
       });
       return;
     }
+
     try {
       await addToCart(productToAdd, 1);
     } catch (error) {
