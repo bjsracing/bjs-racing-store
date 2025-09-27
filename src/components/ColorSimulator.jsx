@@ -1,9 +1,11 @@
-// src/components/ColorSimulator.jsx
+// src/components/ColorSimulator.jsx (Final dengan Palet Warna Unik)
+
 import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabaseBrowserClient.ts";
 import { useAppStore } from "../lib/store";
 import { FiShoppingCart } from "react-icons/fi";
 
+// --- TAMBAHKAN FUNGSI BARU DI SINI ---
 const hexToHsl = (hex) => {
   if (!hex) return [0, 0, 0];
   let r = 0,
@@ -83,11 +85,15 @@ const ColorSimulator = ({ initialProductId }) => {
     fetchInitialData();
   }, []);
 
+  // 2. Atur state awal setelah semua data siap
   useEffect(() => {
-    if (loading) return;
+    if (loading) return; // Jangan lakukan apa-apa jika data belum siap
+
     if (!selectedObjectModel && objects.length > 0) {
       setSelectedObjectModel(objects[0]);
     }
+
+    // Hanya atur produk awal jika belum pernah diatur
     if (!selectedColorProduct) {
       const product =
         allColorProducts.find((p) => p.id === initialProductId) ||
@@ -95,31 +101,25 @@ const ColorSimulator = ({ initialProductId }) => {
       if (product) {
         setSelectedColorProduct(product);
         setSelectedBrand(product.merek);
-        // Otomatis pilih lini produk pertama dari merek tersebut
-        const firstLine = productLines.find(
-          (line) => line.brand_name === product.merek,
-        );
-        if (firstLine) setSelectedLine(firstLine.line_name);
         setSelectedVariant(product.color_variant);
         setSelectedSize(product.ukuran);
       }
     }
-  }, [
-    loading,
-    initialProductId,
-    allColorProducts,
-    objects,
-    productLines,
-    selectedColorProduct,
-  ]);
+  }, [loading, initialProductId, allColorProducts, objects]);
 
+  // 3. LOGIKA UTAMA: Tentukan URL gambar yang akan ditampilkan.
+  //    useEffect ini akan berjalan setiap kali objek atau warna berubah.
   useEffect(() => {
     if (!selectedObjectModel || !selectedColorProduct) return;
+
+    // Cari di dalam data varian yang cocok dengan pilihan saat ini
     const match = simulationVariants.find(
       (v) =>
         v.product_id === selectedColorProduct.id &&
         v.simulation_object_id === selectedObjectModel.id,
     );
+
+    // Jika ada yang cocok, gunakan URL-nya. Jika tidak, gunakan gambar dasar objek.
     setSimulationImageUrl(
       match ? match.colored_image_url : selectedObjectModel.base_image_url,
     );
@@ -129,7 +129,6 @@ const ColorSimulator = ({ initialProductId }) => {
     () => [...new Set(allColorProducts.map((p) => p.merek).filter(Boolean))],
     [allColorProducts],
   );
-
   const productLinesByBrand = useMemo(() => {
     if (!selectedBrand) return [];
     return productLines.filter((line) => line.brand_name === selectedBrand);
@@ -151,6 +150,7 @@ const ColorSimulator = ({ initialProductId }) => {
     ];
   }, [allColorProducts, selectedBrand, selectedLine]);
 
+  // --- PERBAIKAN LOGIKA PALET WARNA DI SINI ---
   const colorPalette = useMemo(() => {
     if (!selectedBrand || !selectedLine || !selectedVariant) return [];
     const filteredProducts = allColorProducts.filter(
@@ -161,19 +161,29 @@ const ColorSimulator = ({ initialProductId }) => {
         p.color_swatch_url &&
         p.status === "Aktif",
     );
+
     const uniqueColors = new Map();
     filteredProducts.forEach((p) => {
-      if (!uniqueColors.has(p.nama)) {
+      const existing = uniqueColors.get(p.nama);
+      const isInVariants = simulationVariants.some(
+        (sv) => sv.product_id === p.id,
+      );
+      if (!existing || isInVariants) {
         uniqueColors.set(p.nama, p);
       }
     });
-    return Array.from(uniqueColors.values()).sort((a, b) => {
+
+    // --- PERBAIKAN PENGURUTAN DI SINI ---
+    const sortedColors = Array.from(uniqueColors.values()).sort((a, b) => {
       const [h1, s1, l1] = hexToHsl(a.color_hex);
       const [h2, s2, l2] = hexToHsl(b.color_hex);
+      // Urutkan berdasarkan Hue, lalu Lightness, lalu Saturation
       if (h1 !== h2) return h1 - h2;
       if (l1 !== l2) return l1 - l2;
       return s1 - s2;
     });
+
+    return sortedColors;
   }, [
     allColorProducts,
     selectedBrand,
@@ -189,23 +199,34 @@ const ColorSimulator = ({ initialProductId }) => {
 
   const availableSizes = useMemo(() => {
     if (!selectedColorProduct) return [];
-    return allColorProducts
-      .filter(
-        (p) =>
-          p.nama === selectedColorProduct.nama &&
-          p.merek === selectedColorProduct.merek &&
-          p.lini_produk === selectedColorProduct.lini_produk &&
-          p.stok > 0 &&
-          p.status === "Aktif",
-      )
-      .map((p) => ({ size: p.ukuran, stock: p.stok }))
-      .filter(
-        (value, index, self) =>
-          self.findIndex((t) => t.size === value.size) === index,
-      );
+
+    // 1. Cari semua varian produk berdasarkan NAMA, MEREK, dan LINI PRODUK yang sama
+    const productVariants = allColorProducts.filter(
+      (p) =>
+        p.nama === selectedColorProduct.nama &&
+        p.merek === selectedColorProduct.merek &&
+        p.lini_produk === selectedColorProduct.lini_produk,
+    );
+
+    // 2. Dari situ, ambil hanya yang statusnya 'Aktif' dan stoknya > 0
+    const inStockVariants = productVariants.filter(
+      (p) => p.stok > 0 && p.status === "Aktif",
+    );
+
+    // 3. Buat daftar ukuran unik beserta stoknya
+    const uniqueSizes = new Map();
+    inStockVariants.forEach((p) => {
+      if (!uniqueSizes.has(p.ukuran)) {
+        uniqueSizes.set(p.ukuran, { size: p.ukuran, stock: p.stok });
+      }
+    });
+
+    return Array.from(uniqueSizes.values());
   }, [allColorProducts, selectedColorProduct]);
 
+  // Lalu, ganti seluruh fungsi handleAddToCart yang lama dengan fungsi lengkap di bawah ini:
   const handleAddToCart = async () => {
+    // Validasi dasar: pastikan warna dan ukuran sudah dipilih
     if (!selectedColorProduct || !selectedSize) {
       addToast({
         type: "info",
@@ -214,27 +235,29 @@ const ColorSimulator = ({ initialProductId }) => {
       return;
     }
 
-    // --- PERBAIKAN DI SINI: Tambahkan pengecekan status 'Aktif' ---
+    // Cari produk yang tepat untuk ditambahkan berdasarkan pilihan
     const productToAdd = allColorProducts.find(
       (p) =>
         p.nama === selectedColorProduct.nama &&
         p.merek === selectedColorProduct.merek &&
         p.lini_produk === selectedColorProduct.lini_produk &&
         p.ukuran === selectedSize &&
-        p.status === "Aktif", // Pastikan hanya memilih produk yang aktif
+        p.status === "Aktif",
     );
 
     if (!productToAdd) {
       addToast({
         type: "error",
-        message: "Produk aktif dengan ukuran yang dipilih tidak ditemukan.",
+        message: "Produk dengan ukuran yang dipilih tidak ditemukan.",
       });
       return;
     }
 
     try {
+      // Panggil fungsi addToCart dari store yang sudah memiliki validasi internal
       await addToCart(productToAdd, 1);
     } catch (error) {
+      // Tangkap dan tangani error spesifik yang dikirim oleh store
       if (error.message === "NOT_AUTHENTICATED") {
         addToast({
           type: "info",
