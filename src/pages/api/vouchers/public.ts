@@ -4,17 +4,19 @@ import { supabaseAdmin } from "@/lib/supabaseServer.ts";
 
 export const GET: APIRoute = async () => {
   try {
+    // Sekarang kita hanya perlu mengambil data dari VIEW yang sudah cerdas
     const { data, error } = await supabaseAdmin
-      .from("vouchers")
-      .select("*")
-      .eq("is_active", true)
-      .eq("is_public", true)
-      .gt("valid_until", new Date().toISOString()) // Cek belum kedaluwarsa
-      .or("usage_limit.is.null,usage_count.lt.usage_limit"); // Cek kuota masih ada
+      .from("available_vouchers_view")
+      .select("*");
 
     if (error) throw error;
-    return new Response(JSON.stringify(data), { status: 200 });
+
+    return new Response(JSON.stringify(data || []), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
+    console.error("API /api/vouchers/public Error:", error);
     return new Response(JSON.stringify({ message: (error as Error).message }), {
       status: 500,
     });
