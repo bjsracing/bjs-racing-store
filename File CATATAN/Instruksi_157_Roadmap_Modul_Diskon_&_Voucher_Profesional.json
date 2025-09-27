@@ -1,0 +1,54 @@
+Tentu. Ide Anda untuk membuat **halaman khusus voucher** sangat bagus dan merupakan praktik standar di e-commerce profesional. Ini tidak hanya meningkatkan transparansi tetapi juga mendorong pengguna untuk berbelanja agar bisa menggunakan promo yang ada.
+
+Mari kita diskusikan dan sempurnakan roadmap untuk Modul Diskon & Voucher ini agar menjadi fitur yang benar-benar kuat untuk toko online Anda.
+
+---
+### ## Instruksi #157: Roadmap Final - Modul Diskon & Voucher Profesional
+
+Berdasarkan ide Anda dan beberapa praktik terbaik industri, berikut adalah rencana lengkapnya.
+
+#### Fitur Profesional Tambahan yang Direkomendasikan
+Selain diskon produk dan ongkir, kita bisa membuat sistem ini jauh lebih canggih dengan:
+
+1.  **Dompet Voucher Pelanggan**: Ini adalah inti dari fitur "klaim" Anda. Setiap pelanggan akan memiliki "dompet" virtual di akun mereka. Saat mereka mengklik "Klaim" di halaman voucher, voucher tersebut akan masuk ke dompet mereka, siap digunakan saat checkout.
+2.  **Voucher Bertarget**: Anda bisa membuat voucher khusus untuk:
+    * **Pelanggan Baru**: Diskon khusus untuk pembelian pertama.
+    * **Pelanggan Setia**: Berdasarkan jumlah total belanja atau jumlah transaksi.
+    * **Produk/Kategori Tertentu**: Diskon yang hanya berlaku untuk produk dari merek tertentu atau kategori tertentu (misal: diskon 10% khusus untuk semua produk Oli).
+3.  **Diskon Otomatis**: Beberapa promo tidak memerlukan kode, misalnya "Gratis Ongkir Otomatis untuk pembelian di atas Rp 200.000". Sistem bisa secara cerdas menerapkannya di checkout jika syarat terpenuhi.
+
+---
+### ## Roadmap Pembangunan yang Telah Disempurnakan
+
+Berikut adalah roadmap yang telah diperbarui dengan fitur-fitur profesional di atas.
+
+#### Fase 1: Desain Ulang Database (Fondasi Utama)
+Kita akan membuat **dua tabel baru** yang saling berhubungan.
+
+1.  **Tabel `vouchers`**: Tabel utama untuk menyimpan semua jenis promo.
+    * **Kolom Penting**: `id`, `code` (misal: "HEMAT10"), `description`, `type` (misal: 'percentage', 'fixed_amount', 'free_shipping'), `discount_value`, `max_discount` (untuk persentase), `min_purchase` (syarat belanja minimum), `start_date`, `end_date`, `usage_limit` (total penggunaan), `is_public` (apakah tampil di halaman voucher publik).
+2.  **Tabel `customer_vouchers`**: Ini akan menjadi "dompet voucher" untuk setiap pelanggan.
+    * **Kolom Penting**: `id`, `customer_id`, `voucher_id`, `is_used` (apakah sudah dipakai).
+
+---
+#### Fase 2: Pembangunan Backend (API)
+Kita akan membuat beberapa endpoint API untuk menangani semua logika.
+
+1.  **API `GET /api/vouchers/public`**: Untuk mengambil daftar semua voucher yang bisa diklaim (`is_public = true`) dan menampilkannya di **halaman voucher publik** Anda.
+2.  **API `POST /api/vouchers/claim`**: Saat pengguna menekan "Klaim", frontend akan memanggil API ini. API ini akan menambahkan entri baru ke tabel `customer_vouchers`, memasukkan voucher ke "dompet" pengguna.
+3.  **API `GET /api/vouchers/my-vouchers`**: Untuk mengambil daftar voucher yang ada di "dompet" pengguna dan menampilkannya di halaman **"Voucher Saya"** di dalam modul akun.
+4.  **API `POST /api/vouchers/apply`**: Ini adalah API validasi di halaman checkout. Saat pengguna memasukkan kode atau memilih voucher dari dompetnya, API ini akan memeriksa semua syarat (minimal belanja, masa berlaku, apakah pengguna memilikinya) dan mengembalikan jumlah potongannya.
+
+---
+#### Fase 3: Pembangunan Frontend
+1.  **Halaman Voucher Publik (`/voucher`)**: Halaman baru yang menampilkan semua promo yang tersedia, lengkap dengan tombol "Klaim".
+2.  **Tab "Voucher Saya" di Halaman Akun**: Tab baru di samping "Buku Alamat", "Profil Saya", dll., yang memanggil API `/api/vouchers/my-vouchers`.
+3.  **Integrasi di `CheckoutView.tsx`**:
+    * Menambahkan kolom input "Masukkan Kode Voucher".
+    * (Profesional) Menambahkan tombol "Gunakan Voucher" yang akan memunculkan *modal/pop-up* berisi daftar voucher yang dimiliki pengguna dan valid untuk keranjang belanja saat itu.
+    * Menampilkan baris "Diskon" di ringkasan pesanan.
+
+---
+Ini adalah rencana yang sangat matang dan akan membuat modul diskon Anda setara dengan platform e-commerce besar.
+
+Jika Anda setuju dengan roadmap ini, kita bisa mulai dengan **Fase 1: Menjalankan skrip SQL untuk membuat tabel `vouchers` dan `customer_vouchers`**. Apakah Anda siap?

@@ -7,38 +7,44 @@ function CartInitializer() {
   const [isInitialized, setIsInitialized] = useState(false);
   const fetchCart = useAppStore((state) => state.fetchCart);
   const clearLocalCart = useAppStore((state) => state.clearLocalCart);
+  // Ambil fungsi 'set' dari Zustand untuk memperbarui state secara manual
+  const setSession = useAppStore((state) => state.setSession);
 
   useEffect(() => {
-    // Pastikan ini hanya berjalan sekali
     if (isInitialized) return;
     setIsInitialized(true);
 
-    // Langsung coba fetch keranjang saat komponen pertama kali dimuat
-    fetchCart();
+    // Saat pertama kali dimuat, ambil sesi dan keranjang
+    const initialize = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      setSession(session);
+      if (session) {
+        fetchCart();
+      }
+    };
+    initialize();
 
-    // Pasang listener untuk memantau perubahan status login/logout
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        // Setiap kali sesi berubah, perbarui state di Zustand
+        setSession(session);
+
         if (event === "SIGNED_IN") {
-          console.log("Pengguna terdeteksi login, mengambil data keranjang...");
           fetchCart();
         }
         if (event === "SIGNED_OUT") {
-          console.log(
-            "Pengguna terdeteksi logout, membersihkan keranjang lokal...",
-          );
           clearLocalCart();
         }
       },
     );
 
-    // Cleanup: Hapus listener saat komponen tidak lagi digunakan
     return () => {
       authListener?.subscription.unsubscribe();
     };
-  }, [isInitialized, fetchCart, clearLocalCart]);
+  }, [isInitialized, fetchCart, clearLocalCart, setSession]);
 
-  // Komponen ini tidak menampilkan UI apapun
   return null;
 }
 

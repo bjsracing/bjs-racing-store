@@ -1,7 +1,7 @@
 // File: src/components/CheckoutView.tsx
 import React, { useState, useEffect, useMemo } from "react";
 import { useAppStore } from "../lib/store.ts";
-import type { CartItem } from "../lib/store.ts";
+import type { CartItem, Address } from "../lib/store.ts";
 
 declare global {
   interface Window {
@@ -9,7 +9,6 @@ declare global {
   }
 }
 
-// PERBAIKAN 1: Tipe data 'ShippingService' sekarang digunakan untuk semua jenis kurir
 interface ShippingService {
   name: string;
   code: string;
@@ -17,10 +16,20 @@ interface ShippingService {
   description: string;
   cost: number;
   etd: string;
-  available?: boolean; // Tambahkan properti opsional 'available'
+  available?: boolean;
 }
 
-// Daftar kurir dari RajaOngkir (sekarang menjadi 'rajaOngkirCouriers')
+// PERBAIKAN 1: Tipe data baru untuk Voucher
+interface Voucher {
+  id: number;
+  code: string;
+  description: string;
+  type: "fixed_amount" | "percentage" | "free_shipping";
+  discount_value: number;
+  max_discount?: number;
+  min_purchase: number;
+}
+
 const rajaOngkirCouriers = [
   { code: "jne", name: "JNE" },
   { code: "sicepat", name: "SiCepat" },
@@ -37,8 +46,14 @@ const rajaOngkirCouriers = [
 ];
 
 export default function CheckoutView() {
-  const { items, addresses, fetchAddresses, calculateTotalWeight, clearCart } =
-    useAppStore();
+  const {
+    items,
+    addresses,
+    fetchAddresses,
+    calculateTotalWeight,
+    clearCart,
+    addToast,
+  } = useAppStore();
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
     null,
   );
@@ -57,9 +72,18 @@ export default function CheckoutView() {
   const [internalCourierOption, setInternalCourierOption] =
     useState<ShippingService | null>(null);
 
+  const [voucherCode, setVoucherCode] = useState("");
+  const [appliedVoucher, setAppliedVoucher] = useState<{
+    code: string;
+    discount_amount: number;
+  } | null>(null);
+  const [voucherError, setVoucherError] = useState("");
+  const [isApplyingVoucher, setIsApplyingVoucher] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [myVouchers, setMyVouchers] = useState<Voucher[]>([]);
+
   const SERVICE_FEE = 2000;
 
-  // PERBAIKAN 2: Gunakan variabel 'rajaOngkirCouriers' yang benar dan gabungkan dengan opsi internal
   const dynamicCourierOptions = useMemo(() => {
     const options = [...rajaOngkirCouriers];
     if (internalCourierOption?.available) {
@@ -83,10 +107,16 @@ export default function CheckoutView() {
       ),
     [items],
   );
-  const finalTotal = useMemo(
-    () => subtotal + (selectedShipping?.cost || 0) + SERVICE_FEE,
-    [subtotal, selectedShipping],
-  );
+
+  const finalTotal = useMemo(() => {
+    const totalBeforeDiscount =
+      subtotal + (selectedShipping?.cost || 0) + SERVICE_FEE;
+    return Math.max(
+      0,
+      totalBeforeDiscount - (appliedVoucher?.discount_amount || 0),
+    );
+  }, [subtotal, selectedShipping, SERVICE_FEE, appliedVoucher]);
+
   const formatRupiah = (number: number) =>
     new Intl.NumberFormat("id-ID", {
       style: "currency",
@@ -96,13 +126,28 @@ export default function CheckoutView() {
 
   useEffect(() => {
     fetchAddresses();
+    const fetchMyVouchers = async () => {
+      try {
+        const response = await fetch("/api/vouchers/my-vouchers");
+        const data = await response.json();
+        if (response.ok) {
+          const validVouchers = data
+            .map((item: any) => item.vouchers)
+            .filter(Boolean);
+          setMyVouchers(validVouchers);
+        }
+      } catch (err) {
+        console.error("Gagal memuat voucher saya:", err);
+      }
+    };
+    fetchMyVouchers();
   }, [fetchAddresses]);
 
   useEffect(() => {
     if (addresses.length > 0 && !selectedAddressId) {
       const primaryAddress =
-        addresses.find((addr) => addr.is_primary) || addresses[0];
-      setSelectedAddressId(primaryAddress.id);
+        addresses.find((addr: Address) => addr.is_primary) || addresses[0];
+      if (primaryAddress) setSelectedAddressId(primaryAddress.id);
     }
   }, [addresses, selectedAddressId]);
 
@@ -113,7 +158,7 @@ export default function CheckoutView() {
         return;
       }
       const selectedAddress = addresses.find(
-        (addr) => addr.id === selectedAddressId,
+        (addr: Address) => addr.id === selectedAddressId,
       );
       if (!selectedAddress || !selectedAddress.destination) return;
       try {
@@ -135,9 +180,7 @@ export default function CheckoutView() {
       setShippingServices([]);
       setSelectedShipping(null);
       setError("");
-
       if (!selectedAddressId || !selectedCourier || totalWeight === 0) return;
-
       if (selectedCourier === "internal" && internalCourierOption?.available) {
         setShippingServices([internalCourierOption]);
         setSelectedShipping({
@@ -149,10 +192,9 @@ export default function CheckoutView() {
       } else if (selectedCourier === "internal") {
         return;
       }
-
       setIsLoadingCosts(true);
       const selectedAddress = addresses.find(
-        (addr) => addr.id === selectedAddressId,
+        (addr: Address) => addr.id === selectedAddressId,
       );
       if (!selectedAddress || !selectedAddress.destination) {
         setIsLoadingCosts(false);
@@ -163,7 +205,7 @@ export default function CheckoutView() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            origin: "65100",
+            origin: "2683",
             destination: selectedAddress.destination,
             weight: totalWeight,
             courier: selectedCourier,
@@ -189,22 +231,62 @@ export default function CheckoutView() {
     internalCourierOption,
   ]);
 
+  const handleApplyVoucher = async (codeToApply: string) => {
+    if (!codeToApply) return;
+    setIsApplyingVoucher(true);
+    setVoucherError("");
+    setAppliedVoucher(null);
+    try {
+      const response = await fetch("/api/vouchers/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          voucher_code: codeToApply,
+          cart_subtotal: subtotal,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success)
+        throw new Error(result.message || "Voucher tidak valid.");
+      setAppliedVoucher({
+        code: result.voucher_details.code,
+        discount_amount: result.discount_amount,
+      });
+      addToast({
+        type: "success",
+        message: `Voucher ${result.voucher_details.code} berhasil diterapkan!`,
+      });
+    } catch (err) {
+      setVoucherError((err as Error).message);
+    } finally {
+      setIsApplyingVoucher(false);
+    }
+  };
+
+  const handleSelectFromModal = (voucher: Voucher) => {
+    setVoucherCode(voucher.code);
+    setIsModalOpen(false);
+    handleApplyVoucher(voucher.code);
+  };
+
   const handlePayment = async () => {
     if (!selectedAddressId || !selectedShipping || !selectedCourier) {
-      alert("Silakan lengkapi alamat dan metode pengiriman.");
+      addToast({
+        type: "info",
+        message: "Silakan lengkapi alamat dan metode pengiriman.",
+      });
       return;
     }
-
     setIsProcessingPayment(true);
-
     const courierDetails = dynamicCourierOptions.find(
       (c: { code: string; name: string }) => c.code === selectedCourier,
     );
-
     const payload = {
       address_id: selectedAddressId,
       shipping_cost: selectedShipping.cost,
       service_fee: SERVICE_FEE,
+      voucher_code: appliedVoucher?.code || null, // Kirim kode voucher yang dipakai
+      discount_amount: appliedVoucher?.discount_amount || 0, // Kirim jumlah diskon
       courier: {
         code: selectedCourier,
         name: courierDetails?.name,
@@ -220,33 +302,24 @@ export default function CheckoutView() {
         image_url: item.image_url,
       })),
     };
-
     try {
       const response = await fetch("/api/payment/create-transaction", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
       const result = await response.json();
-
-      // --- PERBAIKAN UTAMA DI SINI ---
       if (!response.ok) {
-        // Cek khusus jika error karena stok tidak cukup (status 409)
         if (response.status === 409) {
-          alert(result.message); // Tampilkan pesan error dari server
-          useAppStore.getState().fetchCart(); // Muat ulang data keranjang dari DB
-          window.location.href = "/cart"; // Arahkan kembali ke keranjang
+          addToast({ type: "error", message: result.message });
+          useAppStore.getState().fetchCart();
+          window.location.href = "/cart";
         } else {
-          // Untuk error lainnya
           throw new Error(result.message || "Gagal membuat transaksi.");
         }
-        return; // Hentikan eksekusi
+        return;
       }
-      // --- AKHIR PERBAIKAN ---
-
       const { snap_token, order_id } = result;
-
       window.snap.pay(snap_token, {
         onSuccess: function (_result: any) {
           clearCart();
@@ -257,7 +330,10 @@ export default function CheckoutView() {
           window.location.href = `/akun/pesanan/${order_id}?status=pending`;
         },
         onError: function (_result: any) {
-          alert("Pembayaran Gagal. Silakan coba lagi.");
+          addToast({
+            type: "error",
+            message: "Pembayaran Gagal. Silakan coba lagi.",
+          });
           setIsProcessingPayment(false);
         },
         onClose: function () {
@@ -265,15 +341,16 @@ export default function CheckoutView() {
         },
       });
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Terjadi kesalahan.");
+      addToast({ type: "error", message: (err as Error).message });
       setIsProcessingPayment(false);
     }
   };
 
-  // --- Tampilan JSX (Hanya tombol pembayaran yang diubah) ---
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* Kolom Kiri: Alamat, Pengiriman, dan Voucher */}
       <div className="lg:col-span-2 space-y-6">
+        {/* --- Blok Alamat Pengiriman (Tidak Berubah) --- */}
         <div className="bg-white p-6 rounded-xl shadow-md">
           <h2 className="text-xl font-bold mb-4">Alamat Pengiriman</h2>
           <div className="space-y-3">
@@ -305,21 +382,21 @@ export default function CheckoutView() {
               <p className="text-sm text-gray-500">Memuat alamat...</p>
             )}
             <a
-              href="/akun"
+              href="/akun/alamat"
               className="text-sm font-medium text-blue-600 hover:underline"
             >
               + Kelola Alamat
             </a>
           </div>
         </div>
+
+        {/* --- Blok Metode Pengiriman (Tidak Berubah) --- */}
         <div className="bg-white p-6 rounded-xl shadow-md">
           <h2 className="text-xl font-bold mb-4">Metode Pengiriman</h2>
-
-          {/* --- PERBAIKAN 5: Gunakan daftar kurir dinamis --- */}
           <select
             value={selectedCourier}
             onChange={(e) => setSelectedCourier(e.target.value)}
-            className="w-full p-3 border rounded-md bg-gray-50 ..."
+            className="w-full p-3 border rounded-md bg-gray-50 focus:border-blue-500 focus:ring-blue-500"
             disabled={!selectedAddressId}
           >
             <option value="">-- Pilih Kurir --</option>
@@ -329,7 +406,6 @@ export default function CheckoutView() {
               </option>
             ))}
           </select>
-
           {isLoadingCosts && (
             <p className="text-sm text-gray-500 mt-4 animate-pulse">
               Menghitung ongkos kirim...
@@ -351,7 +427,7 @@ export default function CheckoutView() {
                       setSelectedShipping({
                         service: service.service,
                         cost: service.cost,
-                        etd: service.etd, // 5. PERBAIKAN: Sertakan ETD saat memilih layanan
+                        etd: service.etd,
                       })
                     }
                     className="flex-shrink-0"
@@ -372,7 +448,48 @@ export default function CheckoutView() {
             </div>
           )}
         </div>
+
+        {/* --- BLOK VOUCHER BARU --- */}
+        <div className="bg-white p-6 rounded-xl shadow-md">
+          <h2 className="text-xl font-bold mb-4">Voucher & Diskon</h2>
+          <div className="flex gap-2 items-start">
+            <div className="flex-grow">
+              <input
+                type="text"
+                placeholder="Masukkan Kode Voucher"
+                value={voucherCode}
+                onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                className="w-full p-3 border rounded-md bg-gray-50 text-sm"
+              />
+              {voucherError && (
+                <p className="text-xs text-red-500 mt-1">{voucherError}</p>
+              )}
+              {appliedVoucher && (
+                <p className="text-xs text-green-600 mt-1">
+                  Kode {appliedVoucher.code} diterapkan.
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => handleApplyVoucher(voucherCode)}
+              disabled={isApplyingVoucher || !voucherCode}
+              className="px-4 py-3 bg-orange-500 text-white font-semibold rounded-md text-sm disabled:bg-gray-400"
+            >
+              {isApplyingVoucher ? "..." : "Terapkan"}
+            </button>
+          </div>
+          {myVouchers.length > 0 && (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="text-sm font-medium text-blue-600 hover:underline mt-2"
+            >
+              atau Pilih Voucher Saya
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Kolom Kanan: Ringkasan Pesanan */}
       <div className="lg:col-span-1">
         <div className="bg-white p-6 rounded-xl shadow-md sticky top-8">
           <h2 className="text-xl font-bold mb-4">Ringkasan Pesanan</h2>
@@ -403,17 +520,24 @@ export default function CheckoutView() {
                 {selectedShipping ? formatRupiah(selectedShipping.cost) : "-"}
               </p>
             </div>
-            {/* --- PERBAIKAN 4: Tampilkan baris Biaya Layanan --- */}
             <div className="flex justify-between">
               <p className="text-gray-600">Biaya Layanan</p>
               <p className="font-medium">{formatRupiah(SERVICE_FEE)}</p>
             </div>
+            {/* --- BARIS DISKON BARU --- */}
+            {appliedVoucher && (
+              <div className="flex justify-between text-green-600">
+                <p>Diskon ({appliedVoucher.code})</p>
+                <p className="font-medium">
+                  - {formatRupiah(appliedVoucher.discount_amount)}
+                </p>
+              </div>
+            )}
           </div>
           <div className="flex justify-between text-lg font-bold pt-4 mt-4 border-t">
             <p>Total</p>
             <p>{formatRupiah(finalTotal)}</p>
           </div>
-          {/* 6. PERBAIKAN: Hubungkan tombol ke fungsi handlePayment dan state loading */}
           <button
             onClick={handlePayment}
             disabled={
@@ -425,6 +549,42 @@ export default function CheckoutView() {
           </button>
         </div>
       </div>
+
+      {/* --- MODAL VOUCHER BARU --- */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-md">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h3 className="font-bold text-lg">Pilih Voucher Saya</h3>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-2xl"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="p-4 space-y-3 max-h-80 overflow-y-auto">
+              {myVouchers
+                .filter((v) => subtotal >= v.min_purchase)
+                .map((voucher) => (
+                  <div
+                    key={voucher.id}
+                    onClick={() => handleSelectFromModal(voucher)}
+                    className="border rounded-lg p-3 cursor-pointer hover:bg-gray-50"
+                  >
+                    <p className="font-bold text-orange-500">{voucher.code}</p>
+                    <p className="text-sm text-slate-600">
+                      {voucher.description}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Min. belanja {formatRupiah(voucher.min_purchase)}
+                    </p>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

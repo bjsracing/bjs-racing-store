@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { supabase } from "../lib/supabaseBrowserClient.ts";
+import type { Session } from "@supabase/supabase-js";
 
 // ==================================================================
 // == DEFINISI TIPE DATA (TYPESCRIPT)                              ==
@@ -59,6 +60,7 @@ export interface Toast {
 }
 
 interface StoreState {
+  session: Session | null;
   items: CartItem[];
   addresses: Address[];
   isMobileMenuOpen: boolean;
@@ -94,6 +96,7 @@ interface StoreState {
 
 export const useAppStore = create<StoreState>()(
   devtools((set, get) => ({
+    session: null,
     items: [],
     addresses: [],
     isMobileMenuOpen: false,
