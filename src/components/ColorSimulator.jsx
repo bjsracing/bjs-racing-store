@@ -159,6 +159,7 @@ const ColorSimulator = ({ initialProductId }) => {
         p.lini_produk === selectedLine &&
         p.color_variant === selectedVariant &&
         p.color_swatch_url,
+      p.status === "Aktif",
     );
     const uniqueColors = new Map();
     filteredProducts.forEach((p) => {
