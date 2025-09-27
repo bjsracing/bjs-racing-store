@@ -32,9 +32,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     try {
         const body = await request.json();
-        // --- PERBAIKAN 1: Terima 'service_fee' dari frontend ---
-        const { address_id, courier, cart_items, shipping_cost, service_fee } =
-            body;
+        // --- PERBAIKAN 1: Terima data voucher dari frontend ---
+        const {
+            address_id,
+            courier,
+            cart_items,
+            shipping_cost,
+            service_fee,
+            voucher_code,
+            discount_amount,
+        } = body;
         const typedCartItems = cart_items as FrontendCartItem[];
 
         if (
@@ -49,48 +56,34 @@ export const POST: APIRoute = async ({ request, locals }) => {
             );
         }
 
-        // ===================================================================
-        // == PERBAIKAN: BLOK VALIDASI STOK KRITIS (RACE CONDITION)         ==
-        // ===================================================================
-        // 1. Ambil semua ID produk dari keranjang
+        // Blok validasi stok (tidak berubah)
         const productIds = typedCartItems.map((item) => item.product_id);
-
-        // 2. Ambil stok terkini dari database untuk semua produk tersebut
         const { data: productsInStock, error: stockCheckError } =
             await supabaseAdmin
                 .from("products")
                 .select("id, nama, stok")
                 .in("id", productIds);
-
         if (stockCheckError)
             throw new Error("Gagal memverifikasi stok produk.");
-
-        // 3. Loop dan validasi setiap item di keranjang
         for (const item of typedCartItems) {
             const product = productsInStock.find(
                 (p) => p.id === item.product_id,
             );
-
             if (!product || item.quantity > product.stok) {
-                // Jika produk tidak ditemukan atau stok tidak cukup, hentikan proses
                 return new Response(
                     JSON.stringify({
                         message: `Stok untuk produk "${item.name}" tidak mencukupi. Sisa stok: ${product?.stok || 0}. Silakan perbarui keranjang Anda.`,
                     }),
-                    { status: 409 }, // 409 Conflict adalah status yang tepat untuk stok tidak cukup
+                    { status: 409 },
                 );
             }
         }
-        // ===================================================================
-        // == AKHIR DARI BLOK VALIDASI                                      ==
-        // ===================================================================
 
         const { data: customer, error: customerError } = await supabaseAdmin
             .from("customers")
             .select("id, nama_pelanggan, telepon")
             .eq("auth_user_id", session.user.id)
             .single();
-
         if (customerError) throw new Error("Profil pelanggan tidak ditemukan.");
 
         const { data: address, error: addressError } = await supabaseAdmin
@@ -99,10 +92,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
             .eq("id", address_id)
             .eq("customer_id", customer.id)
             .single();
-
         if (addressError) throw new Error("Alamat pengiriman tidak valid.");
 
-        // --- PERBAIKAN 2: Perbarui kalkulasi total untuk menyertakan semua biaya ---
+        // --- PERBAIKAN 2: Perbarui kalkulasi total untuk menyertakan semua biaya & diskon ---
         const subtotalProducts = typedCartItems.reduce(
             (acc: number, item: FrontendCartItem) =>
                 acc + item.price * item.quantity,
@@ -110,8 +102,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
         );
         const finalShippingCost = Number(shipping_cost) || 0;
         const finalServiceFee = Number(service_fee) || 0;
+        const finalDiscountAmount = Number(discount_amount) || 0;
+
         const totalAmount =
-            subtotalProducts + finalShippingCost + finalServiceFee;
+            subtotalProducts +
+            finalShippingCost +
+            finalServiceFee -
+            finalDiscountAmount;
 
         const orderNumber = generateOrderNumber();
         const { data: newOrder, error: orderError } = await supabaseAdmin
@@ -122,7 +119,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
                 total_amount: totalAmount,
                 shipping_cost: finalShippingCost,
                 subtotal_products: subtotalProducts,
-                service_fee: finalServiceFee, // <-- Simpan biaya layanan ke DB
+                service_fee: finalServiceFee,
+                voucher_code: voucher_code, // <-- Simpan kode voucher
+                discount_amount: finalDiscountAmount, // <-- Simpan jumlah diskon
                 shipping_address: address,
                 courier_details: courier,
                 status: "awaiting_payment",
@@ -154,14 +153,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
             "base64",
         );
 
-        // --- PERBAIKAN 3: Siapkan item_details yang lengkap untuk Midtrans ---
         const item_details = typedCartItems.map((item: FrontendCartItem) => ({
             id: item.product_id,
             price: item.price,
             quantity: item.quantity,
             name: item.name.substring(0, 50),
         }));
-
         if (finalShippingCost > 0) {
             item_details.push({
                 id: "SHIPPING",
@@ -170,7 +167,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
                 name: `Ongkos Kirim (${courier.name} - ${courier.service})`,
             });
         }
-
         if (finalServiceFee > 0) {
             item_details.push({
                 id: "SERVICE_FEE",
@@ -180,7 +176,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
             });
         }
 
-        // --- PERBAIKAN 4: Terapkan logika pembatasan metode pembayaran ---
+        // PERBAIKAN 3: Jika ada diskon, tambahkan sebagai item dengan nilai negatif ke Midtrans
+        if (finalDiscountAmount > 0) {
+            item_details.push({
+                id: `DISCOUNT_${voucher_code}`,
+                price: -finalDiscountAmount,
+                quantity: 1,
+                name: `Diskon (${voucher_code})`,
+            });
+        }
+
         let enabled_payments = [
             "bca_va",
             "bni_va",
@@ -188,8 +193,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
             "permata_va",
             "cimb_va",
             "other_va",
-        ]; // Default: Hanya Transfer Bank
-
+        ];
         if (totalAmount <= 572000) {
             enabled_payments.push("other_qris");
         }
@@ -200,7 +204,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
                 gross_amount: totalAmount,
             },
             item_details: item_details,
-            enabled_payments: enabled_payments, // <-- Sertakan daftar pembayaran yang diizinkan
+            enabled_payments: enabled_payments,
             customer_details: {
                 first_name: customer.nama_pelanggan,
                 phone: customer.telepon,
@@ -236,12 +240,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
             );
         }
 
-        await supabaseAdmin.from("payments").insert({
-            order_id: newOrder.id,
-            midtrans_transaction_id: midtransResult.token,
-            amount: totalAmount,
-            status: "pending",
-        });
+        await supabaseAdmin
+            .from("payments")
+            .insert({
+                order_id: newOrder.id,
+                midtrans_transaction_id: midtransResult.token,
+                amount: totalAmount,
+                status: "pending",
+            });
 
         return new Response(
             JSON.stringify({
