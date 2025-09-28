@@ -1,13 +1,10 @@
 // File: astro.config.mjs
 import { defineConfig } from 'astro/config';
-
-// Integrations
 import vercel from '@astrojs/vercel/serverless';
 import react from '@astrojs/react';
 import tailwind from '@astrojs/tailwind';
-import { VitePWA } from 'vite-plugin-pwa'; // <-- Impor plugin PWA
+import { VitePWA } from 'vite-plugin-pwa';
 
-// https://astro.build/config
 export default defineConfig({
   output: 'server',
   adapter: vercel({
@@ -20,9 +17,10 @@ export default defineConfig({
   integrations: [react(), tailwind()],
   vite: {
     plugins: [
-      // Konfigurasi untuk PWA agar notifikasi update berfungsi
       VitePWA({
-        registerType: 'autoUpdate',
+        // --- PERBAIKAN UTAMA DI SINI ---
+        registerType: 'prompt', // Ubah dari 'autoUpdate' menjadi 'prompt'
+        // -----------------------------
         injectRegister: false,
         workbox: {
           globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
@@ -43,7 +41,7 @@ export default defineConfig({
       }),
     ],
     server: {
-      allowedHosts: ['.replit.dev', '.app.github.dev'] // Tambahkan host codespaces jika perlu
+      allowedHosts: ['.replit.dev', '.app.github.dev']
     }
   }
 });
