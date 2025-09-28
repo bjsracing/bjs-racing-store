@@ -5,13 +5,12 @@ import { defineConfig } from 'astro/config';
 import vercel from '@astrojs/vercel/serverless';
 import react from '@astrojs/react';
 import tailwind from '@astrojs/tailwind';
-import { VitePWA } from 'vite-plugin-pwa';
+import { VitePWA } from 'vite-plugin-pwa'; // <-- Impor plugin PWA
 
 // https://astro.build/config
 export default defineConfig({
   output: 'server',
   adapter: vercel({
-    // Konfigurasi Image Optimization dari Vercel
     imageService: true,
     imagesConfig: {
       domains: ["ykotzsmncvyfveypeevb.supabase.co"],
@@ -20,8 +19,8 @@ export default defineConfig({
   }),
   integrations: [react(), tailwind()],
   vite: {
-    // Konfigurasi untuk PWA agar notifikasi update berfungsi
     plugins: [
+      // Konfigurasi untuk PWA agar notifikasi update berfungsi
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: false,
@@ -43,9 +42,8 @@ export default defineConfig({
         },
       }),
     ],
-    // Konfigurasi untuk development di Replit/Codespaces
     server: {
-      allowedHosts: ['.replit.dev']
+      allowedHosts: ['.replit.dev', '.app.github.dev'] // Tambahkan host codespaces jika perlu
     }
   }
 });

@@ -1,0 +1,73 @@
+Tentu, mari kita rangkum status proyek kita dan mulai merencanakan pembangunan modul diskon yang sangat menarik ini.
+
+---
+### ## Rangkuman Status Proyek
+
+Kerja keras Anda telah membuahkan hasil yang luar biasa. Berikut adalah rangkuman dari semua modul dan fitur utama yang telah berhasil kita bangun dan stabilkan untuk **Toko Online** Anda:
+
+#### ✅ Selesai & Berfungsi Penuh:
+1.  **Katalog Produk Profesional**:
+    * Halaman **Produk Pilok** dengan filter dinamis.
+    * Halaman **Onderdil & Aksesoris** dengan filter bertingkat (Merek & Tipe Motor) dan pengecualian kategori.
+    * **Pencarian Cerdas** menggunakan nama, SKU, dan `tags`.
+2.  **Halaman Detail Produk Dinamis**:
+    * **Pengelompokan Varian** (`group_id`) untuk produk seperti onderdil.
+    * Tampilan harga, stok, dan gambar yang **berubah secara dinamis** saat varian dipilih.
+    * **Galeri multi-gambar** untuk produk non-Pilok.
+3.  **Keranjang Belanja Persisten**:
+    * Keranjang belanja yang **tersimpan di database**, sehingga tidak hilang saat pengguna logout atau berganti perangkat.
+    * **Validasi Stok** di level keranjang dan saat checkout untuk mencegah *overselling*.
+4.  **Modul Pembayaran Lengkap (Midtrans)**:
+    * **Alur Checkout** dengan kalkulasi ongkir (RajaOngkir & Kurir Internal) dan biaya layanan.
+    * **Pembatasan Metode Pembayaran** cerdas berdasarkan total transaksi.
+    * **Otomatisasi Penuh via Webhook**: Konfirmasi pembayaran, perubahan status pesanan, pengurangan stok, dan pencatatan ke tabel `transactions` & `stock_logs` berjalan otomatis.
+5.  **Modul Akun Fungsional**:
+    * **Dashboard Akun** yang menampilkan ringkasan pesanan terakhir dan alamat utama.
+    * Manajemen **Buku Alamat** (CRUD) dengan fitur "Jadikan Alamat Utama".
+    * Halaman **Riwayat Pesanan** dan **Detail Pesanan**.
+    * Halaman **Profil Saya** untuk edit nama dan telepon.
+    * Fitur **Ubah Password** yang aman.
+6.  **Peningkatan Profesional (UX & PWA)**:
+    * Sistem **Notifikasi Toast** yang konsisten di seluruh aplikasi.
+    * Fungsionalitas **PWA** dengan notifikasi pembaruan, membuat toko Anda terasa seperti aplikasi native.
+
+---
+### ## Outstanding & Rencana Berikutnya
+
+Anda benar, langkah besar berikutnya yang tersisa sesuai rencana kita adalah:
+* **Membangun Modul Diskon & Voucher**
+
+Ini adalah fitur yang akan menjadi "senjata" marketing utama Anda untuk menarik dan mempertahankan pelanggan.
+
+---
+### ## Instruksi #156: Roadmap - Pembangunan Modul Diskon & Voucher
+
+Mari kita mulai merancang fondasinya. Seperti biasa, kita mulai dari **Database**.
+
+#### Fase 1: Desain Tabel `vouchers`
+Kita perlu sebuah tabel yang fleksibel untuk menyimpan berbagai jenis voucher.
+
+* **Tujuan:** Membuat tabel `vouchers` yang bisa menangani:
+    * Diskon persentase (misal: 10% OFF).
+    * Diskon nominal (misal: Potongan Rp 10.000).
+    * Diskon ongkos kirim (gratis atau potongan).
+    * Syarat dan ketentuan (minimal pembelian, batas penggunaan, masa berlaku).
+
+#### Fase 2: Backend - API Validasi Voucher
+* **Tujuan:** Membuat endpoint baru, misalnya `/api/vouchers/validate`, yang akan menerima kode voucher dari pengguna dan memeriksa validitasnya di database.
+* **Logika:** API ini akan mengecek:
+    1.  Apakah kode voucher ada dan aktif?
+    2.  Apakah tanggalnya masih berlaku?
+    3.  Apakah batas penggunaannya sudah tercapai?
+    4.  Apakah syarat minimal pembelian terpenuhi?
+    5.  Jika semua valid, ia akan mengembalikan detail diskon yang didapat.
+
+#### Fase 3: Frontend - Integrasi di Halaman Checkout
+* **Tujuan:** Menambahkan kolom input untuk kode voucher di halaman checkout dan menampilkan potongannya.
+* **Aksi:** Kita akan memodifikasi `CheckoutView.tsx` untuk:
+    1.  Menampilkan kolom "Masukkan Kode Voucher".
+    2.  Memanggil API validasi saat pengguna menekan "Terapkan".
+    3.  Menampilkan baris "Diskon" di ringkasan pesanan dan mengurangi `Total Akhir`.
+
+---
+Jika Anda setuju dengan roadmap ini, kita bisa langsung mulai dengan **Fase 1**. **Apakah Anda siap untuk saya berikan skrip SQL untuk membuat tabel `vouchers`?**

@@ -1,0 +1,15 @@
+## Instruksi #168: Roadmap - Penyempurnaan Modul Voucher
+1. Voucher Spesifik untuk Kategori Tertentu (Contoh: Gratis Ongkir Khusus Pilok)
+Ya, ini sangat bisa diimplementasikan. Ini akan membuat sistem promo Anda jauh lebih fleksibel.
+
+Rencana Aksi:
+
+Database: Kita perlu menambahkan kolom baru di tabel vouchers untuk menentukan target voucher tersebut.
+
+target_type: (tipe text) Bisa berisi 'all_products', 'category', 'brand', atau 'specific_product'.
+
+target_value: (tipe text atau text[]) Menyimpan nilai targetnya. Contoh: jika target_type adalah 'category', maka target_value bisa berisi {'Pilok'}.
+
+Backend: Kita perlu memperbarui API /api/vouchers/apply agar selain memeriksa syarat lain, ia juga memeriksa apakah item di keranjang pelanggan cocok dengan target voucher ini.
+
+Ini adalah fitur lanjutan yang bisa kita bangun setelah menyelesaikan penyempurnaan tampilan
