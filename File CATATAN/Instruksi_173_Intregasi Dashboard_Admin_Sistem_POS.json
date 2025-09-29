@@ -1,0 +1,39 @@
+Konfirmasi diterima. Keputusan Anda untuk memusatkan semua manajemen di dalam sistem POS yang sudah kuat adalah **langkah yang paling efisien dan profesional**. Ini akan menciptakan satu pusat kendali untuk seluruh bisnis Anda, baik online maupun offline.
+
+Saya telah menerima tautan ke repositori sistem POS Anda (`https://github.com/bjsracing/bjs-racing-pos.git`) dan akan segera mempelajarinya untuk memahami arsitektur, teknologi (Vite + React), dan komponen yang sudah ada.
+
+Berdasarkan analisis awal dan tujuan yang telah kita diskusikan, berikut adalah roadmap yang saya usulkan untuk mengintegrasikan manajemen pesanan toko online ke dalam sistem POS Anda.
+
+---
+### ## Instruksi #173: Roadmap - Integrasi Dashboard Admin di Sistem POS
+
+Tujuan utama kita adalah membuat menu baru di dalam aplikasi POS Anda yang khusus menangani pesanan yang masuk dari toko online.
+
+#### Fase 1: Backend - Membuat "Jembatan Data" di Supabase
+Sebelum kita membangun antarmuka, kita perlu cara yang efisien untuk mengambil data pesanan online. Kita akan membuat sebuah `VIEW` baru di database.
+* **Tujuan:** Membuat "tabel virtual" yang menggabungkan data dari `orders`, `customers`, dan `order_items` menjadi satu, agar mudah diambil oleh frontend POS.
+* **Aksi:** Saya akan memberikan Anda satu skrip SQL untuk membuat `VIEW` bernama `online_orders_view`. View ini akan berisi semua informasi yang dibutuhkan dashboard, seperti nama pelanggan, nomor pesanan, status, dan total.
+
+#### Fase 2: Frontend - Membangun Halaman Daftar Pesanan Online
+Ini adalah inti dari antarmuka baru di dalam sistem POS Anda.
+* **Tujuan:** Membuat halaman baru di dalam aplikasi Vite + React Anda yang menampilkan daftar semua pesanan yang masuk dari toko online.
+* **Aksi:**
+    1.  **Membuat Rute Baru**: Kita akan menambahkan rute baru di sistem navigasi POS Anda (misalnya `/pesanan-online`).
+    2.  **Membuat Komponen Halaman**: Membuat komponen React baru, misalnya `PesananOnline.jsx`, yang akan:
+        * Mengambil data dari `online_orders_view` yang kita buat di Fase 1.
+        * Menampilkan data dalam bentuk tabel yang informatif (No. Pesanan, Pelanggan, Tanggal, Total, Status).
+        * Menyediakan fitur pencarian dan filter (misalnya, filter berdasarkan status: "paid", "shipped", "completed").
+
+#### Fase 3: Frontend - Membangun Halaman Detail Pesanan & Manajemen
+* **Tujuan:** Membuat halaman di mana Anda bisa melihat detail lengkap dari satu pesanan dan melakukan aksi.
+* **Aksi:**
+    1.  **Membuat Rute Dinamis**: Kita akan membuat rute seperti `/pesanan-online/:orderId`.
+    2.  **Membuat Komponen Detail**: Membuat komponen `DetailPesananOnline.jsx` yang akan:
+        * Menampilkan semua detail pesanan: informasi pelanggan, alamat pengiriman, rincian produk yang dibeli, dan rincian biaya.
+        * Menyediakan **form untuk mengubah status pesanan** (misalnya, dari "paid" menjadi "shipped").
+        * Menyediakan **kolom input untuk memasukkan nomor resi pengiriman**.
+
+---
+Ini adalah rencana lengkap untuk mengintegrasikan manajemen pesanan online ke dalam sistem POS Anda. Alurnya logis, dimulai dari persiapan data di database, lalu membangun antarmuka daftar, dan diakhiri dengan membangun halaman detail yang fungsional.
+
+Jika Anda setuju dengan roadmap ini, kita bisa mulai dengan **Fase 1: Membuat `VIEW` di database**. Apakah Anda siap untuk saya berikan skrip SQL-nya?

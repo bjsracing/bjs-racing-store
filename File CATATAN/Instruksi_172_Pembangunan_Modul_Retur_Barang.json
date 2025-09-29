@@ -1,0 +1,57 @@
+Tentu. Ide Anda untuk membangun **Modul Retur Barang** adalah langkah yang sangat baik dan menunjukkan pemikiran jangka panjang untuk kepuasan pelanggan. Ini adalah fitur penting yang dimiliki oleh e-commerce profesional.
+
+Mari kita diskusikan rencananya.
+
+---
+### ## Instruksi #172: Roadmap - Pembangunan Modul Retur Barang
+
+Membangun fitur retur yang baik melibatkan alur kerja yang jelas baik untuk pelanggan maupun untuk Anda sebagai admin.
+
+#### Fase 1: Persiapan Database
+Kita memerlukan tabel baru untuk melacak setiap permintaan retur.
+
+* **Tabel Baru:** `returns`
+* **Tujuan:** Mencatat setiap permintaan retur dari pelanggan.
+* **Struktur Kolom Penting:**
+    * `id`: Primary Key.
+    * `return_number`: Nomor retur yang unik (misal: `RTN-BJS-...).`
+    * `order_id`: Menghubungkan retur ini ke pesanan aslinya.
+    * `customer_id`: ID pelanggan yang mengajukan retur.
+    * `reason`: Alasan retur (misal: "Barang Rusak", "Salah Kirim").
+    * `status`: Status proses retur (misal: "Diajukan", "Disetujui", "Ditolak", "Selesai").
+    * `resolution_type`: Jenis solusi yang diinginkan (misal: "Tukar Barang", "Uang Kembali").
+    * `customer_notes`: Catatan dari pelanggan.
+    * `admin_notes`: Catatan dari Anda.
+    * `created_at`: Tanggal pengajuan.
+
+#### Fase 2: Pembangunan Antarmuka Pelanggan (Frontend)
+Pelanggan memerlukan cara yang mudah untuk mengajukan retur.
+
+* **Lokasi:** Fitur ini idealnya berada di halaman **Detail Pesanan** (`/akun/pesanan/[order_id].astro`).
+* **UI yang Dibutuhkan:**
+    1.  **Tombol "Ajukan Retur"**: Tombol ini hanya muncul pada pesanan yang sudah selesai (`completed`) atau dikirim (`shipped`).
+    2.  **Form Pengajuan Retur**: Saat tombol diklik, akan muncul form di mana pelanggan bisa:
+        * Memilih produk dari pesanan tersebut yang ingin diretur.
+        * Memilih alasan retur dari dropdown.
+        * Menuliskan catatan/deskripsi masalah.
+        * (Opsional) Mengunggah foto bukti kerusakan.
+
+#### Fase 3: Pembangunan Manajemen Retur (di Sistem POS Anda)
+Ini adalah bagian di mana Anda sebagai admin akan mengelola permintaan retur yang masuk.
+
+* **Lokasi:** Sebuah menu baru di dalam **Dashboard Admin POS** Anda, bernama "Manajemen Retur".
+* **UI yang Dibutuhkan:**
+    * Daftar semua permintaan retur yang masuk.
+    * Halaman detail untuk setiap permintaan retur di mana Anda bisa:
+        * Melihat semua informasi yang dikirim oleh pelanggan.
+        * Mengubah status retur (misalnya, dari "Diajukan" menjadi "Disetujui").
+        * Menambahkan catatan untuk pelanggan.
+        * Memproses solusi (misalnya, mencatat pengembalian dana atau pengiriman barang pengganti).
+
+---
+### ## Kesimpulan & Prioritas
+Ini adalah rencana besar yang akan membuat layanan purnajual Anda sangat profesional.
+
+Mengingat kompleksitasnya, saya sarankan kita memprioritaskan ini **setelah** menyelesaikan modul-modul yang sudah ada di daftar *outstanding* kita (Dashboard Admin untuk pesanan dan Modul Voucher), karena fitur retur ini bergantung pada adanya pesanan yang sudah selesai.
+
+Bagaimana menurut Anda? Apakah Anda setuju dengan roadmap ini dan urutan prioritasnya?

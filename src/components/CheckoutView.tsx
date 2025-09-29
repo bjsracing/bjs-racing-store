@@ -243,6 +243,7 @@ export default function CheckoutView() {
         body: JSON.stringify({
           voucher_code: codeToApply,
           cart_subtotal: subtotal,
+          shipping_cost: selectedShipping?.cost || 0,
         }),
       });
       const result = await response.json();

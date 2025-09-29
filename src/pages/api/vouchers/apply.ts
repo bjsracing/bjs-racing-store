@@ -11,7 +11,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
         );
 
     try {
-        const { voucher_code, cart_subtotal } = await request.json();
+        const { voucher_code, cart_subtotal, shipping_cost } =
+            await request.json();
+
         if (!voucher_code || cart_subtotal === undefined)
             throw new Error("Kode voucher dan subtotal keranjang diperlukan.");
 
@@ -22,11 +24,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
             .single();
         if (!customer) throw new Error("Profil customer tidak ditemukan.");
 
-        // Cari voucher berdasarkan kodenya
         const { data: voucher, error: voucherError } = await supabaseAdmin
             .from("vouchers")
             .select("*")
-            .eq("code", voucher_code.toUpperCase())
+            .ilike("code", voucher_code)
             .single();
 
         if (voucherError) throw new Error("Kode voucher tidak ditemukan.");
@@ -67,6 +68,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
             discount_amount = Math.min(
                 calculated_discount,
                 voucher.max_discount || calculated_discount,
+            );
+        } else if (voucher.type === "free_shipping") {
+            // Jika tipe gratis ongkir, diskonnya adalah MAKSIMAL sebesar ongkir aktual
+            // ATAU sebesar nilai maksimal diskon ongkir, mana yang lebih kecil.
+            const current_shipping_cost = Number(shipping_cost) || 0;
+            discount_amount = Math.min(
+                current_shipping_cost,
+                voucher.discount_value,
             );
         }
 
