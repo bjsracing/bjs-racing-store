@@ -109,12 +109,22 @@ if (orderStatus === 'cancelled') {
           <div class="text-slate-600 space-y-1">
             <p class="font-semibold">{order.courier_details.name} - {order.courier_details.service}</p>
             <p>Estimasi Tiba: {order.courier_details.etd}</p>
+            
             {/* --- PERBAIKAN 2: Tampilkan Nomor Resi --- */}
-            {order.shipping_receipt_number && (
+                    {order.shipping_receipt_number && (
+            <div class="mt-2">
               <p>
-                No. Resi: <span class="font-bold text-blue-600">{order.shipping_receipt_number}</span>
-                {/* Di masa depan, kita bisa buat ini menjadi link pelacakan otomatis */}
+                No. Resi: <span class="font-bold text-slate-800">{order.shipping_receipt_number}</span>
               </p>
+              {/* --- TOMBOL BARU DITAMBAHKAN DI SINI --- */}
+              <a 
+                href={`/lacak-pesanan?awb=${order.shipping_receipt_number}&courier=${order.courier_details.code}`}
+                target="_blank"
+                class="inline-block mt-2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700"
+              >
+                Lacak Pengiriman
+              </a>
+            </div>
             )}
           </div>
         </div>

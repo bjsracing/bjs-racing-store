@@ -626,4 +626,166 @@ supported ones from the 3PL list.
 not be supported.
 
 
+
+
+
+Dibawah ini adalah documentation TRACKING AWB RAJA ONGKIR:
+
+ENDPOINT:
+
+Name: Tracking AWB
+
+Path: track/waybill
+
+Method: POST
+
+Description: for Checking History AWB
+
+
+
+OVERVIEW:
+
+The Tracking AWB endpoint allows you to retrieve real-time shipment status using an airwaybill (AWB) number from
+
+supported couriers. This feature is essential for merchants and customers who want to monitor delivery progress,
+
+identify delays, or confirm successful delivery.
+
+Tracking can be done for both domestic and international shipments, depending on the courier’s support.
+
+
+
+KEY FEATURE:
+
+🚚 Real-Time Tracking Updates
+
+📦 Supports Multiple Couriers
+
+🔁 Current and Historical Statuses
+
+📍 Location-based Tracking Events
+
+🕒 Estimated Delivery Time Insight
+
+
+
+HOW IT WORKS:
+
+1. The client sends a POST request to the tracking endpoint.
+
+2. The API forwards the request to RajaOngkir, which queries the courier’s system.
+
+3. A structured response is returned containing:
+
+Shipment summary (status, service, origin, destination), History of tracking events, Delivery status and receiver (if available).
+
+
+
+REQUEST BODY (JavaScript):
+
+const myHeaders = new Headers();myHeaders.append("key", "inputapikey");const requestOptions = { method: "POST", headers: myHeaders, redirect: "follow" };fetch("https://rajaongkir.komerce.id/api/v1/track/waybill?awb={{ awb_number }}&courier={{ courier_name }}",requestOptions) .then((response) => response.text()) .then((result) => console.log(result)) .catch((error) =>console.error(error));
+
+
+
+QUERY PARAMETER:
+
+HEADERS:
+
+Key: key*
+
+Type: string
+
+Description: this Value contain an secret APIKEY identic for Shipping Cost API
+
+
+
+Body x-www-form-urlencode
+
+Key: awb*
+
+Type: string
+
+Description: this Value contain awb number
+
+
+
+Key: courier*
+
+Type: string
+
+this Value contain the courier service
+
+
+
+Key: last_phone_number*
+
+Type: int
+
+Description: The last 5 digits of the recipient's phone number are required for additional validation by certain couriers, including JNE.
+
+
+
+:::⚠️ For each header and parameter that has a *
+
+ sign, it is a parameter that must be Required when making a
+
+request, otherwise there will be a system error that will warn the user regarding the request made. :::
+
+
+
+RESPONSE:
+
+Success Respons for Tracking AWB:
+
+{    "meta": {        "message": "{{ message }}",        "code": {{ code }},        "status": "{{ status }}"    },    "data": {        "delivered": {{ delivery_status }},        "summary": {            "courier_code": "{{ courier.code }}",            "courier_name": "{{ courier_name }}",            "waybill_number": "{{ awb.number }}",            "service_code": "{{ service.code }}",            "waybill_date": "{{ awb.date.created }}",            "shipper_name": "{{ shipper.name }}",            "receiver_name": "{{ receiver.name }}",            "origin": "{{ origin.location }}",            "destination": "{{ destination.location }}",            "status": "{{ status }}"        },        "details": {            "waybill_number": "{{ awb.number }}",            "waybill_date": "{{ awb.date.created }}",            "waybill_time": "{{ awb.time.created }}",            "weight": "{{ package.weight }}",            "origin": "{{origin.location  }}",            "destination": "{{ destination.location }}",            "shipper_name": "{{ shipper.name }}",            "shipper_address1": "{{ shipper.address1 }}",            "shipper_address2": "{{ shipper.address2 }}",            "shipper_address3": "{{ shipper.address3 }}",            "shipper_city": "{{ shipper.city_name }}",            "receiver_name": "{{ receiver.name }}",            "receiver_address1": "{{ receiver.address1 }}",            "receiver_address2": "{{ receiver.address2 }}",            "receiver_address3": "{{ receiver.address3 }}",            "receiver_city": "{{ receiver.city_name }}"        },        "delivery_status": {            "status": "{{ delivery.status }}",            "pod_receiver": "{{ info.pod_receiver }}",            "pod_date": "{{ pod.date }}",            "pod_time": "{{ pod.time }}"        },        "manifest": [            {                "manifest_code": "{{ manifest.code }}",                "manifest_description": "{{ manifest.desc }}",                "manifest_date": "{{ manifest.date }}",                "manifest_time": "{{ manifest.time }}",                "city_name": "{{ point.city_name }}"            }        ]    }}
+
+
+
+Error Respons for Tracking AWB:
+
+{    "meta": {        "message": "{{ message }}",        "code": {{ code }},        "status": "{{ status }}"    },    "data": null}
+
+
+
+STATUS CODE:
+
+Code: 200
+
+Status: Success
+
+
+
+Code: 400
+
+Status: Error
+
+Description: Missing Params
+
+How to Fix: Make sure the request parameters that are sent match the required parameters.
+
+
+
+Code: 404
+
+Status: Error
+
+Description: Checking AWB not found
+
+How to Fix: This error is unavoidable because the awb number to provide the desired data.
+
+
+
+TIPS TO AVOID ERROR:
+
+✅ Double-check the AWB number — it must be valid and issued by the specified courier.
+
+📦 Ensure the courier supports tracking — not all partners provide real-time updates.
+
+🔐 Use the correct API Key — unauthorized or expired keys will result in a 401 error.
+
+🔄 Retry smartly — sometimes couriers may have delay in updating status. Implement retries with delay.
+
+⏳ Allow processing time — recently generated AWB might take a few minutes before it’s trackable.
+
+
 Diatas adalah documentation yang kita perlukan, apakah ada informasi lainnya yang kamu butuhkan, silakan cek, analisa dan pelajari dan simpan ke memory kamu, agar kamu bisa menyesuaikan struktur documentation ini untuk pembuatan kode. Silakan konfirmasi terlebih dahulu, dan saya akan memberikan konfirmasi lanjutannya.
