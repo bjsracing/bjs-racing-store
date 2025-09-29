@@ -73,6 +73,7 @@ if (statusParam === 'pending' || orderStatus === 'awaiting_payment') {
 }
 if (orderStatus === 'cancelled') {
   statusMessage = { title: "Pesanan Dibatalkan", description: "Pesanan ini telah dibatalkan.", color: "bg-red-100 text-red-800" };
+}
 ---
 <MainLayout title={`Detail Pesanan ${order.order_number}`}>
   <div class="max-w-4xl mx-auto py-8">
@@ -108,10 +109,13 @@ if (orderStatus === 'cancelled') {
           <div class="text-slate-600 space-y-1">
             <p class="font-semibold">{order.courier_details.name} - {order.courier_details.service}</p>
             <p>Estimasi Tiba: {order.courier_details.etd}</p>
+            {/* --- PERBAIKAN 2: Tampilkan Nomor Resi --- */}
             {order.shipping_receipt_number && (
-            <p>
-              No. Resi: <span class="font-bold text-blue-600">{order.shipping_receipt_number}</span>
-              {/* Di masa depan, kita bisa buat ini menjadi link pelacakan otomatis */}
+              <p>
+                No. Resi: <span class="font-bold text-blue-600">{order.shipping_receipt_number}</span>
+                {/* Di masa depan, kita bisa buat ini menjadi link pelacakan otomatis */}
+              </p>
+            )}
           </div>
         </div>
         <div>
