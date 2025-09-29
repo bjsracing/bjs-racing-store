@@ -52,38 +52,27 @@ if (error || !order) {
 const formatRupiah = (number: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(number || 0);
 
 // Tentukan pesan status berdasarkan parameter URL dan data DB
-let statusMessage = {
-  title: "Status Pesanan Tidak Diketahui",
-  description: "Silakan hubungi customer service kami.",
-  color: "bg-gray-100 text-gray-800"
-};
-
+let statusMessage = { title: "Status Pesanan Tidak Diketahui", description: "Silakan hubungi customer service kami.", color: "bg-gray-100 text-gray-800" };
 const orderStatus = order.status;
+// Daftar status yang dianggap "sukses"
+const successStatuses = ['paid', 'processing', 'shipped', 'completed'];
 
-if (statusParam === 'success' || orderStatus === 'paid' || orderStatus === 'processing') {
-  statusMessage = {
-    title: "Pembayaran Berhasil!",
-    description: "Terima kasih atas pesanan Anda. Kami akan segera memprosesnya.",
-    color: "bg-green-100 text-green-800"
-  };
-} else if (statusParam === 'pending' || orderStatus === 'awaiting_payment') {
-  statusMessage = {
-    title: "Menunggu Pembayaran",
-    description: "Pesanan Anda telah kami terima. Silakan selesaikan pembayaran Anda.",
-    color: "bg-yellow-100 text-yellow-800"
-  };
-} else if (orderStatus === 'shipped') {
-    statusMessage = {
-    title: "Pesanan Dikirim",
-    description: `Pesanan Anda sedang dalam perjalanan dengan nomor resi: ${order.shipping_receipt_number || 'Segera Tersedia'}.`,
-    color: "bg-blue-100 text-blue-800"
-  };
-} else if (orderStatus === 'cancelled') {
-    statusMessage = {
-    title: "Pesanan Dibatalkan",
-    description: "Pesanan ini telah dibatalkan.",
-    color: "bg-red-100 text-red-800"
-  };
+if (statusParam === 'success' || successStatuses.includes(orderStatus)) {
+  statusMessage = { title: "Pembayaran Berhasil!", description: "Terima kasih atas pesanan Anda. Kami akan segera memprosesnya.", color: "bg-green-100 text-green-800" };
+}
+if (orderStatus === 'shipped') {
+  statusMessage.title = "Pesanan Dikirim";
+  statusMessage.description = `Pesanan Anda sedang dalam perjalanan.`;
+}
+if (orderStatus === 'completed') {
+  statusMessage.title = "Pesanan Selesai";
+  statusMessage.description = `Pesanan Anda telah sampai tujuan. Terima kasih telah berbelanja!`;
+}
+if (statusParam === 'pending' || orderStatus === 'awaiting_payment') {
+  statusMessage = { title: "Menunggu Pembayaran", description: "Pesanan Anda telah kami terima. Silakan selesaikan pembayaran Anda.", color: "bg-yellow-100 text-yellow-800" };
+}
+if (orderStatus === 'cancelled') {
+  statusMessage = { title: "Pesanan Dibatalkan", description: "Pesanan ini telah dibatalkan.", color: "bg-red-100 text-red-800" };
 }
 ---
 <MainLayout title={`Detail Pesanan ${order.order_number}`}>
@@ -120,6 +109,10 @@ if (statusParam === 'success' || orderStatus === 'paid' || orderStatus === 'proc
           <div class="text-slate-600 space-y-1">
             <p class="font-semibold">{order.courier_details.name} - {order.courier_details.service}</p>
             <p>Estimasi Tiba: {order.courier_details.etd}</p>
+            {order.shipping_receipt_number && (
+            <p>
+              No. Resi: <span class="font-bold text-blue-600">{order.shipping_receipt_number}</span>
+              {/* Di masa depan, kita bisa buat ini menjadi link pelacakan otomatis */}
           </div>
         </div>
         <div>
