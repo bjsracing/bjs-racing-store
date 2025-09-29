@@ -73,7 +73,6 @@ if (statusParam === 'pending' || orderStatus === 'awaiting_payment') {
 }
 if (orderStatus === 'cancelled') {
   statusMessage = { title: "Pesanan Dibatalkan", description: "Pesanan ini telah dibatalkan.", color: "bg-red-100 text-red-800" };
-}
 ---
 <MainLayout title={`Detail Pesanan ${order.order_number}`}>
   <div class="max-w-4xl mx-auto py-8">
