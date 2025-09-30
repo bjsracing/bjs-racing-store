@@ -32,17 +32,17 @@ interface Voucher {
 
 const rajaOngkirCouriers = [
   { code: "jne", name: "JNE" },
-  { code: "sicepat", name: "SiCepat" },
+  //{ code: "sicepat", name: "SiCepat" },
   { code: "jnt", name: "J&T Express" },
-  { code: "sap", name: "SAP Express" },
-  { code: "ninja", name: "Ninja Xpress" },
-  { code: "ide", name: "ID Express" },
+  //{ code: "sap", name: "SAP Express" },
+  //{ code: "ninja", name: "Ninja Xpress" },
+  //{ code: "ide", name: "ID Express" },
   { code: "tiki", name: "TIKI" },
   { code: "wahana", name: "Wahana Express" },
   { code: "pos", name: "POS Indonesia" },
-  { code: "sentral", name: "Sentral Cargo" },
+  //{ code: "sentral", name: "Sentral Cargo" },
   { code: "lion", name: "Lion Parcel" },
-  { code: "rex", name: "Royal Express Asia" },
+  //{ code: "rex", name: "Royal Express Asia" },
 ];
 
 export default function CheckoutView() {
