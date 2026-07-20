@@ -28,6 +28,7 @@ interface Voucher {
   discount_value: number;
   max_discount?: number;
   min_purchase: number;
+  target_label?: string | null;
 }
 
 const rajaOngkirCouriers = [
@@ -44,6 +45,22 @@ const rajaOngkirCouriers = [
   { code: "lion", name: "Lion Parcel" },
   //{ code: "rex", name: "Royal Express Asia" },
 ];
+
+function describeTargetLabel(v: any): string | null {
+  if (
+    !v ||
+    !v.target_type ||
+    v.target_type === "all_products" ||
+    !v.target_value ||
+    v.target_value.length === 0
+  )
+    return null;
+  const labels = v.target_value.join(", ");
+  if (v.target_type === "category") return `Khusus kategori: ${labels}`;
+  if (v.target_type === "brand") return `Khusus merek: ${labels}`;
+  if (v.target_type === "specific_product") return `Khusus produk tertentu`;
+  return null;
+}
 
 export default function CheckoutView() {
   const {
@@ -76,6 +93,7 @@ export default function CheckoutView() {
   const [appliedVoucher, setAppliedVoucher] = useState<{
     code: string;
     discount_amount: number;
+    target_label?: string | null;
   } | null>(null);
   const [voucherError, setVoucherError] = useState("");
   const [isApplyingVoucher, setIsApplyingVoucher] = useState(false);
@@ -244,6 +262,9 @@ export default function CheckoutView() {
           voucher_code: codeToApply,
           cart_subtotal: subtotal,
           shipping_cost: selectedShipping?.cost || 0,
+          cart_items: items.map((item: CartItem) => ({
+            product_id: item.product_id,
+          })),
         }),
       });
       const result = await response.json();
@@ -252,6 +273,7 @@ export default function CheckoutView() {
       setAppliedVoucher({
         code: result.voucher_details.code,
         discount_amount: result.discount_amount,
+        target_label: result.voucher_details.target_label ?? null,
       });
       addToast({
         type: "success",
@@ -468,6 +490,9 @@ export default function CheckoutView() {
               {appliedVoucher && (
                 <p className="text-xs text-green-600 mt-1">
                   Kode {appliedVoucher.code} diterapkan.
+                  {appliedVoucher.target_label
+                    ? ` (${appliedVoucher.target_label})`
+                    : ""}
                 </p>
               )}
             </div>
@@ -577,6 +602,11 @@ export default function CheckoutView() {
                     <p className="text-sm text-slate-600">
                       {voucher.description}
                     </p>
+                    {describeTargetLabel(voucher) && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        {describeTargetLabel(voucher)}
+                      </p>
+                    )}
                     <p className="text-xs text-slate-400 mt-1">
                       Min. belanja {formatRupiah(voucher.min_purchase)}
                     </p>

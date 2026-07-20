@@ -1,47 +1,48 @@
-# Astro Starter Kit: Minimal
+# BJS Racing Store
 
+Toko online PWA untuk distributor **Spray Paint (Pilok)** dan **Onderdil/Aksesoris Motor**. Dibangun dengan **Astro + React + Supabase**, deploy di **Vercel**, pembayaran via **Midtrans**, ongkos kirim via **RajaOngkir** & kurir internal toko.
+
+## Tech Stack
+- **Astro 5** (SSR, adapter Vercel serverless)
+- **React 19** (komponen interaktif via `@astrojs/react`)
+- **Tailwind CSS 3**
+- **Supabase** (Auth + Postgres + Storage)
+- **Midtrans Snap** (pembayaran)
+- **vite-plugin-pwa** (installable PWA dengan notifikasi pembaruan)
+
+## Struktur Direktori
+```
+src/
+├── components/      # Komponen Astro & React (UI toko, akun, checkout, voucher)
+├── layouts/         # MainLayout.astro (shell halaman)
+├── lib/             # supabaseBrowserClient, supabaseServer, store (zustand), voucher
+├── middleware.js    # Guard rute terproteksi & cek profil lengkap
+├── pages/           # Rute & API endpoints (src/pages/api/*)
+├── stores/          # nanostores/zustand store tambahan
+public/              # Aset statis & ikon PWA
+File SUPABASE/       # Dokumentasi skema, views, functions, triggers
+File CATATAN/        # Catatan roadmap & instruksi fitur
+```
+
+## Environment Variables
+Salin `.env.example` menjadi `.env` (jangan commit `.env`):
+- `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`
+- `MIDTRANS_SERVER_KEY`
+
+## Commands
 ```sh
-npm create astro@latest -- --template minimal
+npm install
+npm run dev       # http://localhost:4321
+npm run build     # build produksi ke ./dist
+npm run preview   # preview hasil build
 ```
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/withastro/astro/tree/latest/examples/minimal)
-[![Open with CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/sandbox/github/withastro/astro/tree/latest/examples/minimal)
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/withastro/astro?devcontainer_path=.devcontainer/minimal/devcontainer.json)
+## Alur Pembelian
+1. Katalog produk (Pilok / Onderdil) → detail produk dinamis → tambah ke keranjang.
+2. Checkout: pilih alamat, hitung ongkir (RajaOngkir / kurir internal), terapkan voucher.
+3. `POST /api/payment/create-transaction` membuat order + minta Snap Token Midtrans.
+4. Pelanggan bayar via popup Midtrans → `POST /api/payment/webhook` memverifikasi signature, mengurangi stok, dan mencatat ke tabel `transactions` (sinkron ke sistem POS).
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
-
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
-
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
-
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
-
-Any static assets, like images, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+## Catatan
+- Dokumentasi skema DB ada di `File SUPABASE/` (konteks; tidak selalu lengkap/terbaru).
+- Rute terproteksi (`/cart`, `/checkout`, `/akun`) dijaga oleh `src/middleware.js`.

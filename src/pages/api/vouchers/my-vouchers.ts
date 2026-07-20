@@ -25,7 +25,7 @@ export const GET: APIRoute = async ({ locals }) => {
         id,
         is_used,
         vouchers (
-          id, code, description, type, discount_value, max_discount, min_purchase, valid_until
+          id, code, description, type, discount_value, max_discount, min_purchase, valid_until, target_type, target_value
         )
       `,
       )

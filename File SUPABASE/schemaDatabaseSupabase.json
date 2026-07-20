@@ -286,3 +286,93 @@ CREATE TABLE public.transactions (
   CONSTRAINT transactions_pkey PRIMARY KEY (id),
   CONSTRAINT transactions_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id)
 );
+
+-- =====================================================================
+-- TABEL DI BAWAH INI DIREKONSTRUKSI DARI PENGGUNAAN KODE (bukan dari
+-- dump DB langsung). VERIFIKASI & SESUAIKAN DENGAN DB AKTUAL SEBELUM
+-- DIJADIKAN ACUAN MIGRASI.
+-- =====================================================================
+
+-- Modul Pesanan Online (dipakai api/payment/create-transaction.ts & webhook.ts)
+CREATE TABLE public.orders (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  order_number text NOT NULL UNIQUE,
+  customer_id uuid NOT NULL,
+  total_amount numeric NOT NULL,
+  subtotal_products numeric,
+  shipping_cost numeric DEFAULT 0,
+  service_fee numeric DEFAULT 0,
+  discount_amount numeric DEFAULT 0,
+  voucher_code text,
+  shipping_address jsonb,
+  courier_details jsonb,
+  status text NOT NULL DEFAULT 'awaiting_payment',
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT orders_pkey PRIMARY KEY (id),
+  CONSTRAINT orders_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id)
+);
+
+CREATE TABLE public.order_items (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  order_id uuid NOT NULL,
+  product_id uuid NOT NULL,
+  quantity integer NOT NULL,
+  price numeric NOT NULL,
+  product_snapshot jsonb,
+  CONSTRAINT order_items_pkey PRIMARY KEY (id),
+  CONSTRAINT order_items_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id),
+  CONSTRAINT order_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id)
+);
+
+CREATE TABLE public.payments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  order_id uuid NOT NULL,
+  midtrans_transaction_id text,
+  amount numeric NOT NULL,
+  status text,
+  raw_response jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT payments_pkey PRIMARY KEY (id),
+  CONSTRAINT payments_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id)
+);
+
+-- Modul Voucher & Diskon (dipakai api/vouchers/*)
+CREATE TABLE public.vouchers (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  code text NOT NULL UNIQUE,
+  description text,
+  type text NOT NULL,            -- 'fixed_amount' | 'percentage' | 'free_shipping'
+  discount_value numeric NOT NULL,
+  max_discount numeric,
+  min_purchase numeric DEFAULT 0,
+  is_active boolean DEFAULT true,
+  valid_until timestamp with time zone,
+  usage_limit integer,
+  usage_count integer DEFAULT 0,
+  -- Kolom target (rencana Instruksi #168, BELUM TERIMPLEMENTASI DI API):
+  -- target_type text,           -- 'all_products' | 'category' | 'brand' | 'specific_product'
+  -- target_value text[],
+  CONSTRAINT vouchers_pkey PRIMARY KEY (id)
+);
+
+CREATE TABLE public.customer_vouchers (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  customer_id uuid NOT NULL,
+  voucher_id uuid NOT NULL,
+  is_used boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT customer_vouchers_pkey PRIMARY KEY (id),
+  CONSTRAINT customer_vouchers_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id),
+  CONSTRAINT customer_vouchers_voucher_id_fkey FOREIGN KEY (voucher_id) REFERENCES public.vouchers(id),
+  CONSTRAINT customer_vouchers_unique UNIQUE (customer_id, voucher_id)
+);
+
+-- Keranjang persisten diakses via RPC (bukan query tabel langsung di kode):
+--   get_cart_items(p_user_id), upsert_cart_item(p_product_id, p_quantity),
+--   update_cart_item_quantity(p_product_id, p_quantity), clear_cart()
+-- Definisi tabel kartu aktual & RPC ada di DB (tidak tercatat di functions.json).
+
+-- View yang dipakai api/vouchers/public.ts:
+--   available_vouchers_view  (definisi belum tercatat di views.json)
+-- RPC penting yang belum tercatat di functions.json:
+--   handle_successful_payment(p_order_number)  -- dipakai webhook.ts

@@ -1,6 +1,7 @@
 // File: /src/pages/api/payment/create-transaction.ts
 import type { APIRoute } from "astro";
 import { supabaseAdmin } from "@/lib/supabaseServer.ts";
+import { validateAndComputeVoucher, consumeVoucher } from "@/lib/voucher.ts";
 import { Buffer } from "buffer";
 
 interface FrontendCartItem {
@@ -32,7 +33,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     try {
         const body = await request.json();
-        // --- PERBAIKAN 1: Terima data voucher dari frontend ---
         const {
             address_id,
             courier,
@@ -40,7 +40,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
             shipping_cost,
             service_fee,
             voucher_code,
-            discount_amount,
         } = body;
         const typedCartItems = cart_items as FrontendCartItem[];
 
@@ -102,7 +101,31 @@ export const POST: APIRoute = async ({ request, locals }) => {
         );
         const finalShippingCost = Number(shipping_cost) || 0;
         const finalServiceFee = Number(service_fee) || 0;
-        const finalDiscountAmount = Number(discount_amount) || 0;
+
+        // --- PERBAIKAN KEAMANAN: Jangan percaya discount_amount dari client.
+        // Hitung ulang diskon di server berdasarkan voucher_code. ---
+        let finalDiscountAmount = 0;
+        let appliedVoucherId: string | null = null;
+        if (voucher_code) {
+            const cartProductIds = typedCartItems.map(
+                (item: FrontendCartItem) => item.product_id,
+            );
+            const voucherResult = await validateAndComputeVoucher(
+                voucher_code,
+                customer.id,
+                subtotalProducts,
+                finalShippingCost,
+                cartProductIds,
+            );
+            if (!voucherResult.valid) {
+                return new Response(
+                    JSON.stringify({ message: voucherResult.message }),
+                    { status: 400 },
+                );
+            }
+            finalDiscountAmount = voucherResult.discount_amount || 0;
+            appliedVoucherId = voucherResult.voucher?.id ?? null;
+        }
 
         const totalAmount =
             subtotalProducts +
@@ -130,6 +153,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
             .single();
 
         if (orderError) throw orderError;
+
+        // Tandai voucher sudah dipakai & naikkan usage_count agar tidak bisa dipakai ulang.
+        // Dilakukan setelah order berhasil dibuat.
+        if (appliedVoucherId) {
+            await consumeVoucher(customer.id, appliedVoucherId);
+        }
 
         const orderItemsData = typedCartItems.map((item: FrontendCartItem) => ({
             order_id: newOrder.id,

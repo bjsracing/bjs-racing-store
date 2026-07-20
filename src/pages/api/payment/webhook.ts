@@ -52,6 +52,26 @@ export const POST: APIRoute = async ({ request }) => {
                     `[LOGGING] Memulai pencatatan ke POS untuk Order ID: ${order_id}`,
                 );
 
+                // Idempotensi: Midtrans bisa mengirim notifikasi berulang.
+                // Jika pencatatan POS untuk order ini sudah ada, lewati agar
+                // tidak terjadi duplikasi transaksi / log.
+                const { data: existingTx, error: existingTxError } =
+                    await supabaseAdmin
+                        .from("transactions")
+                        .select("id")
+                        .eq("invoice_number", order_id)
+                        .maybeSingle();
+                if (existingTxError) throw existingTxError;
+                if (existingTx) {
+                    console.log(
+                        `[LOGGING] Order ${order_id} sudah tercatat di POS, lewati.`,
+                    );
+                    return new Response(
+                        "Notification successfully processed.",
+                        { status: 200 },
+                    );
+                }
+
                 // 1. Ambil data order yang sudah diupdate, beserta item dan detail produk terkait
                 const { data: orderData, error: orderFetchError } =
                     await supabaseAdmin
@@ -113,7 +133,7 @@ export const POST: APIRoute = async ({ request }) => {
                     .insert({
                         customer_id: orderData.customer_id,
                         total: orderData.total_amount,
-                        diskon: 0,
+                        diskon: orderData.discount_amount || 0,
                         total_akhir: orderData.total_amount,
                         bayar: orderData.total_amount,
                         kembalian: 0,

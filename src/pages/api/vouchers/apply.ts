@@ -1,6 +1,7 @@
 // File: /src/pages/api/vouchers/apply.ts
 import type { APIRoute } from "astro";
 import { supabaseAdmin } from "@/lib/supabaseServer.ts";
+import { validateAndComputeVoucher } from "@/lib/voucher.ts";
 
 export const POST: APIRoute = async ({ request, locals }) => {
     const { session } = locals;
@@ -11,7 +12,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         );
 
     try {
-        const { voucher_code, cart_subtotal, shipping_cost } =
+        const { voucher_code, cart_subtotal, shipping_cost, cart_items } =
             await request.json();
 
         if (!voucher_code || cart_subtotal === undefined)
@@ -24,66 +25,32 @@ export const POST: APIRoute = async ({ request, locals }) => {
             .single();
         if (!customer) throw new Error("Profil customer tidak ditemukan.");
 
-        const { data: voucher, error: voucherError } = await supabaseAdmin
-            .from("vouchers")
-            .select("*")
-            .ilike("code", voucher_code)
-            .single();
+        // Ambil id produk dari keranjang untuk pemeriksaan target voucher
+        const cartProductIds: string[] = Array.isArray(cart_items)
+            ? cart_items.map((i: any) => i.product_id).filter(Boolean)
+            : [];
 
-        if (voucherError) throw new Error("Kode voucher tidak ditemukan.");
+        const result = await validateAndComputeVoucher(
+            voucher_code,
+            customer.id,
+            Number(cart_subtotal) || 0,
+            Number(shipping_cost) || 0,
+            cartProductIds,
+        );
 
-        // Lakukan semua validasi
-        if (!voucher.is_active)
-            throw new Error("Voucher ini sudah tidak aktif.");
-        if (new Date(voucher.valid_until) < new Date())
-            throw new Error("Voucher ini sudah kedaluwarsa.");
-        if (voucher.usage_limit && voucher.usage_count >= voucher.usage_limit)
-            throw new Error("Kuota voucher ini sudah habis.");
-        if (cart_subtotal < voucher.min_purchase)
-            throw new Error(
-                `Minimal pembelian untuk voucher ini adalah Rp ${voucher.min_purchase}.`,
-            );
-
-        // Cek apakah pengguna memiliki voucher ini dan belum digunakan
-        const { data: customerVoucher, error: cvError } = await supabaseAdmin
-            .from("customer_vouchers")
-            .select("id")
-            .eq("customer_id", customer.id)
-            .eq("voucher_id", voucher.id)
-            .eq("is_used", false)
-            .maybeSingle();
-
-        if (cvError || !customerVoucher)
-            throw new Error(
-                "Anda tidak memiliki voucher ini atau sudah digunakan.",
-            );
-
-        // Jika semua valid, hitung diskonnya
-        let discount_amount = 0;
-        if (voucher.type === "fixed_amount") {
-            discount_amount = voucher.discount_value;
-        } else if (voucher.type === "percentage") {
-            let calculated_discount =
-                cart_subtotal * (voucher.discount_value / 100);
-            discount_amount = Math.min(
-                calculated_discount,
-                voucher.max_discount || calculated_discount,
-            );
-        } else if (voucher.type === "free_shipping") {
-            // Jika tipe gratis ongkir, diskonnya adalah MAKSIMAL sebesar ongkir aktual
-            // ATAU sebesar nilai maksimal diskon ongkir, mana yang lebih kecil.
-            const current_shipping_cost = Number(shipping_cost) || 0;
-            discount_amount = Math.min(
-                current_shipping_cost,
-                voucher.discount_value,
-            );
-        }
+        if (!result.valid) throw new Error(result.message);
 
         const response = {
             success: true,
             message: "Voucher berhasil diterapkan!",
-            discount_amount: Math.round(discount_amount),
-            voucher_details: voucher,
+            discount_amount: result.discount_amount,
+            voucher_details: {
+                id: result.voucher!.id,
+                code: result.voucher!.code,
+                type: result.voucher!.type,
+                description: result.voucher!.description,
+                target_label: result.target_label ?? null,
+            },
         };
 
         return new Response(JSON.stringify(response), { status: 200 });
