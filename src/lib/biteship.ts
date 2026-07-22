@@ -43,7 +43,7 @@ export async function getBiteshipRates(params: {
   weight: number;
   couriers?: string;
 }): Promise<BiteshipRateOption[]> {
-  const couriers = params.couriers || "gojek,jne,tiki,pos";
+  const couriers = params.couriers || "gojek,pos";
   const origin: any = { latitude: ORIGIN_LAT, longitude: ORIGIN_LNG };
   const destination: any = {};
   if (params.destination.latitude && params.destination.longitude) {
