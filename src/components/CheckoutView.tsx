@@ -167,6 +167,7 @@ export default function CheckoutView() {
           `/api/shipping/check-local-availability?destination_id=${selectedAddress.destination}`,
         );
         const checkInternalResult = await checkInternalResponse.json();
+        console.log("[DEBUG] Internal check result:", checkInternalResult);
         const services: any[] = [];
 
         if (checkInternalResult.available) {
@@ -194,7 +195,9 @@ export default function CheckoutView() {
             }),
           },
         );
+        console.log("[DEBUG] RajaOngkir response status:", rajaongkirResponse.status, rajaongkirResponse.statusText);
         const rajaongkirResult = await rajaongkirResponse.json();
+        console.log("[DEBUG] RajaOngkir response body:", rajaongkirResult);
         if (rajaongkirResponse.ok) {
           const mapped = (rajaongkirResult || []).map((o: any) => ({
             service: o.service,
