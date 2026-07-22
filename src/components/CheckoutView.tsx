@@ -31,21 +31,6 @@ interface Voucher {
   target_label?: string | null;
 }
 
-const rajaOngkirCouriers = [
-  { code: "jne", name: "JNE" },
-  //{ code: "sicepat", name: "SiCepat" },
-  { code: "jnt", name: "J&T Express" },
-  //{ code: "sap", name: "SAP Express" },
-  //{ code: "ninja", name: "Ninja Xpress" },
-  //{ code: "ide", name: "ID Express" },
-  { code: "tiki", name: "TIKI" },
-  { code: "wahana", name: "Wahana Express" },
-  { code: "pos", name: "POS Indonesia" },
-  //{ code: "sentral", name: "Sentral Cargo" },
-  { code: "lion", name: "Lion Parcel" },
-  //{ code: "rex", name: "Royal Express Asia" },
-];
-
 function describeTargetLabel(v: any): string | null {
   if (
     !v ||
@@ -86,8 +71,6 @@ export default function CheckoutView() {
   const [isLoadingCosts, setIsLoadingCosts] = useState(false);
   const [error, setError] = useState("");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [internalCourierOption, setInternalCourierOption] =
-    useState<ShippingService | null>(null);
 
   const [voucherCode, setVoucherCode] = useState("");
   const [appliedVoucher, setAppliedVoucher] = useState<{
@@ -110,17 +93,6 @@ export default function CheckoutView() {
   const [isPolling, setIsPolling] = useState(false);
 
   const PAYMENT_GATEWAY_FEE = 4500;
-
-  const dynamicCourierOptions = useMemo(() => {
-    const options = [...rajaOngkirCouriers];
-    if (internalCourierOption?.available) {
-      options.unshift({
-        code: internalCourierOption.code,
-        name: internalCourierOption.name,
-      });
-    }
-    return options;
-  }, [internalCourierOption]);
 
   const totalWeight = useMemo(
     () => calculateTotalWeight(),
@@ -179,30 +151,6 @@ export default function CheckoutView() {
   }, [addresses, selectedAddressId]);
 
   useEffect(() => {
-    const checkInternalCourier = async () => {
-      if (!selectedAddressId) {
-        setInternalCourierOption(null);
-        return;
-      }
-      const selectedAddress = addresses.find(
-        (addr: Address) => addr.id === selectedAddressId,
-      );
-      if (!selectedAddress || !selectedAddress.destination) return;
-      try {
-        const response = await fetch(
-          `/api/shipping/check-local-availability?destination_id=${selectedAddress.destination}`,
-        );
-        const result = await response.json();
-        setInternalCourierOption(result.available ? result : null);
-      } catch (err) {
-        console.error("Gagal mengecek kurir internal:", err);
-        setInternalCourierOption(null);
-      }
-    };
-    checkInternalCourier();
-  }, [selectedAddressId, addresses]);
-
-  useEffect(() => {
     const fetchShippingCosts = async () => {
       setShippingServices([]);
       setSelectedShipping(null);
@@ -213,40 +161,28 @@ export default function CheckoutView() {
       );
       if (!selectedAddress) return;
 
-      if (internalCourierOption?.available) {
-        setShippingServices([internalCourierOption]);
-        setSelectedShipping({
-          service: internalCourierOption.service,
-          cost: internalCourierOption.cost,
-          etd: internalCourierOption.etd,
-        });
-        return;
-      }
-
       setIsLoadingCosts(true);
       try {
-        const response = await fetch("/api/shipping/biteship/rates", {
+        const destination = selectedAddress.city_id || selectedAddress.destination;
+        const response = await fetch("/api/shipping/rajaongkir/rates", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            destination: {
-              latitude: selectedAddress.latitude,
-              longitude: selectedAddress.longitude,
-              postal_code: selectedAddress.postal_code,
-            },
+            destination,
             weight: totalWeight,
+            couriers: ["gojek", "pos"],
           }),
         });
         const result = await response.json();
         if (!response.ok)
           throw new Error(result.message || "Gagal menghitung ongkos kirim.");
         const mapped = (result || []).map((o: any) => ({
-          service: `${o.company}:${o.courier_service_code}`,
-          code: o.courier_service_code,
-          name: o.courier_name,
-          cost: o.price,
-          etd: o.duration,
-          description: o.courier_service_name,
+          service: o.service,
+          code: o.code,
+          name: o.name,
+          cost: o.cost,
+          etd: o.etd,
+          description: o.description,
         }));
         setShippingServices(mapped as any);
       } catch (err) {
@@ -257,7 +193,7 @@ export default function CheckoutView() {
       }
     };
     fetchShippingCosts();
-  }, [selectedAddressId, totalWeight, addresses, internalCourierOption]);
+  }, [selectedAddressId, totalWeight, addresses]);
 
   const handleApplyVoucher = async (codeToApply: string) => {
     if (!codeToApply) return;
@@ -464,8 +400,8 @@ export default function CheckoutView() {
         <div className="bg-white p-6 rounded-xl shadow-md">
           <h2 className="text-xl font-bold mb-4">Metode Pengiriman</h2>
           <p className="text-sm text-gray-500 mb-2">
-            Pilih layanan pengiriman di bawah ini (diambil otomatis dari alamat
-            via Biteship: GoSend, POS, JNE, TIKI).
+            Pilih layanan pengiriman di bawah ini (Gojek &amp; POS Indonesia via
+            RajaOngkir).
           </p>
           {isLoadingCosts && (
             <p className="text-sm text-gray-500 mt-4 animate-pulse">
