@@ -191,7 +191,7 @@ export default function CheckoutView() {
             body: JSON.stringify({
               destination: rajaongkirDestination,
               weight: totalWeight,
-              couriers: ["pos"],
+              couriers: ["pos", "jne", "jnt", "sicepat"],
             }),
           },
         );
@@ -213,6 +213,8 @@ export default function CheckoutView() {
         if (services.length === 0) {
           throw new Error("Tidak ada layanan pengiriman tersedia.");
         }
+
+        services.sort((a, b) => a.cost - b.cost);
 
         setShippingServices(services);
         setSelectedShipping({
@@ -466,22 +468,29 @@ export default function CheckoutView() {
                     className="flex-shrink-0"
                   />
                    <div className="ml-3 flex-grow flex justify-between w-full text-sm flex-wrap gap-2">
-                     <div className="flex items-center gap-3">
-                       {service.code === "internal" && (
-                         <img
-                           src="/icons/bjs-racing.png"
-                           alt="BJS RACING"
-                           className="h-8 w-auto object-contain"
-                         />
-                       )}
-                       {service.code === "pos" && (
-                         <img
-                           src="/icons/pos-indonesia.png"
-                           alt="POS Indonesia"
-                           className="h-8 w-auto object-contain"
-                         />
-                       )}
-                       <div>
+                      <div className="flex items-center gap-3">
+                        {service.code === "internal" && (
+                          <img
+                            src="/icons/bjs-racing.png"
+                            alt="BJS RACING"
+                            className="h-8 w-auto object-contain"
+                          />
+                        )}
+                        {(service.code === "pos" ||
+                          service.code === "jne" ||
+                          service.code === "sicepat" ||
+                          service.code === "jnt") && (
+                          <img
+                            src={`/icons/${service.code.toLowerCase()}.${
+                              service.code === "jnt"
+                                ? "jpg"
+                                : "png"
+                            }`}
+                            alt={service.name}
+                            className="h-8 w-auto object-contain"
+                          />
+                        )}
+                        <div>
                          <p className="font-semibold">{service.service}</p>
                          <p className="text-gray-500">Estimasi {service.etd}</p>
                        </div>

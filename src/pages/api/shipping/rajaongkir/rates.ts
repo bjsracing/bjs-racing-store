@@ -25,7 +25,7 @@ async function getRajaOngkirCost(params: {
   urlencoded.append("origin", params.origin);
   urlencoded.append("destination", params.destination);
   urlencoded.append("weight", String(params.weight));
-  urlencoded.append("courier", params.courier.toLowerCase());
+  urlencoded.append("courier", params.courier);
 
   const response = await fetch(
     "https://rajaongkir.komerce.id/api/v1/calculate/domestic-cost",
@@ -83,29 +83,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
       );
     }
 
-    const requestedCouriers = Array.isArray(couriers) && couriers.length > 0
-      ? couriers
-      : ["gojek", "pos"];
+    const courierParam = Array.isArray(couriers) && couriers.length > 0
+      ? couriers.join(":")
+      : "pos";
 
-    const results = await Promise.allSettled(
-      requestedCouriers.map((c: string) =>
-        getRajaOngkirCost({
-          origin,
-          destination,
-          weight: Number(weight),
-          courier: c,
-        }),
-      ),
-    );
-
-    const merged: RajaOngkirRate[] = [];
-    results.forEach((result) => {
-      if (result.status === "fulfilled" && Array.isArray(result.value)) {
-        merged.push(...result.value);
-      }
+    const rates = await getRajaOngkirCost({
+      origin,
+      destination,
+      weight: Number(weight),
+      courier: courierParam,
     });
 
-    return new Response(JSON.stringify(merged), { status: 200 });
+    return new Response(JSON.stringify(rates), { status: 200 });
   } catch (error) {
     return new Response(
       JSON.stringify({
