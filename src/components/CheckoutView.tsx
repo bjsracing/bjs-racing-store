@@ -163,66 +163,55 @@ export default function CheckoutView() {
 
       setIsLoadingCosts(true);
       try {
-        const destination = {
-          latitude: selectedAddress.latitude
-            ? Number(selectedAddress.latitude)
-            : undefined,
-          longitude: selectedAddress.longitude
-            ? Number(selectedAddress.longitude)
-            : undefined,
-          postal_code: selectedAddress.postal_code,
-        };
-
-        const biteshipResponse = await fetch("/api/shipping/biteship/rates", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            destination,
-            weight: totalWeight,
-            couriers: "gojek,pos",
-          }),
-        });
-
-        let mapped: any[] = [];
-        if (biteshipResponse.ok) {
-          const biteshipResult = await biteshipResponse.json();
-          mapped = (biteshipResult || []).map((o: any) => ({
-            service: `${o.company}:${o.courier_service_code}`,
-            code: o.courier_service_code,
-            name: o.courier_name,
-            cost: o.price,
-            etd: o.duration,
-            description: o.courier_service_name,
-          }));
+        const checkInternalResponse = await fetch(
+          `/api/shipping/check-local-availability?destination_id=${selectedAddress.destination}`,
+        );
+        const checkInternalResult = await checkInternalResponse.json();
+        if (checkInternalResult.available) {
+          const internalOption = {
+            service: checkInternalResult.service,
+            code: checkInternalResult.code,
+            name: checkInternalResult.name,
+            cost: checkInternalResult.cost,
+            etd: checkInternalResult.etd,
+            description: checkInternalResult.description,
+          };
+          setShippingServices([internalOption]);
+          setSelectedShipping({
+            service: internalOption.service,
+            cost: internalOption.cost,
+            etd: internalOption.etd,
+          });
+          return;
         }
 
-        if (mapped.length === 0) {
-          const rajaongkirDestination =
-            selectedAddress.city_id || selectedAddress.destination;
-          const rajaongkirResponse = await fetch(
-            "/api/shipping/rajaongkir/rates",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                destination: rajaongkirDestination,
-                weight: totalWeight,
-                couriers: ["pos", "jne"],
-              }),
-            },
+        const rajaongkirDestination =
+          selectedAddress.city_id || selectedAddress.destination;
+        const rajaongkirResponse = await fetch(
+          "/api/shipping/rajaongkir/rates",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              destination: rajaongkirDestination,
+              weight: totalWeight,
+              couriers: ["pos"],
+            }),
+          },
+        );
+        const rajaongkirResult = await rajaongkirResponse.json();
+        if (!rajaongkirResponse.ok)
+          throw new Error(
+            rajaongkirResult.message || "Gagal menghitung ongkos kirim.",
           );
-          const rajaongkirResult = await rajaongkirResponse.json();
-          if (rajaongkirResponse.ok) {
-            mapped = (rajaongkirResult || []).map((o: any) => ({
-              service: o.service,
-              code: o.code,
-              name: o.name,
-              cost: o.cost,
-              etd: o.etd,
-              description: o.description,
-            }));
-          }
-        }
+        const mapped = (rajaongkirResult || []).map((o: any) => ({
+          service: o.service,
+          code: o.code,
+          name: o.name,
+          cost: o.cost,
+          etd: o.etd,
+          description: o.description,
+        }));
 
         if (mapped.length === 0) {
           throw new Error("Tidak ada layanan pengiriman tersedia.");
@@ -444,9 +433,8 @@ export default function CheckoutView() {
         <div className="bg-white p-6 rounded-xl shadow-md">
           <h2 className="text-xl font-bold mb-4">Metode Pengiriman</h2>
           <p className="text-sm text-gray-500 mb-2">
-            Pilih layanan pengiriman di bawah ini (Gojek &amp; POS Indonesia via
-            Biteship). Jika Biteship tidak tersedia, otomatis fallback ke
-            RajaOngkir.
+            Pilih layanan pengiriman di bawah ini (POS Indonesia via RajaOngkir
+            atau Kurir Toko untuk area tertentu).
           </p>
           {isLoadingCosts && (
             <p className="text-sm text-gray-500 mt-4 animate-pulse">
