@@ -86,22 +86,23 @@ export interface CreateBiteshipOrderParams {
   origin: {
     contactName: string;
     contactPhone: string;
-    latitude: number;
-    longitude: number;
     address: string;
     postalCode: string;
+    latitude?: number;
+    longitude?: number;
   };
   destination: {
     contactName: string;
     contactPhone: string;
-    latitude: number;
-    longitude: number;
     address: string;
     postalCode: string;
+    latitude?: number;
+    longitude?: number;
   };
   courierCompany: string;
   courierType: string;
-  items: { name: string; description: string; quantity: number; weight: number; value: number }[];
+  deliveryType?: "now" | "scheduled" | "later";
+  items: { name: string; description: string; quantity: number; weight: number; value: number };
 }
 
 export interface BiteshipOrderResult {
@@ -115,23 +116,19 @@ export interface BiteshipOrderResult {
 export async function createBiteshipOrder(
   p: CreateBiteshipOrderParams,
 ): Promise<BiteshipOrderResult> {
-  const json = await biteshipRequest("POST", "/v1/orders", {
+  const body: any = {
     reference_id: p.referenceId,
-    origin: {
-      contact_name: p.origin.contactName,
-      contact_phone: p.origin.contactPhone,
-      coordinate: { latitude: p.origin.latitude, longitude: p.origin.longitude },
-      address: p.origin.address,
-      postal_code: p.origin.postalCode,
-    },
-    destination: {
-      contact_name: p.destination.contactName,
-      contact_phone: p.destination.contactPhone,
-      coordinate: { latitude: p.destination.latitude, longitude: p.destination.longitude },
-      address: p.destination.address,
-      postal_code: p.destination.postalCode,
-    },
-    courier: { company: p.courierCompany, type: p.courierType },
+    origin_contact_name: p.origin.contactName,
+    origin_contact_phone: p.origin.contactPhone,
+    origin_address: p.origin.address,
+    origin_postal_code: Number(p.origin.postalCode),
+    destination_contact_name: p.destination.contactName,
+    destination_contact_phone: p.destination.contactPhone,
+    destination_address: p.destination.address,
+    destination_postal_code: Number(p.destination.postalCode),
+    courier_company: p.courierCompany,
+    courier_type: p.courierType,
+    delivery_type: p.deliveryType || "now",
     items: p.items.map((it) => ({
       name: it.name,
       description: it.description,
@@ -142,7 +139,16 @@ export async function createBiteshipOrder(
       width: 10,
       height: 10,
     })),
-  });
+  };
+
+  if (p.origin.latitude && p.origin.longitude) {
+    body.origin_coordinate = { latitude: p.origin.latitude, longitude: p.origin.longitude };
+  }
+  if (p.destination.latitude && p.destination.longitude) {
+    body.destination_coordinate = { latitude: p.destination.latitude, longitude: p.destination.longitude };
+  }
+
+  const json = await biteshipRequest("POST", "/v1/orders", body);
   return {
     id: json.id,
     waybillId: json.courier?.waybill_id || "",
