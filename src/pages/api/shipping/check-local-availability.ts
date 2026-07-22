@@ -31,11 +31,11 @@ export const GET: APIRoute = async ({ url }) => {
     // Jika zona ditemukan, kembalikan detailnya.
     const responsePayload = {
       available: true,
-      name: "Kurir Toko",
+      name: "Kurir Toko BJS RACING",
       code: "internal",
       cost: zone.shipping_cost,
-      service: "Pengiriman Lokal",
-      description: `Diantar oleh kurir kami ke area ${zone.zone_name}`,
+      service: "Kurir Toko BJS RACING",
+      description: "",
       etd: "0 hari (sameday)",
     };
 

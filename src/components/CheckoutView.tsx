@@ -435,8 +435,8 @@ export default function CheckoutView() {
         <div className="bg-white p-6 rounded-xl shadow-md">
           <h2 className="text-xl font-bold mb-4">Metode Pengiriman</h2>
           <p className="text-sm text-gray-500 mb-2">
-            Pilih layanan pengiriman di bawah ini (POS Indonesia via RajaOngkir
-            dan/atau Kurir Toko jika tersedia).
+            Pilih layanan pengiriman di bawah ini (Kurir Toko jika tersedia atau
+            Kurir POS Indonesia).
           </p>
           {isLoadingCosts && (
             <p className="text-sm text-gray-500 mt-4 animate-pulse">
@@ -465,17 +465,31 @@ export default function CheckoutView() {
                     }}
                     className="flex-shrink-0"
                   />
-                  <div className="ml-3 flex-grow flex justify-between w-full text-sm flex-wrap gap-2">
-                    <div>
-                      <p className="font-semibold">
-                        {service.service} ({service.description})
-                      </p>
-                      <p className="text-gray-500">Estimasi {service.etd}</p>
-                    </div>
-                    <p className="font-bold whitespace-nowrap">
-                      {formatRupiah(service.cost)}
-                    </p>
-                  </div>
+                   <div className="ml-3 flex-grow flex justify-between w-full text-sm flex-wrap gap-2">
+                     <div className="flex items-center gap-3">
+                       {service.code === "internal" && (
+                         <img
+                           src="/icons/bjs-racing.png"
+                           alt="BJS RACING"
+                           className="h-8 w-auto object-contain"
+                         />
+                       )}
+                       {service.code === "pos" && (
+                         <img
+                           src="/icons/pos-indonesia.png"
+                           alt="POS Indonesia"
+                           className="h-8 w-auto object-contain"
+                         />
+                       )}
+                       <div>
+                         <p className="font-semibold">{service.service}</p>
+                         <p className="text-gray-500">Estimasi {service.etd}</p>
+                       </div>
+                     </div>
+                     <p className="font-bold whitespace-nowrap">
+                       {formatRupiah(service.cost)}
+                     </p>
+                   </div>
                 </label>
               ))}
             </div>
