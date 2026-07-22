@@ -123,6 +123,19 @@ export default function CheckoutView() {
       minimumFractionDigits: 0,
     }).format(number || 0);
 
+  const formatServiceName = (service: string, code?: string) => {
+    const s = String(service || "").trim();
+    if (code === "pos") return `POS Indonesia: ${s}`;
+    if (code === "sicepat") return `SiCepat: ${s}`;
+    if (code === "jne") return `JNE: ${s}`;
+    return s;
+  };
+
+  const formatEtd = (etd?: string) => {
+    if (!etd) return "";
+    return String(etd).replace(/\bday\b/g, "hari");
+  };
+
   useEffect(() => {
     fetchAddresses();
     const fetchMyVouchers = async () => {
@@ -463,14 +476,10 @@ export default function CheckoutView() {
           </div>
         </div>
 
-        {/* --- Blok Metode Pengiriman (Tidak Berubah) --- */}
-        <div className="bg-white p-6 rounded-xl shadow-md">
-          <h2 className="text-xl font-bold mb-4">Metode Pengiriman</h2>
-          <p className="text-sm text-gray-500 mb-2">
-            Pilih layanan pengiriman di bawah ini (Kurir Toko jika tersedia atau
-            Kurir POS Indonesia).
-          </p>
-          {isLoadingCosts && (
+         {/* --- Blok Metode Pengiriman (Tidak Berubah) --- */}
+         <div className="bg-white p-6 rounded-xl shadow-md">
+           <h2 className="text-xl font-bold mb-4">Metode Pengiriman</h2>
+           {isLoadingCosts && (
             <p className="text-sm text-gray-500 mt-4 animate-pulse">
               Menghitung ongkos kirim...
             </p>
@@ -527,12 +536,16 @@ export default function CheckoutView() {
                              className="h-8 w-auto object-contain"
                            />
                          )}
-                          <div>
-                          <p className="font-semibold">{service.service}</p>
-                          {service.etd && (
-                            <p className="text-gray-500">Estimasi {service.etd}</p>
-                          )}
-                        </div>
+                           <div>
+                           <p className="font-semibold">
+                             {formatServiceName(service.service, service.code)}
+                           </p>
+                           {formatEtd(service.etd) && (
+                             <p className="text-gray-500">
+                               Estimasi {formatEtd(service.etd)}
+                             </p>
+                           )}
+                         </div>
                      </div>
                      <p className="font-bold whitespace-nowrap">
                        {formatRupiah(service.cost)}

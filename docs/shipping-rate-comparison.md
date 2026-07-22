@@ -19,42 +19,31 @@
 
 | No | Subdistrict ID | Subdistrict Name | Kurir Internal | POS Sameday | Selisih | Lebih Murah |
 |---|---|---|---|---|---|---|
-| 1 | 65100 | Bangsri | Rp10.000 | Rp16.000 | -Rp6.000 | Internal |
-| 2 | 65111 | Wedelan | Rp12.000 | Rp16.000 | -Rp4.000 | Internal |
+| 1 | 65100 | Bangsri | Rp15.000 | Rp16.000 | -Rp1.000 | Internal |
+| 2 | 65111 | Wedelan | Rp15.000 | Rp16.000 | -Rp1.000 | Internal |
 | 3 | 65106 | Kedungleper | Rp15.000 | Rp16.000 | -Rp1.000 | Internal |
-| 4 | 65105 | Jerukwangi | Rp17.000 | Rp16.000 | +Rp1.000 | POS |
-| 5 | 65103 | Bondo | Rp20.000 | Rp16.000 | +Rp4.000 | POS |
-| 6 | 65104 | Guyangan | Rp17.000 | Rp16.000 | +Rp1.000 | POS |
+| 4 | 65105 | Jerukwangi | Rp15.000 | Rp16.000 | -Rp1.000 | Internal |
+| 5 | 65103 | Bondo | Rp15.000 | Rp16.000 | -Rp1.000 | Internal |
+| 6 | 65104 | Guyangan | Rp15.000 | Rp16.000 | -Rp1.000 | Internal |
 | 7 | 65110 | Tengguli | Rp15.000 | Rp16.000 | -Rp1.000 | Internal |
 | 8 | 65102 | Banjaran | Rp15.000 | Rp16.000 | -Rp1.000 | Internal |
 | 9 | 65101 | Banjar Agung | Rp15.000 | Rp16.000 | -Rp1.000 | Internal |
-| 10 | 65109 | Srikandang | Rp17.000 | Rp16.000 | +Rp1.000 | POS |
-| 11 | 65107 | Kepuk | Rp18.000 | Rp16.000 | +Rp2.000 | POS |
-| 12 | 65108 | Papasan | Rp23.000 | Rp16.000 | +Rp7.000 | POS |
+| 10 | 65109 | Srikandang | Rp15.000 | Rp16.000 | -Rp1.000 | Internal |
+| 11 | 65107 | Kepuk | Rp15.000 | Rp16.000 | -Rp1.000 | Internal |
+| 12 | 65108 | Papasan | Rp15.000 | Rp16.000 | -Rp1.000 | Internal |
 
 ## Kesimpulan
 
 ### Lebih Murah: Kurir Internal
-- Bangsri: Rp6.000 lebih murah
-- Wedelan: Rp4.000 lebih murah
-- Kedungleper: Rp1.000 lebih murah
-- Tengguli: Rp1.000 lebih murah
-- Banjaran: Rp1.000 lebih murah
-- Banjar Agung: Rp1.000 lebih murah
+Semua 12 zona internal BJS RACING sekarang **Rp15.000**, yaitu **Rp1.000 lebih murah** daripada POS Sameday (Rp16.000).
 
-**Total 6 zona** di mana kurir internal lebih murah daripada POS Sameday.
+Zona yang already updated:
+- Bangsri, Wedelan, Kedungleper, Jerukwangi, Bondo, Guyangan, Tengguli, Banjaran, Banjar Agung, Srikandang, Kepuk, Papasan
 
 ### Lebih Murah: POS Sameday
-- Jerukwangi: Rp1.000 lebih murah
-- Bondo: Rp4.000 lebih murah
-- Guyangan: Rp1.000 lebih murah
-- Srikandang: Rp1.000 lebih murah
-- Kepuk: Rp2.000 lebih murah
-- Papasan: Rp7.000 lebih murah
-
-**Total 6 zona** di mana POS Sameday lebih murah daripada kurir internal.
+Tidak ada zona di mana POS Sameday lebih murah lagi. RajaOngkir POS Sameday tetap Rp16.000 untuk semua rute di dalam kecamatan Bangsri.
 
 ### Rekomendasi
-- Untuk zona **Bangsri, Wedelan, Kedungleper, Tengguli, Banjaran, Banjar Agung**: kurir internal tetap kompetitif atau lebih murah.
-- Untuk zona **Jerukwangi, Bondo, Guyangan, Srikandang, Kepuk, Papasan**: POS Sameday lebih murah.
-- Jika ingin menyesuaikan tarif internal, zonaPapasan adalah yang paling tinggi selisihnya (internal Rp23.000 vs POS Rp16.000).
+- Semua alamat di 12 subdistrict Bangsri sekarang disarankan pakai **Kurir Toko BJS RACING** karena lebih murah dan estimasi 0 hari.
+- Jika customer ingin opsi eksternal, **POS Sameday** tersedia dengan harga Rp16.000.
+- Jika ingin menambah opsi kurir lain, pertimbangkan JNE atau SiCepat untuk zona tertentu.
