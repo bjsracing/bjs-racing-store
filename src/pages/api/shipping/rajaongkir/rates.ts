@@ -49,7 +49,7 @@ async function getRajaOngkirCost(params: {
   const data = result.data || [];
   return data.map((item: any) => ({
     service: item.service,
-    code: item.service,
+    code: item.code,
     name: item.name,
     cost: Number(item.cost),
     etd: String(item.etd || ""),
