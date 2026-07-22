@@ -188,25 +188,45 @@ export default function CheckoutView() {
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              destination: rajaongkirDestination,
-              weight: totalWeight,
-              couriers: ["pos", "jne", "jnt", "sicepat"],
-            }),
+              body: JSON.stringify({
+                destination: rajaongkirDestination,
+                weight: totalWeight,
+                couriers: ["pos", "jne", "sicepat"],
+              }),
           },
         );
         console.log("[DEBUG] RajaOngkir response status:", rajaongkirResponse.status, rajaongkirResponse.statusText);
         const rajaongkirResult = await rajaongkirResponse.json();
         console.log("[DEBUG] RajaOngkir response body:", rajaongkirResult);
         if (rajaongkirResponse.ok) {
-          const mapped = (rajaongkirResult || []).map((o: any) => ({
-            service: o.service,
-            code: o.code,
-            name: o.name,
-            cost: o.cost,
-            etd: o.etd,
-            description: o.description,
-          }));
+          const mapped = (rajaongkirResult || [])
+            .filter((o: any) => {
+              if (o.code === "pos") {
+                const service = String(o.service || "").toUpperCase();
+                return (
+                  service !== "PAKETPOS DANGEROUS GOODS" &&
+                  service !== "PAKETPOS VALUABLE GOODS"
+                );
+              }
+              if (o.code === "jne") {
+                const service = String(o.service || "").toUpperCase();
+                return (
+                  service !== "JTR" &&
+                  service !== "JTR<130" &&
+                  service !== "JTR>130" &&
+                  service !== "JTR>200"
+                );
+              }
+              return true;
+            })
+            .map((o: any) => ({
+              service: o.service,
+              code: o.code,
+              name: o.name,
+              cost: o.cost,
+              etd: o.etd,
+              description: o.description,
+            }));
           services.push(...mapped);
         }
 
@@ -214,7 +234,17 @@ export default function CheckoutView() {
           throw new Error("Tidak ada layanan pengiriman tersedia.");
         }
 
-        services.sort((a, b) => a.cost - b.cost);
+        services.sort((a, b) => {
+          const parseEtd = (etd?: string) => {
+            if (!etd) return Number.POSITIVE_INFINITY;
+            const match = etd.match(/(\d+)/);
+            return match ? Number(match[1]) : Number.POSITIVE_INFINITY;
+          };
+          const aEtd = parseEtd(a.etd);
+          const bEtd = parseEtd(b.etd);
+          if (aEtd !== bEtd) return aEtd - bEtd;
+          return (a.cost || 0) - (b.cost || 0);
+        });
 
         setShippingServices(services);
         setSelectedShipping({
@@ -468,32 +498,41 @@ export default function CheckoutView() {
                     className="flex-shrink-0"
                   />
                    <div className="ml-3 flex-grow flex justify-between w-full text-sm flex-wrap gap-2">
-                      <div className="flex items-center gap-3">
-                        {service.code === "internal" && (
-                          <img
-                            src="/icons/bjs-racing.png"
-                            alt="BJS RACING"
-                            className="h-8 w-auto object-contain"
-                          />
-                        )}
-                        {(service.code === "pos" ||
-                          service.code === "jne" ||
-                          service.code === "sicepat" ||
-                          service.code === "jnt") && (
-                          <img
-                            src={`/icons/${service.code.toLowerCase()}.${
-                              service.code === "jnt"
-                                ? "jpg"
-                                : "png"
-                            }`}
-                            alt={service.name}
-                            className="h-8 w-auto object-contain"
-                          />
-                        )}
-                        <div>
-                         <p className="font-semibold">{service.service}</p>
-                         <p className="text-gray-500">Estimasi {service.etd}</p>
-                       </div>
+                       <div className="flex items-center gap-3">
+                         {service.code === "internal" && (
+                           <img
+                             src="/icons/bjs-racing.png"
+                             alt="BJS RACING"
+                             className="h-8 w-auto object-contain"
+                           />
+                         )}
+                         {service.code === "pos" && (
+                           <img
+                             src="/icons/pos-indonesia.png"
+                             alt="POS Indonesia"
+                             className="h-8 w-auto object-contain"
+                           />
+                         )}
+                          {service.code === "jne" && (
+                           <img
+                             src="/icons/jne.png"
+                             alt="JNE Express"
+                             className="h-8 w-auto object-contain"
+                           />
+                         )}
+                         {service.code === "sicepat" && (
+                           <img
+                             src="/icons/sicepat.png"
+                             alt="SiCepat Express"
+                             className="h-8 w-auto object-contain"
+                           />
+                         )}
+                          <div>
+                          <p className="font-semibold">{service.service}</p>
+                          {service.etd && (
+                            <p className="text-gray-500">Estimasi {service.etd}</p>
+                          )}
+                        </div>
                      </div>
                      <p className="font-bold whitespace-nowrap">
                        {formatRupiah(service.cost)}
