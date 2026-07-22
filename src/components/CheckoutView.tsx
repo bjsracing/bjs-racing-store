@@ -167,22 +167,17 @@ export default function CheckoutView() {
           `/api/shipping/check-local-availability?destination_id=${selectedAddress.destination}`,
         );
         const checkInternalResult = await checkInternalResponse.json();
+        const services: any[] = [];
+
         if (checkInternalResult.available) {
-          const internalOption = {
+          services.push({
             service: checkInternalResult.service,
             code: checkInternalResult.code,
             name: checkInternalResult.name,
             cost: checkInternalResult.cost,
             etd: checkInternalResult.etd,
             description: checkInternalResult.description,
-          };
-          setShippingServices([internalOption]);
-          setSelectedShipping({
-            service: internalOption.service,
-            cost: internalOption.cost,
-            etd: internalOption.etd,
           });
-          return;
         }
 
         const rajaongkirDestination =
@@ -200,24 +195,28 @@ export default function CheckoutView() {
           },
         );
         const rajaongkirResult = await rajaongkirResponse.json();
-        if (!rajaongkirResponse.ok)
-          throw new Error(
-            rajaongkirResult.message || "Gagal menghitung ongkos kirim.",
-          );
-        const mapped = (rajaongkirResult || []).map((o: any) => ({
-          service: o.service,
-          code: o.code,
-          name: o.name,
-          cost: o.cost,
-          etd: o.etd,
-          description: o.description,
-        }));
+        if (rajaongkirResponse.ok) {
+          const mapped = (rajaongkirResult || []).map((o: any) => ({
+            service: o.service,
+            code: o.code,
+            name: o.name,
+            cost: o.cost,
+            etd: o.etd,
+            description: o.description,
+          }));
+          services.push(...mapped);
+        }
 
-        if (mapped.length === 0) {
+        if (services.length === 0) {
           throw new Error("Tidak ada layanan pengiriman tersedia.");
         }
 
-        setShippingServices(mapped as any);
+        setShippingServices(services);
+        setSelectedShipping({
+          service: services[0].service,
+          cost: services[0].cost,
+          etd: services[0].etd,
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Terjadi kesalahan.");
         setShippingServices([]);
@@ -434,7 +433,7 @@ export default function CheckoutView() {
           <h2 className="text-xl font-bold mb-4">Metode Pengiriman</h2>
           <p className="text-sm text-gray-500 mb-2">
             Pilih layanan pengiriman di bawah ini (POS Indonesia via RajaOngkir
-            atau Kurir Toko untuk area tertentu).
+            dan/atau Kurir Toko jika tersedia).
           </p>
           {isLoadingCosts && (
             <p className="text-sm text-gray-500 mt-4 animate-pulse">
