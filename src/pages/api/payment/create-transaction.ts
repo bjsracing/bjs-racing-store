@@ -2,6 +2,7 @@
 import type { APIRoute } from "astro";
 import { supabaseAdmin } from "@/lib/supabaseServer.ts";
 import { validateAndComputeVoucher, consumeVoucher } from "@/lib/voucher.ts";
+import { generateBriQrMpm, BRI_CONFIG } from "@/lib/bri.ts";
 import { Buffer } from "buffer";
 
 interface FrontendCartItem {
@@ -176,6 +177,34 @@ export const POST: APIRoute = async ({ request, locals }) => {
             .from("order_items")
             .insert(orderItemsData);
         if (orderItemsError) throw orderItemsError;
+
+        const paymentGateway = (
+            import.meta.env.PAYMENT_GATEWAY || "midtrans"
+        ).toLowerCase();
+
+        if (paymentGateway === "bri") {
+            const qr = await generateBriQrMpm({
+                partnerReferenceNo: orderNumber,
+                amount: totalAmount,
+                callbackUrl: BRI_CONFIG.callbackUrl,
+            });
+            await supabaseAdmin.from("payments").insert({
+                order_id: newOrder.id,
+                gateway: "bri",
+                payment_reference: qr.qrContent,
+                amount: totalAmount,
+                status: "pending",
+            });
+            return new Response(
+                JSON.stringify({
+                    qr_content: qr.qrContent,
+                    qr_image_base64: qr.qrImage,
+                    expires_at: qr.expiresAt,
+                    order_id: newOrder.id,
+                }),
+                { status: 200 },
+            );
+        }
 
         const midtransServerKey = import.meta.env.MIDTRANS_SERVER_KEY;
         const authString = Buffer.from(`${midtransServerKey}:`).toString(

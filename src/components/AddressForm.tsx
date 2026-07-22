@@ -33,6 +33,8 @@ const initialFormState: FormDataState = {
   postal_code: "",
   city_id: "",
   province_id: "",
+  latitude: "",
+  longitude: "",
 };
 
 // --- Komponen React ---
@@ -48,6 +50,7 @@ export default function AddressForm({
   const [searchResults, setSearchResults] = useState<RajaOngkirResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isGeocoding, setIsGeocoding] = useState(false);
 
   const addAddress = useAppStore((state) => state.addAddress);
   const updateAddress = useAppStore((state) => state.updateAddress);
@@ -65,6 +68,8 @@ export default function AddressForm({
           postal_code: addressToEdit.postal_code || "",
           province_id: addressToEdit.province_id || "",
           city_id: addressToEdit.city_id || "",
+          latitude: addressToEdit.latitude || "",
+          longitude: addressToEdit.longitude || "",
         });
         setSearchQuery(addressToEdit.destination_text || "");
       } else {
@@ -142,6 +147,36 @@ export default function AddressForm({
 
   const handleInputBlur = () => {
     setTimeout(() => setIsDropdownOpen(false), 150);
+  };
+
+  const handleGeocode = async () => {
+    const q = `${formData.full_address}, ${formData.postal_code}`.trim();
+    if (!q || !formData.postal_code) {
+      setErrorMessage("Isi alamat lengkap & kode pos dulu sebelum cari koordinat.");
+      return;
+    }
+    setIsGeocoding(true);
+    try {
+      const res = await fetch(
+        `/api/shipping/biteship/geocode?q=${encodeURIComponent(q)}`,
+      );
+      const data = await res.json();
+      if (data.latitude && data.longitude) {
+        setFormData((prev) => ({
+          ...prev,
+          latitude: String(data.latitude),
+          longitude: String(data.longitude),
+        }));
+      } else {
+        setErrorMessage(
+          "Koordinat otomatis tidak ditemukan. Isi manual latitude/longitude.",
+        );
+      }
+    } catch {
+      setErrorMessage("Gagal mengambil koordinat otomatis.");
+    } finally {
+      setIsGeocoding(false);
+    }
   };
 
   /**
@@ -343,6 +378,51 @@ export default function AddressForm({
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-gray-100 focus:ring-orange-500 focus:border-orange-500"
                 />
               </div>
+              {/* Field: Koordinat (untuk kurir GoSend/Biteship) */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label
+                    htmlFor="latitude"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Latitude
+                  </label>
+                  <input
+                    type="text"
+                    id="latitude"
+                    name="latitude"
+                    value={formData.latitude}
+                    onChange={handleChange}
+                    placeholder="-6.2..."
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="longitude"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Longitude
+                  </label>
+                  <input
+                    type="text"
+                    id="longitude"
+                    name="longitude"
+                    value={formData.longitude}
+                    onChange={handleChange}
+                    placeholder="106.8..."
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-orange-500 focus:border-orange-500"
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleGeocode}
+                disabled={isGeocoding}
+                className="text-sm text-orange-600 hover:underline disabled:opacity-50"
+              >
+                {isGeocoding ? "Mencari..." : "Cari Koordinat Otomatis (GoSend)"}
+              </button>
             </div>
           </div>
           <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3 rounded-b-lg items-center">

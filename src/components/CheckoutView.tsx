@@ -100,6 +100,15 @@ export default function CheckoutView() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [myVouchers, setMyVouchers] = useState<Voucher[]>([]);
 
+  const [showQr, setShowQr] = useState(false);
+  const [qrData, setQrData] = useState<{
+    qr_content: string;
+    qr_image_base64: string;
+    expires_at?: string;
+    order_id: string;
+  } | null>(null);
+  const [isPolling, setIsPolling] = useState(false);
+
   const SERVICE_FEE = 2000;
 
   const dynamicCourierOptions = useMemo(() => {
@@ -198,8 +207,13 @@ export default function CheckoutView() {
       setShippingServices([]);
       setSelectedShipping(null);
       setError("");
-      if (!selectedAddressId || !selectedCourier || totalWeight === 0) return;
-      if (selectedCourier === "internal" && internalCourierOption?.available) {
+      if (!selectedAddressId || totalWeight === 0) return;
+      const selectedAddress = addresses.find(
+        (addr: Address) => addr.id === selectedAddressId,
+      );
+      if (!selectedAddress) return;
+
+      if (internalCourierOption?.available) {
         setShippingServices([internalCourierOption]);
         setSelectedShipping({
           service: internalCourierOption.service,
@@ -207,32 +221,34 @@ export default function CheckoutView() {
           etd: internalCourierOption.etd,
         });
         return;
-      } else if (selectedCourier === "internal") {
-        return;
       }
+
       setIsLoadingCosts(true);
-      const selectedAddress = addresses.find(
-        (addr: Address) => addr.id === selectedAddressId,
-      );
-      if (!selectedAddress || !selectedAddress.destination) {
-        setIsLoadingCosts(false);
-        return;
-      }
       try {
-        const response = await fetch("/api/rajaongkir/cost", {
+        const response = await fetch("/api/shipping/biteship/rates", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            origin: "2683",
-            destination: selectedAddress.destination,
+            destination: {
+              latitude: selectedAddress.latitude,
+              longitude: selectedAddress.longitude,
+              postal_code: selectedAddress.postal_code,
+            },
             weight: totalWeight,
-            courier: selectedCourier,
           }),
         });
         const result = await response.json();
         if (!response.ok)
           throw new Error(result.message || "Gagal menghitung ongkos kirim.");
-        setShippingServices(result || []);
+        const mapped = (result || []).map((o: any) => ({
+          service: `${o.company}:${o.courier_service_code}`,
+          code: o.courier_service_code,
+          name: o.courier_name,
+          cost: o.price,
+          etd: o.duration,
+          description: o.courier_service_name,
+        }));
+        setShippingServices(mapped as any);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Terjadi kesalahan.");
         setShippingServices([]);
@@ -241,13 +257,7 @@ export default function CheckoutView() {
       }
     };
     fetchShippingCosts();
-  }, [
-    selectedAddressId,
-    selectedCourier,
-    totalWeight,
-    addresses,
-    internalCourierOption,
-  ]);
+  }, [selectedAddressId, totalWeight, addresses, internalCourierOption]);
 
   const handleApplyVoucher = async (codeToApply: string) => {
     if (!codeToApply) return;
@@ -292,8 +302,32 @@ export default function CheckoutView() {
     handleApplyVoucher(voucher.code);
   };
 
+  const pollOrderStatus = (orderId: string) => {
+    setIsPolling(true);
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/payment/status?order_id=${orderId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === "paid") {
+            clearInterval(interval);
+            setIsPolling(false);
+            clearCart();
+            window.location.href = `/akun/pesanan/${orderId}?status=success`;
+          }
+        }
+      } catch {
+        // abaikan, coba lagi di interval berikutnya
+      }
+    }, 3000);
+    setTimeout(() => {
+      clearInterval(interval);
+      setIsPolling(false);
+    }, 1000 * 60 * 10);
+  };
+
   const handlePayment = async () => {
-    if (!selectedAddressId || !selectedShipping || !selectedCourier) {
+    if (!selectedAddressId || !selectedShipping) {
       addToast({
         type: "info",
         message: "Silakan lengkapi alamat dan metode pengiriman.",
@@ -301,17 +335,18 @@ export default function CheckoutView() {
       return;
     }
     setIsProcessingPayment(true);
-    const courierDetails = dynamicCourierOptions.find(
-      (c: { code: string; name: string }) => c.code === selectedCourier,
+    const selectedService = shippingServices.find(
+      (s: any) => s.service === selectedShipping.service,
     );
+    const courierDetails = selectedService || null;
     const payload = {
       address_id: selectedAddressId,
       shipping_cost: selectedShipping.cost,
       service_fee: SERVICE_FEE,
-      voucher_code: appliedVoucher?.code || null, // Kirim kode voucher yang dipakai
-      discount_amount: appliedVoucher?.discount_amount || 0, // Kirim jumlah diskon
+      voucher_code: appliedVoucher?.code || null,
+      discount_amount: appliedVoucher?.discount_amount || 0,
       courier: {
-        code: selectedCourier,
+        code: courierDetails?.code,
         name: courierDetails?.name,
         service: selectedShipping.service,
         etd: selectedShipping.etd,
@@ -340,6 +375,18 @@ export default function CheckoutView() {
         } else {
           throw new Error(result.message || "Gagal membuat transaksi.");
         }
+        return;
+      }
+      if (result.qr_content) {
+        setQrData({
+          qr_content: result.qr_content,
+          qr_image_base64: result.qr_image_base64,
+          expires_at: result.expires_at,
+          order_id: result.order_id,
+        });
+        setShowQr(true);
+        setIsProcessingPayment(false);
+        pollOrderStatus(result.order_id);
         return;
       }
       const { snap_token, order_id } = result;
@@ -416,19 +463,10 @@ export default function CheckoutView() {
         {/* --- Blok Metode Pengiriman (Tidak Berubah) --- */}
         <div className="bg-white p-6 rounded-xl shadow-md">
           <h2 className="text-xl font-bold mb-4">Metode Pengiriman</h2>
-          <select
-            value={selectedCourier}
-            onChange={(e) => setSelectedCourier(e.target.value)}
-            className="w-full p-3 border rounded-md bg-gray-50 focus:border-blue-500 focus:ring-blue-500"
-            disabled={!selectedAddressId}
-          >
-            <option value="">-- Pilih Kurir --</option>
-            {dynamicCourierOptions.map((courier) => (
-              <option key={courier.code} value={courier.code}>
-                {courier.name}
-              </option>
-            ))}
-          </select>
+          <p className="text-sm text-gray-500 mb-2">
+            Pilih layanan pengiriman di bawah ini (diambil otomatis dari alamat
+            via Biteship: GoSend, POS, JNE, TIKI).
+          </p>
           {isLoadingCosts && (
             <p className="text-sm text-gray-500 mt-4 animate-pulse">
               Menghitung ongkos kirim...
@@ -446,13 +484,14 @@ export default function CheckoutView() {
                   <input
                     type="radio"
                     name="shippingService"
-                    onChange={() =>
+                    onChange={() => {
+                      setSelectedCourier(service.code);
                       setSelectedShipping({
                         service: service.service,
                         cost: service.cost,
                         etd: service.etd,
-                      })
-                    }
+                      });
+                    }}
                     className="flex-shrink-0"
                   />
                   <div className="ml-3 flex-grow flex justify-between w-full text-sm flex-wrap gap-2">
@@ -613,6 +652,38 @@ export default function CheckoutView() {
                   </div>
                 ))}
             </div>
+          </div>
+        </div>
+      )}
+      {/* --- MODAL QRIS BRI --- */}
+      {showQr && qrData && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center">
+            <h3 className="text-lg font-bold mb-2">Scan QRIS untuk Bayar</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Gunakan aplikasi e-wallet / m-banking (GoPay, OVO, DANA,
+              m-Banking BRI, dll). Halaman akan otomatis lanjut setelah dibayar.
+            </p>
+            {qrData.qr_image_base64 ? (
+              <img
+                src={`data:image/png;base64,${qrData.qr_image_base64}`}
+                alt="QRIS"
+                className="mx-auto w-56 h-56"
+              />
+            ) : (
+              <div className="mx-auto w-56 h-56 flex items-center justify-center border rounded bg-gray-50 text-xs break-all p-2">
+                {qrData.qr_content}
+              </div>
+            )}
+            <p className="text-sm text-gray-500 mt-4">
+              {isPolling ? "Menunggu konfirmasi pembayaran..." : ""}
+            </p>
+            <button
+              onClick={() => setShowQr(false)}
+              className="mt-4 text-sm text-gray-500 hover:underline"
+            >
+              Tutup
+            </button>
           </div>
         </div>
       )}

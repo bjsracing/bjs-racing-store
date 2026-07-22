@@ -38,6 +38,8 @@ export interface Address {
   is_primary: boolean;
   province_id?: string;
   city_id?: string;
+  latitude?: string | number;
+  longitude?: string | number;
 }
 
 export interface FormDataState {
@@ -50,6 +52,8 @@ export interface FormDataState {
   postal_code: string;
   province_id?: string;
   city_id?: string;
+  latitude?: string | number;
+  longitude?: string | number;
 }
 
 export interface Toast {
