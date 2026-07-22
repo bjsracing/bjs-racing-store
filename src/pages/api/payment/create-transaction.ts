@@ -39,7 +39,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
             courier,
             cart_items,
             shipping_cost,
-            service_fee,
+            payment_gateway_fee,
             voucher_code,
         } = body;
         const typedCartItems = cart_items as FrontendCartItem[];
@@ -101,7 +101,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
             0,
         );
         const finalShippingCost = Number(shipping_cost) || 0;
-        const finalServiceFee = Number(service_fee) || 0;
+        const finalPaymentGatewayFee = Number(payment_gateway_fee) || 0;
 
         // --- PERBAIKAN KEAMANAN: Jangan percaya discount_amount dari client.
         // Hitung ulang diskon di server berdasarkan voucher_code. ---
@@ -131,7 +131,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         const totalAmount =
             subtotalProducts +
             finalShippingCost +
-            finalServiceFee -
+            finalPaymentGatewayFee -
             finalDiscountAmount;
 
         const orderNumber = generateOrderNumber();
@@ -143,7 +143,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
                 total_amount: totalAmount,
                 shipping_cost: finalShippingCost,
                 subtotal_products: subtotalProducts,
-                service_fee: finalServiceFee,
+                service_fee: 0,
+                payment_gateway_fee: finalPaymentGatewayFee,
                 voucher_code: voucher_code, // <-- Simpan kode voucher
                 discount_amount: finalDiscountAmount, // <-- Simpan jumlah diskon
                 shipping_address: address,
@@ -225,16 +226,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
                 name: `Ongkos Kirim (${courier.name} - ${courier.service})`,
             });
         }
-        if (finalServiceFee > 0) {
+        if (finalPaymentGatewayFee > 0) {
             item_details.push({
-                id: "SERVICE_FEE",
-                price: finalServiceFee,
+                id: "PAYMENT_GATEWAY_FEE",
+                price: finalPaymentGatewayFee,
                 quantity: 1,
-                name: "Biaya Layanan",
+                name: "Biaya Layanan Transaksi",
             });
         }
 
-        // PERBAIKAN 3: Jika ada diskon, tambahkan sebagai item dengan nilai negatif ke Midtrans
         if (finalDiscountAmount > 0) {
             item_details.push({
                 id: `DISCOUNT_${voucher_code}`,
@@ -252,8 +252,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
             "cimb_va",
             "other_va",
         ];
-        if (totalAmount <= 572000) {
-            enabled_payments.push("other_qris");
+
+        if (finalPaymentGatewayFee > 0) {
+            const qrisFee = totalAmount * 0.007;
+            const gopayFee = totalAmount * 0.02;
+            const shopeepayFee = totalAmount * 0.02;
+            const danaFee = totalAmount * 0.01665;
+            const ovoFee = totalAmount * 0.01665;
+            if (qrisFee <= finalPaymentGatewayFee) enabled_payments.push("other_qris");
+            if (gopayFee <= finalPaymentGatewayFee) enabled_payments.push("gopay");
+            if (shopeepayFee <= finalPaymentGatewayFee) enabled_payments.push("shopeepay");
+            if (danaFee <= finalPaymentGatewayFee) enabled_payments.push("dana");
+            if (ovoFee <= finalPaymentGatewayFee) enabled_payments.push("ovo");
         }
 
         const midtransPayload = {

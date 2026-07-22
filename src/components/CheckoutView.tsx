@@ -109,7 +109,7 @@ export default function CheckoutView() {
   } | null>(null);
   const [isPolling, setIsPolling] = useState(false);
 
-  const SERVICE_FEE = 2000;
+  const PAYMENT_GATEWAY_FEE = 4500;
 
   const dynamicCourierOptions = useMemo(() => {
     const options = [...rajaOngkirCouriers];
@@ -137,12 +137,12 @@ export default function CheckoutView() {
 
   const finalTotal = useMemo(() => {
     const totalBeforeDiscount =
-      subtotal + (selectedShipping?.cost || 0) + SERVICE_FEE;
+      subtotal + (selectedShipping?.cost || 0) + PAYMENT_GATEWAY_FEE;
     return Math.max(
       0,
       totalBeforeDiscount - (appliedVoucher?.discount_amount || 0),
     );
-  }, [subtotal, selectedShipping, SERVICE_FEE, appliedVoucher]);
+  }, [subtotal, selectedShipping, PAYMENT_GATEWAY_FEE, appliedVoucher]);
 
   const formatRupiah = (number: number) =>
     new Intl.NumberFormat("id-ID", {
@@ -342,7 +342,7 @@ export default function CheckoutView() {
     const payload = {
       address_id: selectedAddressId,
       shipping_cost: selectedShipping.cost,
-      service_fee: SERVICE_FEE,
+      payment_gateway_fee: PAYMENT_GATEWAY_FEE,
       voucher_code: appliedVoucher?.code || null,
       discount_amount: appliedVoucher?.discount_amount || 0,
       courier: {
@@ -586,8 +586,8 @@ export default function CheckoutView() {
               </p>
             </div>
             <div className="flex justify-between">
-              <p className="text-gray-600">Biaya Layanan</p>
-              <p className="font-medium">{formatRupiah(SERVICE_FEE)}</p>
+              <p className="text-gray-600">Biaya Layanan Transaksi</p>
+              <p className="font-medium">{formatRupiah(PAYMENT_GATEWAY_FEE)}</p>
             </div>
             {/* --- BARIS DISKON BARU --- */}
             {appliedVoucher && (
