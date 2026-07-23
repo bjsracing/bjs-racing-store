@@ -3,10 +3,12 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useAppStore } from "@/lib/store.ts";
 import { FiShoppingCart, FiStar, FiEye, FiPlus, FiMinus } from "react-icons/fi";
 import ProductInfoTabs from "./ProductInfoTabs.jsx";
+import RelatedProducts from "./RelatedProducts.jsx";
 
 const ProductDetailView = ({ initialProduct, allProductVariants }) => {
     const [selectedVariant, setSelectedVariant] = useState(initialProduct);
     const [quantity, setQuantity] = useState(1);
+    const [galleryIndex, setGalleryIndex] = useState(0);
     const { addToCart, addToast } = useAppStore();
 
     useEffect(() => {
@@ -37,6 +39,7 @@ const ProductDetailView = ({ initialProduct, allProductVariants }) => {
         const newVariant = allProductVariants.find((p) => p.ukuran === size);
         if (newVariant) {
             setSelectedVariant(newVariant);
+            setGalleryIndex(0);
         }
     };
 
@@ -99,18 +102,60 @@ const ProductDetailView = ({ initialProduct, allProductVariants }) => {
         : 0;
     const isBestSeller = selectedVariant.total_terjual > 50;
 
+    const galleryImages = useMemo(() => {
+        const images = [selectedVariant.image_url, selectedVariant.image_url_2, selectedVariant.image_url_3].filter(Boolean);
+        return images.length > 0 ? images : [];
+    }, [selectedVariant]);
+
+    const currentImage = galleryImages[galleryIndex] || null;
+
+    const nextImage = () => {
+        setGalleryIndex((prev) => (prev + 1) % galleryImages.length);
+    };
+
+    const prevImage = () => {
+        setGalleryIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length);
+    };
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
             {/* --- KOLOM KIRI: TAMPILAN GAMBAR (SEKARANG DINAMIS) --- */}
             <div className="relative aspect-square bg-white rounded-lg flex items-center justify-center p-2 shadow-xl border">
-                {selectedVariant.image_url ? (
+                {currentImage ? (
                     <img
-                        src={selectedVariant.image_url}
+                        src={currentImage}
                         alt={selectedVariant.nama}
                         className="w-full h-full object-contain transition-opacity duration-300"
                     />
                 ) : (
                     <div className="w-full h-full bg-slate-100 rounded-md"></div>
+                )}
+
+                {galleryImages.length > 1 && (
+                    <>
+                        <button
+                            onClick={prevImage}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-slate-800 w-8 h-8 rounded-full shadow flex items-center justify-center"
+                            type="button"
+                        >
+                            &lt;
+                        </button>
+                        <button
+                            onClick={nextImage}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-slate-800 w-8 h-8 rounded-full shadow flex items-center justify-center"
+                            type="button"
+                        >
+                            &gt;
+                        </button>
+                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                            {galleryImages.map((_, idx) => (
+                                <span
+                                    key={idx}
+                                    className={`w-2 h-2 rounded-full ${idx === galleryIndex ? "bg-orange-500" : "bg-slate-300"}`}
+                                />
+                            ))}
+                        </div>
+                    </>
                 )}
 
                 <div className="absolute top-4 left-4 flex flex-col items-start gap-2">
@@ -265,6 +310,14 @@ const ProductDetailView = ({ initialProduct, allProductVariants }) => {
                 </div>
 
                 <ProductInfoTabs product={selectedVariant} />
+            </div>
+
+            <div className="md:col-span-2">
+                <RelatedProducts
+                    productId={selectedVariant.id}
+                    merek={selectedVariant.merek}
+                    lini_produk={selectedVariant.lini_produk}
+                />
             </div>
         </div>
     );

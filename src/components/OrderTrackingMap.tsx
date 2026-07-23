@@ -88,8 +88,8 @@ const OrderTrackingMap = ({
       [originLng, originLat],
       [destLng, destLat],
     ).then((route) => {
-      fallbackUsed = route.fallback;
-      const latlngs = route.geometry.map(([lng, lat]) => [lat, lng]);
+      const fallbackUsed = route.fallback;
+      const latlngs = route.geometry.map(([lng, lat]) => [lat, lng] as [number, number]);
       routeLayer = L.polyline(latlngs, {
         color: fallbackUsed ? "#f97316" : "#2563eb",
         weight: 5,
@@ -97,7 +97,7 @@ const OrderTrackingMap = ({
         dashArray: fallbackUsed ? "8 10" : undefined,
       }).addTo(map);
 
-      const bounds = L.latLngBounds(latlngs as L.LatLngExpression[]);
+      const bounds = L.latLngBounds(latlngs as [number, number][]);
       map.fitBounds(bounds, { padding: [40, 40] });
 
       setRouteInfo({

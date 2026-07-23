@@ -4,6 +4,7 @@ import Footer from '../components/Footer.astro';
 import CartInitializer from '../components/CartInitializer.jsx';
 import UpdateNotifier from '../components/UpdateNotifier.jsx';
 import ToastContainer from '../components/ToastContainer.jsx';
+import WhatsAppChatButton from '../components/WhatsAppChatButton.jsx';
 
 const { session } = Astro.locals;
 
@@ -64,7 +65,8 @@ const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
     </main>
 
     <Footer />
-    
+    <WhatsAppChatButton client:visible />
+
     {/* PWA Registration Script */}
     <script>
 // ✅ DEBOUNCE FUNCTION UNTUK PERFORMANCE

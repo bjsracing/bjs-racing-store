@@ -3,6 +3,7 @@
 import MainLayout from '@/layouts/MainLayout.astro';
 import { supabaseAdmin } from '@/lib/supabaseServer.ts';
 import { formatToWIB } from '@/lib/utils.ts';
+import OrderTrackingMap from '@/components/OrderTrackingMap.tsx';
 
 // 1. Proteksi Halaman & Ambil Data dari Server
 const { session } = Astro.locals;
@@ -116,7 +117,6 @@ if (orderStatus === 'cancelled') {
               <p>
                 No. Resi: <span class="font-bold text-slate-800">{order.shipping_receipt_number}</span>
               </p>
-              {/* --- TOMBOL BARU DITAMBAHKAN DI SINI --- */}
               <a 
                 href={`/lacak-pesanan?awb=${order.shipping_receipt_number}&courier=${order.courier_details.code}`}
                 target="_blank"
@@ -126,6 +126,18 @@ if (orderStatus === 'cancelled') {
               </a>
             </div>
             )}
+          </div>
+
+          {order.shipping_address?.latitude && order.shipping_address?.longitude && (
+            <div class="mt-6">
+              <h3 class="font-bold text-lg mb-2">Rute Pengiriman</h3>
+              <OrderTrackingMap
+                customerLat={order.shipping_address.latitude}
+                customerLng={order.shipping_address.longitude}
+                customerAddress={order.shipping_address.destination_text || order.shipping_address.full_address}
+              />
+            </div>
+          )}
           </div>
         </div>
         <div>

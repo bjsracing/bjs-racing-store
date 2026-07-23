@@ -3,6 +3,7 @@ import type { APIRoute } from "astro";
 import { supabaseAdmin } from "@/lib/supabaseServer.ts";
 import { validateAndComputeVoucher, consumeVoucher } from "@/lib/voucher.ts";
 import { generateBriQrMpm, BRI_CONFIG } from "@/lib/bri.ts";
+import { sendOrderNotification } from "@/lib/notifications.ts";
 import { Buffer } from "buffer";
 
 interface FrontendCartItem {
@@ -316,6 +317,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
                 amount: totalAmount,
                 status: "pending",
             });
+
+        void sendOrderNotification({
+          to: customer.telepon,
+          channel: "whatsapp",
+          event: "order_created",
+          data: {
+            orderNumber: newOrder.order_number,
+            customerName: customer.nama_pelanggan,
+            amount: totalAmount,
+            storeName: "BJS Racing Store",
+            storePhone: "0881011669213",
+          },
+        }).catch((err: unknown) => console.error("Gagal kirim notifikasi order_created:", err));
 
         return new Response(
             JSON.stringify({

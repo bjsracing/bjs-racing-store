@@ -1,0 +1,29 @@
+---
+// File: /src/layouts/AdminLayout.astro
+const { title = "Admin" } = Astro.props;
+---
+
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} - BJS Racing Admin</title>
+    <link rel="icon" href="/favicon.svg" />
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-slate-100 text-slate-800">
+    <nav class="bg-slate-900 text-white px-6 py-4">
+      <div class="max-w-6xl mx-auto flex justify-between items-center">
+        <a href="/" class="font-bold text-lg">BJS Racing Admin</a>
+        <div class="space-x-4">
+          <a href="/admin/dashboard" class="hover:underline">Dashboard</a>
+          <a href="/" class="hover:underline">Lihat Toko</a>
+        </div>
+      </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto py-8 px-4">
+      <slot />
+    </main>
+  </body>
+</html>

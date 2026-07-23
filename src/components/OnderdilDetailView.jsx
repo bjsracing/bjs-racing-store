@@ -9,7 +9,8 @@ import {
     FiPlus,
     FiMinus,
 } from "react-icons/fi";
-import ProductInfoTabs from "./ProductInfoTabs.jsx"; // Kita gunakan lagi komponen ini
+import ProductInfoTabs from "./ProductInfoTabs.jsx";
+import RelatedProducts from "./RelatedProducts.jsx"; // Kita gunakan lagi komponen ini
 
 const OnderdilDetailView = ({ initialProduct, allProductVariants }) => {
     const [selectedVariant, setSelectedVariant] = useState(initialProduct);
@@ -265,6 +266,14 @@ const OnderdilDetailView = ({ initialProduct, allProductVariants }) => {
                 </div>
 
                 <ProductInfoTabs product={selectedVariant} />
+            </div>
+
+            <div className="md:col-span-2">
+                <RelatedProducts
+                    productId={selectedVariant.id}
+                    merek={selectedVariant.merek}
+                    lini_produk={selectedVariant.lini_produk}
+                />
             </div>
         </div>
     );

@@ -2,9 +2,12 @@
 // src/pages/index.astro
 import MainLayout from '../layouts/MainLayout.astro';
 import id from '../../public/locales/id/common.json';
+import PromoBanner from '../components/PromoBanner.jsx';
 ---
 
 <MainLayout title="BJS RACING STORE - Home">
+    <PromoBanner />
+
     {/* Hero Section */}
     <section class="bg-gradient-to-br from-orange-500 to-orange-600 text-white">
         <div class="container mx-auto px-3 mobile:px-4 tablet:px-6 py-12 mobile:py-16 tablet:py-20 desktop:py-24 text-center">

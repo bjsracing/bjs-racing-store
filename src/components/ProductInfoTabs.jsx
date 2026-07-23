@@ -1,7 +1,9 @@
 // src/components/ProductInfoTabs.jsx
 
 import React, { useState } from "react";
-import RelatedProducts from "./RelatedProducts.jsx"; // <-- Impor baru
+import RelatedProducts from "./RelatedProducts.jsx";
+import ReviewForm from "./ReviewForm.jsx";
+import ReviewsList from "./ReviewsList.jsx";
 
 const ProductInfoTabs = ({ product }) => {
   const [activeTab, setActiveTab] = useState("deskripsi");
@@ -9,7 +11,8 @@ const ProductInfoTabs = ({ product }) => {
   const tabs = [
     { id: "deskripsi", label: "Deskripsi Produk" },
     { id: "spesifikasi", label: "Spesifikasi" },
-    { id: "terkait", label: "Produk Terkait" }, // <-- Tab baru
+    { id: "ulasan", label: `Ulasan (${product.jumlah_ulasan || 0})` },
+    { id: "terkait", label: "Produk Terkait" },
   ];
 
   return (
@@ -52,6 +55,14 @@ const ProductInfoTabs = ({ product }) => {
             ) : (
               <p className="text-slate-600">Spesifikasi belum tersedia.</p>
             )}
+          </div>
+        )}
+        {activeTab === "ulasan" && (
+          <div className="space-y-4">
+            <ReviewsList productId={product.id} />
+            <div className="border-t pt-4">
+              <ReviewForm productId={product.id} />
+            </div>
           </div>
         )}
         {activeTab === "terkait" && <RelatedProducts product={product} />}

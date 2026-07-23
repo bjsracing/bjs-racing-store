@@ -4,7 +4,7 @@ export interface OsrmRoute {
   distanceMeters: number;
   durationSeconds: number;
   geometry: [number, number][];
-  fallback?: boolean;
+  fallback: boolean;
 }
 
 const OSRM_BASE = "https://router.project-osrm.org/route/v1/driving";
@@ -43,6 +43,7 @@ export async function getOsrmRoute(
       distanceMeters: Math.round(route.distance ?? 0),
       durationSeconds: Math.round(route.duration ?? 0),
       geometry,
+      fallback: false,
     };
   } catch (error) {
     clearTimeout(timeout);

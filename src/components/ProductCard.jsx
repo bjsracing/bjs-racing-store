@@ -43,6 +43,13 @@ const ProductCard = ({ product }) => {
                         <div className="w-full h-full bg-slate-100 rounded-md"></div>
                     )}
 
+                    {/* Multi-image indicator */}
+                    {[product.image_url_2, product.image_url_3].filter(Boolean).length > 0 && (
+                        <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] font-bold px-2 py-1 rounded-full">
+                            +{[product.image_url_2, product.image_url_3].filter(Boolean).length}
+                        </div>
+                    )}
+
                     {/* --- BADGES BARU (Pojok Kiri Atas) --- */}
                     <div className="absolute top-2 left-2 flex flex-col items-start gap-1">
                         {hasDiscount && (
