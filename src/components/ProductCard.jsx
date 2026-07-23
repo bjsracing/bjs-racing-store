@@ -3,6 +3,8 @@
 import React from "react";
 import AddToCartButton from "./AddToCartButton.jsx";
 import { FiStar } from "react-icons/fi";
+import WishlistButton from "./WishlistButton.jsx";
+import CompareButton from "./CompareButton.jsx";
 
 const ProductCard = ({ product }) => {
     const formatRupiah = (number) => {
@@ -154,6 +156,10 @@ const ProductCard = ({ product }) => {
             </a>
             <div className="px-3 pb-3 bg-white">
                 <AddToCartButton product={product} />
+                <div className="flex justify-between items-center mt-2">
+                    <WishlistButton productId={product.id} />
+                    <CompareButton productId={product.id} />
+                </div>
             </div>
         </div>
     );

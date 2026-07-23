@@ -331,6 +331,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
           },
         }).catch((err: unknown) => console.error("Gagal kirim notifikasi order_created:", err));
 
+        const pointsToAdd = Math.floor(totalAmount / 100);
+        if (pointsToAdd > 0) {
+          supabaseAdmin
+            .from("loyalty_points")
+            .insert({
+              customer_id: customer.id,
+              order_id: newOrder.id,
+              points: pointsToAdd,
+              type: "earned",
+              description: `Poin dari pesanan ${newOrder.order_number}`,
+            })
+            .then(() => {})
+            .catch((err) => console.error("Gagal menambah loyalty points:", err));
+        }
+
         return new Response(
             JSON.stringify({
                 snap_token: midtransResult.token,

@@ -1,0 +1,60 @@
+---
+// File: /src/pages/akun/wishlist.astro
+import MainLayout from '@/layouts/MainLayout.astro';
+---
+
+<MainLayout title="Wishlist Saya">
+  <div class="max-w-6xl mx-auto py-8">
+    <h1 class="text-3xl font-bold mb-6">Wishlist Saya</h1>
+    <div id="wishlist-container" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <p class="text-slate-500 col-span-full text-center py-10">Memuat wishlist...</p>
+    </div>
+  </div>
+
+  <script>
+    async function loadWishlist() {
+      const res = await fetch('/api/wishlist');
+      if (!res.ok) {
+        document.getElementById('wishlist-container').innerHTML = '<p class=\"text-red-500 col-span-full text-center py-10\">Gagal memuat wishlist.</p>';
+        return;
+      }
+      const items = await res.json();
+      const container = document.getElementById('wishlist-container');
+      if (!items.length) {
+        container.innerHTML = '<p class=\"text-slate-500 col-span-full text-center py-10\">Wishlist Anda masih kosong.</p>';
+        return;
+      }
+      container.innerHTML = items.map(item => {
+        const p = item.products || {};
+        return `
+          <div class=\"bg-white rounded-xl shadow-md overflow-hidden border border-slate-200 flex flex-col h-full\">
+            <a href=\"/products/${p.id}\" class=\"block flex flex-col flex-grow\">
+              <div class=\"aspect-square bg-white flex items-center justify-center p-2\">
+                ${p.image_url ? `<img src=\"${p.image_url}\" alt=\"${p.nama}\" class=\"w-full h-full object-contain\" />` : '<div class=\"w-full h-full bg-slate-100 rounded-md\"></div>'}
+              </div>
+              <div class=\"p-3 flex-grow flex flex-col\">
+                <h3 class=\"text-sm font-bold text-slate-900 line-clamp-2\">${p.nama || ''}</h3>
+                <p class=\"text-xs text-blue-600 uppercase font-bold mt-1\">${p.lini_produk || ''}</p>
+                <p class=\"font-bold text-orange-500 mt-2\">Rp ${Number(p.harga_jual || 0).toLocaleString('id-ID')}</p>
+              </div>
+            </a>
+            <div class=\"p-3 pt-0\">
+              <button onclick=\"removeFromWishlist('${p.id}')\" class=\"w-full bg-red-50 text-red-600 border border-red-200 font-semibold py-2 rounded-lg text-sm hover:bg-red-100\">Hapus</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function removeFromWishlist(productId) {
+      const res = await fetch('/api/wishlist', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_id: productId })
+      });
+      if (res.ok) loadWishlist();
+    }
+
+    loadWishlist();
+  </script>
+</MainLayout>

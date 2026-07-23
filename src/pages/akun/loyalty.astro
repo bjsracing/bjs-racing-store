@@ -1,0 +1,82 @@
+---
+// File: /src/pages/akun/loyalty.astro
+import MainLayout from '@/layouts/MainLayout.astro';
+---
+
+<MainLayout title="Loyalty Points">
+  <div class="max-w-4xl mx-auto py-8">
+    <h1 class="text-3xl font-bold mb-6">Loyalty Points</h1>
+    <div id="loyalty-container">
+      <p class="text-slate-500 text-center py-10">Memuat loyalty points...</p>
+    </div>
+  </div>
+
+  <script>
+    async function loadLoyalty() {
+      const res = await fetch('/api/loyalty');
+      if (!res.ok) {
+        document.getElementById('loyalty-container').innerHTML = '<p class=\"text-red-500 text-center py-10\">Gagal memuat loyalty points.</p>';
+        return;
+      }
+      const data = await res.json();
+      const container = document.getElementById('loyalty-container');
+      container.innerHTML = `
+        <div class=\"bg-white p-6 rounded-xl shadow-md mb-6\">
+          <p class=\"text-sm text-slate-500\">Total Poin Anda</p>
+          <p class=\"text-4xl font-bold text-orange-600\">${data.totalPoints || 0}</p>
+          <p class=\"text-xs text-slate-400 mt-1\">100 poin = Rp1.000 diskon</p>
+        </div>
+        <div class=\"bg-white p-6 rounded-xl shadow-md mb-6\">
+          <h2 class=\"text-xl font-bold mb-4\">Tukar Poin</h2>
+          <div class=\"flex gap-2\">
+            <input type=\"number\" id=\"redeem-points\" min=\"100\" step=\"100\" value=\"100\" class=\"border rounded-lg p-2 w-32\" />
+            <button onclick=\"redeemPoints()\" class=\"bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-lg\">Tukar</button>
+          </div>
+          <p id=\"redeem-message\" class=\"text-sm mt-2\"></p>
+        </div>
+        <div class=\"bg-white p-6 rounded-xl shadow-md\">
+          <h2 class=\"text-xl font-bold mb-4\">Riwayat Poin</h2>
+          <div class=\"space-y-3\">
+            ${(data.points || []).length === 0 ? '<p class=\"text-slate-500\">Belum ada riwayat poin.</p>' : data.points.map(p => `
+              <div class=\"flex justify-between items-center border-b pb-2 last:border-b-0\">
+                <div>
+                  <p class=\"font-medium text-slate-800\">${p.description || 'Poin transaksi'}</p>
+                  <p class=\"text-xs text-slate-400\">${new Date(p.created_at).toLocaleDateString('id-ID')}</p>
+                </div>
+                <span class=\"font-bold ${p.points > 0 ? 'text-green-600' : 'text-red-600'}\">${p.points > 0 ? '+' : ''}${p.points}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    async function redeemPoints() {
+      const pointsInput = document.getElementById('redeem-points');
+      const messageEl = document.getElementById('redeem-message');
+      const points = Number(pointsInput.value);
+      if (!points || points <= 0) {
+        messageEl.innerHTML = '<span class=\"text-red-600\">Masukkan jumlah poin yang valid.</span>';
+        return;
+      }
+      try {
+        const res = await fetch('/api/loyalty/redeem', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ points }),
+        });
+        const result = await res.json();
+        if (!res.ok) {
+          messageEl.innerHTML = '<span class=\"text-red-600\">' + (result.message || 'Gagal menukar poin.') + '</span>';
+        } else {
+          messageEl.innerHTML = '<span class=\"text-green-600\">' + (result.message || 'Berhasil menukar poin.') + '</span>';
+          loadLoyalty();
+        }
+      } catch {
+        messageEl.innerHTML = '<span class=\"text-red-600\">Terjadi kesalahan.</span>';
+      }
+    }
+
+    loadLoyalty();
+  </script>
+</MainLayout>

@@ -1,0 +1,88 @@
+---
+// File: /src/pages/akun/compare.astro
+import MainLayout from '@/layouts/MainLayout.astro';
+---
+
+<MainLayout title="Bandingkan Produk">
+  <div class="max-w-6xl mx-auto py-8">
+    <h1 class="text-3xl font-bold mb-6">Bandingkan Produk</h1>
+    <div id="compare-container">
+      <p class="text-slate-500 text-center py-10">Memuat perbandingan...</p>
+    </div>
+  </div>
+
+  <script>
+    async function loadCompare() {
+      const res = await fetch('/api/compare');
+      if (!res.ok) {
+        document.getElementById('compare-container').innerHTML = '<p class=\"text-red-500 text-center py-10\">Gagal memuat perbandingan.</p>';
+        return;
+      }
+      const items = await res.json();
+      const container = document.getElementById('compare-container');
+      if (!items.length) {
+        container.innerHTML = '<p class=\"text-slate-500 text-center py-10\">Belum ada produk yang dibandingkan.</p>';
+        return;
+      }
+
+      const rows = [
+        { label: 'Gambar', key: 'image_url', type: 'image' },
+        { label: 'Nama', key: 'nama', type: 'text' },
+        { label: 'Merek', key: 'merek', type: 'text' },
+        { label: 'Kategori', key: 'kategori', type: 'text' },
+        { label: 'Harga', key: 'harga_jual', type: 'price' },
+        { label: 'Stok', key: 'stok', type: 'number' },
+        { label: 'Rating', key: 'rating', type: 'rating' },
+        { label: 'Terjual', key: 'total_terjual', type: 'number' },
+      ];
+
+      container.innerHTML = `
+        <div class=\"overflow-x-auto\">
+          <table class=\"w-full border-collapse border border-slate-200\">
+            <thead>
+              <tr class=\"bg-slate-50\">
+                <th class=\"border border-slate-200 p-3 text-left\">Spesifikasi</th>
+                ${items.map(item => {
+                  const p = item.products || {};
+                  return `<th class=\"border border-slate-200 p-3 text-center min-w-[200px]\">
+                    <div class=\"flex flex-col items-center gap-2\">
+                      ${p.image_url ? `<img src=\"${p.image_url}\" alt=\"${p.nama}\" class=\"w-20 h-20 object-contain\" />` : '<div class=\"w-20 h-20 bg-slate-100 rounded\"></div>'}
+                      <a href=\"/products/${p.id}\" class=\"font-bold text-slate-900 hover:underline\">${p.nama || ''}</a>
+                      <button onclick=\"removeFromCompare('${p.id}')\" class=\"text-xs text-red-600 hover:underline\">Hapus</button>
+                    </div>
+                  </th>`;
+                }).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(row => `
+                <tr>
+                  <td class=\"border border-slate-200 p-3 font-semibold bg-slate-50\">${row.label}</td>
+                  ${items.map(item => {
+                    const p = item.products || {};
+                    let value = p[row.key];
+                    if (row.type === 'price') value = 'Rp ' + Number(value || 0).toLocaleString('id-ID');
+                    if (row.type === 'image') value = p.image_url ? `<img src=\"${p.image_url}\" class=\"w-16 h-16 object-contain mx-auto\" />` : '<div class=\"w-16 h-16 bg-slate-100 rounded mx-auto\"></div>';
+                    if (row.type === 'rating') value = '<span class=\"text-orange-500\">' + (Number(value || 0).toFixed(1)) + '</span>';
+                    return `<td class=\"border border-slate-200 p-3 text-center\">${value || '-'}</td>`;
+                  }).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    async function removeFromCompare(productId) {
+      const res = await fetch('/api/compare', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_id: productId })
+      });
+      if (res.ok) loadCompare();
+    }
+
+    loadCompare();
+  </script>
+</MainLayout>

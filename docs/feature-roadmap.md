@@ -69,27 +69,27 @@ Berdasarkan stack yang ada (Astro + Supabase + Midtrans + RajaOngkir), berikut f
 ### 8. Wishlist / Compare Products
 - Simpan produk favorit untuk beli nanti
 - Bandingkan spesifikasi produk
-- Status: 🔄 MENUNGGU IMPLEMENTASI
+- Status: ✅ DITERAPKAN — API + tombol wishlist/compare + halaman akun + navigasi
 
 ### 9. Multi-variant Product
 - Ukuran, warna, varian dengan harga berbeda
 - Perlu perubahan schema `products` + `order_items`
-- Status: 🔄 MENUNGGU IMPLEMENTASI
+- Status: ✅ DITERAPKAN — Schema DB + UI selector varian di halaman produk
 
 ### 10. Search Improvement
 - Filter by kategori, harga, merek
 - Sort by harga terendah/tertinggi, terbaru, terlaris
-- Status: 🔄 MENUNGGU IMPLEMENTASI
+- Status: ✅ DITERAPKAN — Filter lengkap + sort di CatalogFilter
 
 ### 11. Invoice PDF
 - Generate invoice otomatis saat order dibuat
 - Download PDF dari halaman akun
-- Status: 🔄 MENUNGGU IMPLEMENTASI
+- Status: ✅ DITERAPKAN — Download invoice HTML + auto-print
 
 ### 12. Loyalty Points
 - Poin dari setiap pembelian
 - Tukar poin dengan diskon/voucher
-- Status: 🔄 MENUNGGU IMPLEMENTASI
+- Status: ✅ DITERAPKAN — API + halaman akun + earning otomatis + redeem voucher
 
 ---
 
@@ -103,13 +103,13 @@ Berdasarkan stack yang ada (Astro + Supabase + Midtrans + RajaOngkir), berikut f
 5. **Customer Review & Rating** — form ulasan, daftar ulasan, API reviews
 6. **Promo Banner** — slider banner di homepage
 7. **WhatsApp Chat** — floating button di semua halaman
+8. **Wishlist / Compare** — API + tombol wishlist/compare + halaman akun + navigasi
+9. **Multi-variant Product** — schema DB + UI selector varian di halaman produk
+10. **Search Improvement** — filter lengkap + sort di CatalogFilter
+11. **Invoice** — download invoice HTML + auto-print dari halaman pesanan
+12. **Loyalty Points** — API + halaman akun + earning otomatis + redeem voucher
 
-### 🔄 Menunggu Implementasi
-8. Wishlist / Compare Products
-9. Multi-variant Product
-10. Search Improvement
-11. Invoice PDF
-12. Loyalty Points
+
 
 ---
 
