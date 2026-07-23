@@ -130,7 +130,7 @@ const PromoBanner = () => {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 h-full flex items-center">
+      <div className="relative z-10 max-w-6xl mx-auto px-14 sm:px-20 md:px-24 h-full flex items-center">
         <div
           key={index}
           className="max-w-xl animate-[fadeInUp_0.5s_ease-out]"
@@ -153,17 +153,17 @@ const PromoBanner = () => {
       {/* Arrow Navigation */}
       <button
         onClick={goPrev}
-        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-transparent"
+        className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-30 w-10 h-10 md:w-12 md:h-12 rounded-full bg-orange-500/20 backdrop-blur-sm flex items-center justify-center hover:bg-orange-500/40 transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-transparent"
         aria-label="Slide sebelumnya"
       >
-        <FiChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
+        <FiChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-orange-600" />
       </button>
       <button
         onClick={goNext}
-        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-transparent"
+        className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-30 w-10 h-10 md:w-12 md:h-12 rounded-full bg-orange-500/20 backdrop-blur-sm flex items-center justify-center hover:bg-orange-500/40 transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-transparent"
         aria-label="Slide berikutnya"
       >
-        <FiChevronRight className="w-5 h-5 md:w-6 md:h-6" />
+        <FiChevronRight className="w-5 h-5 md:w-6 md:h-6 text-orange-600" />
       </button>
 
       {/* Bottom Bar: Progress + Numbered Indicator */}

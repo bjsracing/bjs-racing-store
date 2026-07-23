@@ -113,7 +113,7 @@ const FeaturedProducts = () => {
         {/* CTA */}
         <div className="text-center mt-8 mobile:mt-10">
           <a
-            href="/products"
+              href="/pilok"
             className="inline-block bg-orange-500 text-white px-6 mobile:px-8 py-3 rounded-full font-semibold shadow-lg hover:bg-orange-600 transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 text-sm mobile:text-base"
           >
             Lihat Semua Produk
