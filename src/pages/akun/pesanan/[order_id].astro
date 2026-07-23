@@ -110,21 +110,19 @@ if (orderStatus === 'cancelled') {
           <div class="text-slate-600 space-y-1">
             <p class="font-semibold">{order.courier_details.name} - {order.courier_details.service}</p>
             <p>Estimasi Tiba: {order.courier_details.etd}</p>
-            
-            {/* --- PERBAIKAN 2: Tampilkan Nomor Resi --- */}
-                    {order.shipping_receipt_number && (
-            <div class="mt-2">
-              <p>
-                No. Resi: <span class="font-bold text-slate-800">{order.shipping_receipt_number}</span>
-              </p>
-              <a 
-                href={`/lacak-pesanan?awb=${order.shipping_receipt_number}&courier=${order.courier_details.code}`}
-                target="_blank"
-                class="inline-block mt-2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700"
-              >
-                Lacak Pengiriman
-              </a>
-            </div>
+            {order.shipping_receipt_number && (
+              <div class="mt-2">
+                <p>
+                  No. Resi: <span class="font-bold text-slate-800">{order.shipping_receipt_number}</span>
+                </p>
+                <a
+                  href={`/lacak-pesanan?awb=${order.shipping_receipt_number}&courier=${order.courier_details.code}`}
+                  target="_blank"
+                  class="inline-block mt-2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700"
+                >
+                  Lacak Pengiriman
+                </a>
+              </div>
             )}
           </div>
 
@@ -138,7 +136,6 @@ if (orderStatus === 'cancelled') {
               />
             </div>
           )}
-          </div>
         </div>
         <div>
           <h3 class="font-bold text-lg mb-4">Ringkasan Item:</h3>
