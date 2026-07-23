@@ -80,7 +80,6 @@ export default function CheckoutView() {
   } | null>(null);
   const [voucherError, setVoucherError] = useState("");
   const [isApplyingVoucher, setIsApplyingVoucher] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [myVouchers, setMyVouchers] = useState<Voucher[]>([]);
 
   const [showQr, setShowQr] = useState(false);
@@ -94,6 +93,8 @@ export default function CheckoutView() {
   const [shippingCacheKey, setShippingCacheKey] = useState<string>("");
   const [shippingCache, setShippingCache] = useState<any>(null);
   const [isRateCheckCooldown, setIsRateCheckCooldown] = useState(false);
+  const [isRateCheckPermanentlyDisabled, setIsRateCheckPermanentlyDisabled] = useState(false);
+  const [rapidClickCount, setRapidClickCount] = useState(0);
 
   const PAYMENT_GATEWAY_FEE = 4500;
 
@@ -141,22 +142,26 @@ export default function CheckoutView() {
 
   useEffect(() => {
     fetchAddresses();
-    const fetchMyVouchers = async () => {
-      try {
-        const response = await fetch("/api/vouchers/my-vouchers");
-        const data = await response.json();
-        if (response.ok) {
-          const validVouchers = data
-            .map((item: any) => item.vouchers)
-            .filter(Boolean);
-          setMyVouchers(validVouchers);
-        }
-      } catch (err) {
-        console.error("Gagal memuat voucher saya:", err);
-      }
-    };
-    fetchMyVouchers();
   }, [fetchAddresses]);
+
+  const fetchMyVouchers = useCallback(async () => {
+    try {
+      const response = await fetch("/api/vouchers/my-vouchers");
+      const data = await response.json();
+      if (response.ok) {
+        const validVouchers = data
+          .map((item: any) => item.vouchers)
+          .filter(Boolean);
+        setMyVouchers(validVouchers);
+      }
+    } catch (err) {
+      console.error("Gagal memuat voucher saya:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMyVouchers();
+  }, [fetchMyVouchers, subtotal, selectedShipping]);
 
   useEffect(() => {
     if (addresses.length > 0 && !selectedAddressId) {
@@ -328,12 +333,6 @@ export default function CheckoutView() {
     }
   };
 
-  const handleSelectFromModal = (voucher: Voucher) => {
-    setVoucherCode(voucher.code);
-    setIsModalOpen(false);
-    handleApplyVoucher(voucher.code);
-  };
-
   const pollOrderStatus = (orderId: string) => {
     setIsPolling(true);
     const interval = setInterval(async () => {
@@ -493,32 +492,55 @@ export default function CheckoutView() {
         </div>
 
          {/* --- Blok Metode Pengiriman (Tidak Berubah) --- */}
-         <div className="bg-white p-6 rounded-xl shadow-md">
-           <div className="flex items-center justify-between mb-4">
-             <h2 className="text-xl font-bold">Metode Pengiriman</h2>
-              <button
-                type="button"
-                onClick={() => {
-                  setShippingCacheKey("");
-                  setShippingCache(null);
-                  setIsRateCheckCooldown(true);
-                  setTimeout(() => setIsRateCheckCooldown(false), 10000);
-                }}
-                className="text-sm font-medium text-blue-600 hover:text-blue-800 disabled:text-gray-400"
-                disabled={isLoadingCosts || isRateCheckCooldown}
-              >
-                {isLoadingCosts ? "Memuat..." : "Cek Ulang Tarif"}
-              </button>
-           </div>
-           {isLoadingCosts && (
-            <p className="text-sm text-gray-500 mt-4 animate-pulse">
-              Menghitung ongkos kirim...
-            </p>
-          )}
-          {error && <p className="text-sm text-red-500 mt-4">{error}</p>}
-          {shippingServices.length > 0 && (
-            <div className="mt-4 space-y-2">
-              <p className="text-sm font-medium">Pilih Layanan Pengiriman:</p>
+          <div className="bg-white p-6 rounded-xl shadow-md">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Metode Pengiriman</h2>
+               <button
+                 type="button"
+                 onClick={() => {
+                   const storageKey = "rate_check_clicks";
+                   const clicks = JSON.parse(sessionStorage.getItem(storageKey) || "[]");
+                   
+                   if (isRateCheckPermanentlyDisabled) {
+                     return;
+                   }
+                   
+                   const now = Date.now();
+                   clicks.push(now);
+                   sessionStorage.setItem(storageKey, JSON.stringify(clicks));
+                   setRapidClickCount(clicks.length);
+                   
+                   const recentClicks = clicks.filter((t: number) => now - t < 30000);
+                   if (recentClicks.length >= 3) {
+                     setIsRateCheckPermanentlyDisabled(true);
+                     setIsRateCheckCooldown(true);
+                     return;
+                   }
+                   
+                   setShippingCacheKey("");
+                   setShippingCache(null);
+                   setIsRateCheckCooldown(true);
+                   setTimeout(() => setIsRateCheckCooldown(false), 120000);
+                 }}
+                 className="text-sm font-medium text-blue-600 hover:text-blue-800 disabled:text-gray-400"
+                 disabled={isLoadingCosts || isRateCheckCooldown || isRateCheckPermanentlyDisabled}
+               >
+                 {isRateCheckPermanentlyDisabled
+                   ? "Cek Tarif Diperlukan Menunggu"
+                   : isLoadingCosts
+                   ? "Memuat..."
+                   : "Cek Ulang Tarif"}
+               </button>
+            </div>
+            {isLoadingCosts && (
+             <p className="text-sm text-gray-500 mt-4 animate-pulse">
+               Menghitung ongkos kirim...
+             </p>
+           )}
+           {error && <p className="text-sm text-red-500 mt-4">{error}</p>}
+           {shippingServices.length > 0 && (
+             <div className="mt-4 space-y-2">
+               <p className="text-sm font-medium">Pilih Layanan Pengiriman:</p>
               {shippingServices.map((service) => (
                 <label
                   key={service.service}
@@ -588,47 +610,86 @@ export default function CheckoutView() {
           )}
         </div>
 
-        {/* --- BLOK VOUCHER BARU --- */}
-        <div className="bg-white p-6 rounded-xl shadow-md">
-          <h2 className="text-xl font-bold mb-4">Voucher & Diskon</h2>
-          <div className="flex gap-2 items-start">
-            <div className="flex-grow">
-              <input
-                type="text"
-                placeholder="Masukkan Kode Voucher"
-                value={voucherCode}
-                onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
-                className="w-full p-3 border rounded-md bg-gray-50 text-sm"
-              />
-              {voucherError && (
-                <p className="text-xs text-red-500 mt-1">{voucherError}</p>
-              )}
-              {appliedVoucher && (
-                <p className="text-xs text-green-600 mt-1">
-                  Kode {appliedVoucher.code} diterapkan.
-                  {appliedVoucher.target_label
-                    ? ` (${appliedVoucher.target_label})`
-                    : ""}
-                </p>
-              )}
-            </div>
-            <button
-              onClick={() => handleApplyVoucher(voucherCode)}
-              disabled={isApplyingVoucher || !voucherCode}
-              className="px-4 py-3 bg-orange-500 text-white font-semibold rounded-md text-sm disabled:bg-gray-400"
-            >
-              {isApplyingVoucher ? "..." : "Terapkan"}
-            </button>
-          </div>
-          {myVouchers.length > 0 && (
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="text-sm font-medium text-blue-600 hover:underline mt-2"
-            >
-              atau Pilih Voucher Saya
-            </button>
-          )}
+         {/* --- BLOK VOUCHER BARU --- */}
+         <div className="bg-white p-6 rounded-xl shadow-md">
+           <h2 className="text-xl font-bold mb-4">Voucher & Diskon</h2>
+           <div className="flex gap-2 items-start">
+             <div className="flex-grow">
+               <input
+                 type="text"
+                 placeholder="Masukkan Kode Voucher"
+                 value={voucherCode}
+                 onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                 className="w-full p-3 border rounded-md bg-gray-50 text-sm"
+               />
+               {voucherError && (
+                 <p className="text-xs text-red-500 mt-1">{voucherError}</p>
+               )}
+               {appliedVoucher && (
+                 <p className="text-xs text-green-600 mt-1">
+                   Kode {appliedVoucher.code} diterapkan.
+                   {appliedVoucher.target_label
+                     ? ` (${appliedVoucher.target_label})`
+                     : ""}
+                 </p>
+               )}
+             </div>
+             <button
+               onClick={() => handleApplyVoucher(voucherCode)}
+               disabled={isApplyingVoucher || !voucherCode}
+               className="px-4 py-3 bg-orange-500 text-white font-semibold rounded-md text-sm disabled:bg-gray-400"
+             >
+               {isApplyingVoucher ? "..." : "Terapkan"}
+             </button>
+           </div>
+           {myVouchers.length > 0 && (
+      <div className="mt-4">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-sm font-medium text-slate-700">Voucher Saya:</p>
+          <button
+            type="button"
+            onClick={fetchMyVouchers}
+            className="text-xs font-medium text-blue-600 hover:text-blue-800"
+          >
+            Muat ulang
+          </button>
         </div>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                 {myVouchers.map((voucher) => {
+                   const isEligible = subtotal >= (voucher.min_purchase || 0);
+                   const statusLabel = isEligible ? "Dapat Digunakan" : `Min. belanja ${formatRupiah(voucher.min_purchase || 0)}`;
+                   const statusColor = isEligible ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700";
+                   return (
+                     <button
+                       key={voucher.id}
+                       type="button"
+                       disabled={!isEligible}
+                        onClick={() => handleApplyVoucher(voucher.code)}
+                       className={`text-left border rounded-lg p-3 transition-colors ${
+                         isEligible
+                           ? "border-blue-200 bg-blue-50 hover:bg-blue-100 cursor-pointer"
+                           : "border-gray-200 bg-gray-50 opacity-75 cursor-not-allowed"
+                       }`}
+                     >
+                       <div className="flex items-center justify-between gap-2">
+                         <p className="font-bold text-orange-600 text-sm">{voucher.code}</p>
+                         <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${statusColor}`}>
+                           {statusLabel}
+                         </span>
+                       </div>
+                       <p className="text-xs text-slate-600 mt-1">{voucher.description}</p>
+                       {describeTargetLabel(voucher) && (
+                         <p className="text-[11px] text-blue-600 mt-1">
+                           {describeTargetLabel(voucher)}
+                         </p>
+                       )}
+                     </button>
+                   );
+                 })}
+               </div>
+             </div>
+           )}
+         </div>
       </div>
 
       {/* Kolom Kanan: Ringkasan Pesanan */}
@@ -692,46 +753,6 @@ export default function CheckoutView() {
         </div>
       </div>
 
-      {/* --- MODAL VOUCHER BARU --- */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-md">
-            <div className="flex justify-between items-center p-4 border-b">
-              <h3 className="font-bold text-lg">Pilih Voucher Saya</h3>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="text-2xl"
-              >
-                &times;
-              </button>
-            </div>
-            <div className="p-4 space-y-3 max-h-80 overflow-y-auto">
-              {myVouchers
-                .filter((v) => subtotal >= v.min_purchase)
-                .map((voucher) => (
-                  <div
-                    key={voucher.id}
-                    onClick={() => handleSelectFromModal(voucher)}
-                    className="border rounded-lg p-3 cursor-pointer hover:bg-gray-50"
-                  >
-                    <p className="font-bold text-orange-500">{voucher.code}</p>
-                    <p className="text-sm text-slate-600">
-                      {voucher.description}
-                    </p>
-                    {describeTargetLabel(voucher) && (
-                      <p className="text-xs text-blue-600 mt-1">
-                        {describeTargetLabel(voucher)}
-                      </p>
-                    )}
-                    <p className="text-xs text-slate-400 mt-1">
-                      Min. belanja {formatRupiah(voucher.min_purchase)}
-                    </p>
-                  </div>
-                ))}
-            </div>
-          </div>
-        </div>
-      )}
       {/* --- MODAL QRIS BRI --- */}
       {showQr && qrData && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
