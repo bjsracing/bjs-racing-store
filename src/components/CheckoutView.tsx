@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useAppStore } from "../lib/store.ts";
 import type { CartItem, Address } from "../lib/store.ts";
 import { getOsrmRoute, formatDistance, formatDuration } from "@/lib/osrm";
+import { getPaymentFee } from "@/lib/paymentFee";
 
 declare global {
   interface Window {
@@ -103,7 +104,28 @@ export default function CheckoutView() {
   const [isRateCheckPermanentlyDisabled, setIsRateCheckPermanentlyDisabled] = useState(false);
   const [rapidClickCount, setRapidClickCount] = useState(0);
 
-  const PAYMENT_GATEWAY_FEE = 4500;
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
+    "qris" | "dana" | "ovo" | "gopay" | "shopeepay" | "transfer_bank" | "virtual_account" | null
+  >(null);
+
+  const PAYMENT_METHOD_OPTIONS = [
+    { value: "qris", label: "QRIS" },
+    { value: "dana", label: "DANA" },
+    { value: "ovo", label: "OVO" },
+    { value: "gopay", label: "GoPay" },
+    { value: "shopeepay", label: "ShopeePay" },
+    { value: "transfer_bank", label: "Transfer Bank" },
+    { value: "virtual_account", label: "Virtual Account" },
+  ];
+
+  const paymentFee = useMemo(() => {
+    if (!selectedPaymentMethod) return 0;
+    const feeBase =
+      subtotal + (selectedShipping?.cost || 0) - (appliedVoucher?.discount_amount || 0);
+    return getPaymentFee(selectedPaymentMethod, feeBase);
+  }, [selectedPaymentMethod, subtotal, selectedShipping, appliedVoucher]);
+
+  const PAYMENT_GATEWAY_FEE = paymentFee;
 
   const totalWeight = useMemo(
     () => calculateTotalWeight(),
@@ -120,12 +142,12 @@ export default function CheckoutView() {
 
   const finalTotal = useMemo(() => {
     const totalBeforeDiscount =
-      subtotal + (selectedShipping?.cost || 0) + PAYMENT_GATEWAY_FEE;
+      subtotal + (selectedShipping?.cost || 0) + (paymentFee || 0);
     return Math.max(
       0,
       totalBeforeDiscount - (appliedVoucher?.discount_amount || 0),
     );
-  }, [subtotal, selectedShipping, PAYMENT_GATEWAY_FEE, appliedVoucher]);
+  }, [subtotal, selectedShipping, paymentFee, appliedVoucher]);
 
   const formatRupiah = (number: number) =>
     new Intl.NumberFormat("id-ID", {
@@ -411,6 +433,13 @@ export default function CheckoutView() {
       });
       return;
     }
+    if (!selectedPaymentMethod) {
+      addToast({
+        type: "info",
+        message: "Silakan pilih metode pembayaran.",
+      });
+      return;
+    }
     setIsProcessingPayment(true);
     const selectedService = shippingServices.find(
       (s: any) => s.service === selectedShipping.service,
@@ -419,7 +448,7 @@ export default function CheckoutView() {
     const payload = {
       address_id: selectedAddressId,
       shipping_cost: selectedShipping.cost,
-      payment_gateway_fee: PAYMENT_GATEWAY_FEE,
+      payment_method: selectedPaymentMethod,
       voucher_code: appliedVoucher?.code || null,
       discount_amount: appliedVoucher?.discount_amount || 0,
       courier: {
@@ -654,11 +683,49 @@ export default function CheckoutView() {
               ))}
             </div>
           )}
+         </div>
+
+        {/* --- BLOK METODE PEMBAYARAN --- */}
+        <div className="bg-white p-6 rounded-xl shadow-md">
+          <h2 className="text-xl font-bold mb-4">Metode Pembayaran</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {PAYMENT_METHOD_OPTIONS.map((method) => {
+              const fee = getPaymentFee(
+                method.value,
+                subtotal + (selectedShipping?.cost || 0) - (appliedVoucher?.discount_amount || 0),
+              );
+              const checked = selectedPaymentMethod === method.value;
+              return (
+                <label
+                  key={method.value}
+                  className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors hover:bg-gray-50 ${checked ? "bg-blue-50 border-blue-500" : "border-gray-200"}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value={method.value}
+                      checked={checked}
+                      onChange={() => setSelectedPaymentMethod(method.value)}
+                      className="flex-shrink-0"
+                    />
+                    <div>
+                      <p className="font-semibold text-sm">{method.label}</p>
+                      <p className="text-xs text-gray-500">{method.description}</p>
+                    </div>
+                  </div>
+                  <p className="text-xs font-medium text-gray-600">
+                    {fee > 0 ? `Biaya: ${formatRupiah(fee)}` : "Gratis"}
+                  </p>
+                </label>
+              );
+            })}
+          </div>
         </div>
 
-         {/* --- BLOK VOUCHER BARU --- */}
-         <div className="bg-white p-6 rounded-xl shadow-md">
-           <h2 className="text-xl font-bold mb-4">Voucher & Diskon</h2>
+          {/* --- BLOK VOUCHER BARU --- */}
+          <div className="bg-white p-6 rounded-xl shadow-md">
+            <h2 className="text-xl font-bold mb-4">Voucher & Diskon</h2>
            <div className="flex gap-2 items-start">
              <div className="flex-grow">
                <input
@@ -782,7 +849,9 @@ export default function CheckoutView() {
             )}
             <div className="flex justify-between">
               <p className="text-gray-600">Biaya Layanan Transaksi</p>
-              <p className="font-medium">{formatRupiah(PAYMENT_GATEWAY_FEE)}</p>
+              <p className="font-medium">
+                {selectedPaymentMethod ? formatRupiah(paymentFee) : "Pilih metode pembayaran"}
+              </p>
             </div>
             {/* --- BARIS DISKON BARU --- */}
             {appliedVoucher && (
@@ -801,7 +870,7 @@ export default function CheckoutView() {
           <button
             onClick={handlePayment}
             disabled={
-              !selectedShipping || items.length === 0 || isProcessingPayment
+              !selectedShipping || !selectedPaymentMethod || items.length === 0 || isProcessingPayment
             }
             className="mt-6 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
           >

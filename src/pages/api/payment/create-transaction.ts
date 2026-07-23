@@ -1,6 +1,7 @@
 // File: /src/pages/api/payment/create-transaction.ts
 import type { APIRoute } from "astro";
 import { supabaseAdmin } from "@/lib/supabaseServer.ts";
+import { getPaymentFee, toMidtransPaymentCode } from "@/lib/paymentFee";
 import { validateAndComputeVoucher, consumeVoucher } from "@/lib/voucher.ts";
 import { generateBriQrMpm, BRI_CONFIG } from "@/lib/bri.ts";
 import { sendOrderNotification } from "@/lib/notifications.ts";
@@ -24,6 +25,31 @@ function generateOrderNumber() {
     return `BJS-${year}${month}${day}-${randomPart}`;
 }
 
+async function computeServerDiscount({
+  voucher_code,
+  customer_id,
+  cart_subtotal,
+  shipping_cost,
+  cartProductIds,
+}: {
+  voucher_code: string | null;
+  customer_id: string;
+  cart_subtotal: number;
+  shipping_cost: number;
+  cartProductIds: string[];
+}) {
+  if (!voucher_code) return { discount_amount: 0, voucherId: null };
+  const result = await validateAndComputeVoucher(
+    voucher_code,
+    customer_id,
+    cart_subtotal,
+    shipping_cost,
+    cartProductIds,
+  );
+  if (!result.valid) throw new Error(result.message || "Voucher tidak valid.");
+  return { discount_amount: result.discount_amount || 0, voucherId: result.voucher?.id ?? null };
+}
+
 export const POST: APIRoute = async ({ request, locals }) => {
     const { session } = locals;
     if (!session) {
@@ -40,7 +66,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
             courier,
             cart_items,
             shipping_cost,
-            payment_gateway_fee,
+            payment_method,
             voucher_code,
         } = body;
         const typedCartItems = cart_items as FrontendCartItem[];
@@ -53,6 +79,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
         ) {
             return new Response(
                 JSON.stringify({ message: "Data checkout tidak lengkap." }),
+                { status: 400 },
+            );
+        }
+
+        if (!payment_method) {
+            return new Response(
+                JSON.stringify({ message: "Metode pembayaran harus dipilih." }),
                 { status: 400 },
             );
         }
@@ -95,45 +128,33 @@ export const POST: APIRoute = async ({ request, locals }) => {
             .single();
         if (addressError) throw new Error("Alamat pengiriman tidak valid.");
 
-        // --- PERBAIKAN 2: Perbarui kalkulasi total untuk menyertakan semua biaya & diskon ---
         const subtotalProducts = typedCartItems.reduce(
             (acc: number, item: FrontendCartItem) =>
                 acc + item.price * item.quantity,
             0,
         );
         const finalShippingCost = Number(shipping_cost) || 0;
-        const finalPaymentGatewayFee = Number(payment_gateway_fee) || 0;
+        const paymentMethod = String(payment_method || "").toLowerCase();
+        const feeBase = subtotalProducts + finalShippingCost;
+        const finalPaymentGatewayFee = getPaymentFee(
+            paymentMethod,
+            feeBase,
+        );
 
-        // --- PERBAIKAN KEAMANAN: Jangan percaya discount_amount dari client.
-        // Hitung ulang diskon di server berdasarkan voucher_code. ---
-        let finalDiscountAmount = 0;
-        let appliedVoucherId: string | null = null;
-        if (voucher_code) {
-            const cartProductIds = typedCartItems.map(
-                (item: FrontendCartItem) => item.product_id,
-            );
-            const voucherResult = await validateAndComputeVoucher(
+        const { discount_amount: finalDiscountAmount, voucherId: appliedVoucherId } =
+            await computeServerDiscount({
                 voucher_code,
-                customer.id,
-                subtotalProducts,
-                finalShippingCost,
-                cartProductIds,
-            );
-            if (!voucherResult.valid) {
-                return new Response(
-                    JSON.stringify({ message: voucherResult.message }),
-                    { status: 400 },
-                );
-            }
-            finalDiscountAmount = voucherResult.discount_amount || 0;
-            appliedVoucherId = voucherResult.voucher?.id ?? null;
-        }
+                customer_id: customer.id,
+                cart_subtotal: subtotalProducts,
+                shipping_cost: finalShippingCost,
+                cartProductIds: typedCartItems.map((item) => item.product_id),
+            });
 
         const totalAmount =
             subtotalProducts +
             finalShippingCost +
             finalPaymentGatewayFee -
-            finalDiscountAmount;
+            (finalDiscountAmount || 0);
 
         const orderNumber = generateOrderNumber();
         const { data: newOrder, error: orderError } = await supabaseAdmin
@@ -208,6 +229,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
             );
         }
 
+        const formatAmount = (amount: number) => Math.round(amount * 100) / 100;
+        const truncateName = (name: string) => name.substring(0, 50);
+
         const midtransServerKey = import.meta.env.MIDTRANS_SERVER_KEY;
         const authString = Buffer.from(`${midtransServerKey}:`).toString(
             "base64",
@@ -215,64 +239,54 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
         const item_details = typedCartItems.map((item: FrontendCartItem) => ({
             id: item.product_id,
-            price: item.price,
+            price: formatAmount(item.price),
             quantity: item.quantity,
-            name: item.name.substring(0, 50),
+            name: truncateName(item.name),
         }));
         if (finalShippingCost > 0) {
             item_details.push({
                 id: "SHIPPING",
-                price: finalShippingCost,
+                price: formatAmount(finalShippingCost),
                 quantity: 1,
-                name: `Ongkos Kirim (${courier.name} - ${courier.service})`,
+                name: truncateName(`Ongkir (${courier.name} - ${courier.service})`),
             });
         }
         if (finalPaymentGatewayFee > 0) {
             item_details.push({
                 id: "PAYMENT_GATEWAY_FEE",
-                price: finalPaymentGatewayFee,
+                price: formatAmount(finalPaymentGatewayFee),
                 quantity: 1,
-                name: "Biaya Layanan Transaksi",
+                name: truncateName("Biaya Transaksi"),
             });
         }
 
         if (finalDiscountAmount > 0) {
             item_details.push({
                 id: `DISCOUNT_${voucher_code}`,
-                price: -finalDiscountAmount,
+                price: formatAmount(-finalDiscountAmount),
                 quantity: 1,
-                name: `Diskon (${voucher_code})`,
+                name: truncateName(`Diskon (${voucher_code})`),
             });
         }
 
-        let enabled_payments = [
-            "bca_va",
-            "bni_va",
-            "bri_va",
-            "permata_va",
-            "cimb_va",
-            "other_va",
-        ];
+        const enabled_payments = finalPaymentGatewayFee > 0 ? [toMidtransPaymentCode(paymentMethod as any)] : [];
 
-        if (finalPaymentGatewayFee > 0) {
-            const qrisFee = totalAmount * 0.007;
-            const gopayFee = totalAmount * 0.02;
-            const shopeepayFee = totalAmount * 0.02;
-            const danaFee = totalAmount * 0.01665;
-            const ovoFee = totalAmount * 0.01665;
-            if (qrisFee <= finalPaymentGatewayFee) enabled_payments.push("other_qris");
-            if (gopayFee <= finalPaymentGatewayFee) enabled_payments.push("gopay");
-            if (shopeepayFee <= finalPaymentGatewayFee) enabled_payments.push("shopeepay");
-            if (danaFee <= finalPaymentGatewayFee) enabled_payments.push("dana");
-            if (ovoFee <= finalPaymentGatewayFee) enabled_payments.push("ovo");
-        }
+        const calculatedTotal = item_details.reduce(
+            (sum, item) => sum + formatAmount(item.price) * item.quantity,
+            0,
+        );
+        const grossAmount = formatAmount(calculatedTotal);
 
         const midtransPayload = {
             transaction_details: {
                 order_id: orderNumber,
-                gross_amount: totalAmount,
+                gross_amount: grossAmount,
             },
-            item_details: item_details,
+            item_details: item_details.map((item) => ({
+                ...item,
+                price: formatAmount(item.price),
+                name: truncateName(item.name),
+            })),
             enabled_payments: enabled_payments,
             customer_details: {
                 first_name: customer.nama_pelanggan,
