@@ -180,7 +180,6 @@ export default function CheckoutView() {
           `/api/shipping/check-local-availability?destination_id=${selectedAddress.destination}`,
         );
         const checkInternalResult = await checkInternalResponse.json();
-        console.log("[DEBUG] Internal check result:", checkInternalResult);
         const services: any[] = [];
 
         if (checkInternalResult.available) {
@@ -208,9 +207,7 @@ export default function CheckoutView() {
               }),
           },
         );
-        console.log("[DEBUG] RajaOngkir response status:", rajaongkirResponse.status, rajaongkirResponse.statusText);
         const rajaongkirResult = await rajaongkirResponse.json();
-        console.log("[DEBUG] RajaOngkir response body:", rajaongkirResult);
         if (rajaongkirResponse.ok) {
           const mapped = (rajaongkirResult || [])
             .filter((o: any) => {
@@ -540,16 +537,16 @@ export default function CheckoutView() {
                            <p className="font-semibold">
                              {formatServiceName(service.service, service.code)}
                            </p>
-                           {formatEtd(service.etd) && (
-                             <p className="text-gray-500">
-                               Estimasi {formatEtd(service.etd)}
-                             </p>
-                           )}
+                            {formatEtd(service.etd) && (
+                              <p className="text-blue-600">
+                                Estimasi {formatEtd(service.etd)}
+                              </p>
+                            )}
                          </div>
                      </div>
-                     <p className="font-bold whitespace-nowrap">
-                       {formatRupiah(service.cost)}
-                     </p>
+                      <p className="font-bold whitespace-nowrap text-orange-600">
+                        {formatRupiah(service.cost)}
+                      </p>
                    </div>
                 </label>
               ))}
