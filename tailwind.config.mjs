@@ -7,7 +7,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', ...fontFamily.sans],
+        sans: ['Nunito Sans', ...fontFamily.sans],
+        heading: ['Rubik', 'sans-serif'],
+        body: ['Nunito Sans', 'sans-serif'],
       },
       fontSize: {
         '2xs': '0.625rem', // Ini setara dengan 10px

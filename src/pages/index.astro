@@ -3,94 +3,120 @@
 import MainLayout from '../layouts/MainLayout.astro';
 import id from '../../public/locales/id/common.json';
 import PromoBanner from '../components/PromoBanner.jsx';
+import StatsCounter from '../components/StatsCounter.jsx';
+import VideoShowcase from '../components/VideoShowcase.jsx';
+import BrandMarquee from '../components/BrandMarquee.jsx';
+import FeaturedProducts from '../components/FeaturedProducts.jsx';
+import FlashSaleSection from '../components/FlashSaleSection.jsx';
+import CategoriesPreview from '../components/CategoriesPreview.jsx';
+import TrustBadges from '../components/TrustBadges.jsx';
+import WhyChooseUs from '../components/WhyChooseUs.jsx';
+import TestimonialSection from '../components/TestimonialSection.jsx';
+import NewsletterBanner from '../components/NewsletterBanner.jsx';
 ---
 
 <MainLayout title="BJS RACING STORE - Home">
     <PromoBanner />
 
-    {/* Hero Section */}
-    <section class="bg-gradient-to-br from-orange-500 to-orange-600 text-white">
-        <div class="container mx-auto px-3 mobile:px-4 tablet:px-6 py-12 mobile:py-16 tablet:py-20 desktop:py-24 text-center">
-            <h1 class="text-2xl mobile:text-3xl tablet:text-4xl desktop:text-5xl font-bold mb-4 mobile:mb-6">
-                {id.home_page.welcome}
-            </h1>
-            <p class="text-base mobile:text-lg tablet:text-xl text-orange-100 max-w-2xl mx-auto mb-6 mobile:mb-8">
-                Distributor terpercaya untuk Pilok, Onderdil & Aksesoris Motor berkualitas tinggi harga terjangkau
-            </p>
-            <div class="flex flex-col mobile:flex-row gap-3 mobile:gap-4 justify-center">
-                <a href="/products" class="bg-white text-orange-600 px-6 mobile:px-8 py-3 rounded-lg font-semibold hover:bg-orange-50 transition-colors text-sm mobile:text-base">
-                    Lihat Produk
-                </a>
-                <a href="/categories" class="border-2 border-white text-white px-6 mobile:px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-orange-600 transition-colors text-sm mobile:text-base">
-                    Kategori
-                </a>
+    {/* Hero Section - Split Layout */}
+    <section class="relative bg-gradient-to-br from-orange-600 via-orange-500 to-orange-600 text-white overflow-hidden">
+        {/* Racing Pattern Background */}
+        <svg class="absolute inset-0 w-full h-full opacity-[0.06]" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <pattern id="hero-racing" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
+                    <path d="M0 40 L40 0 L80 40 L40 80 Z" fill="none" stroke="white" stroke-width="1.2"/>
+                </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#hero-racing)"/>
+        </svg>
+        <div class="absolute inset-0 bg-gradient-to-t from-orange-900/20 to-transparent"></div>
+
+        {/* Floating Promo Badge */}
+        <div class="absolute top-4 right-4 tablet:top-6 tablet:right-8 z-20 animate-[pulse_3s_ease-in-out_infinite]">
+            <div class="bg-white text-orange-600 px-4 py-2 rounded-full font-bold text-xs mobile:text-sm shadow-lg border border-orange-100">
+                <span class="inline-block w-2 h-2 bg-orange-500 rounded-full mr-1.5 animate-pulse"></span>
+                Promo Minggu Ini
             </div>
         </div>
+
+        <div class="relative z-10 container mx-auto px-3 mobile:px-4 tablet:px-6 py-10 mobile:py-14 tablet:py-16 desktop:py-20">
+            <div class="grid grid-cols-1 tablet:grid-cols-2 gap-8 tablet:gap-12 items-center">
+                {/* Left: Welcome Text + CTA */}
+                <div class="text-center mobile:text-left">
+                    <h1 class="text-2xl mobile:text-3xl tablet:text-4xl desktop:text-5xl font-bold mb-3 mobile:mb-4 leading-tight">
+                        {id.home_page.welcome}
+                    </h1>
+                    <p class="text-base mobile:text-lg tablet:text-xl text-orange-100 max-w-lg mb-6 mobile:mb-8 mx-auto mobile:mx-0 leading-relaxed">
+                        Distributor terpercaya untuk Pilok, Onderdil &amp; Aksesoris Motor berkualitas tinggi harga terjangkau
+                    </p>
+                    <div class="flex flex-col mobile:flex-row gap-3 mobile:gap-4 justify-center mobile:justify-start">
+                        <a
+                            href="/products"
+                            class="bg-white text-orange-600 px-6 mobile:px-8 py-3 rounded-full font-semibold shadow-lg hover:bg-orange-50 transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-orange-500 text-sm mobile:text-base"
+                        >
+                            Lihat Produk
+                        </a>
+                        <a
+                            href="/categories"
+                            class="border-2 border-white text-white px-6 mobile:px-8 py-3 rounded-full font-semibold hover:bg-white hover:text-orange-600 transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-orange-500 text-sm mobile:text-base"
+                        >
+                            Kategori
+                        </a>
+                    </div>
+                </div>
+
+                {/* Right: Stats Counters */}
+                <div class="grid grid-cols-3 gap-3 mobile:gap-4">
+                    <StatsCounter client:load endValue={500} suffix="+" label="Produk" icon="package" duration={2000} />
+                    <StatsCounter client:load endValue={1000} suffix="+" label="Terjual" icon="users" duration={2200} />
+                    <StatsCounter client:load endValue={4.8} suffix="" label="Rating" icon="star" duration={1800} />
+                </div>
+            </div>
+        </div>
+
+        {/* Scroll Indicator */}
+        <div class="absolute bottom-3 left-1/2 -translate-x-1/2 z-10">
+            <div class="w-6 h-10 rounded-full border-2 border-white/40 flex items-start justify-center pt-2">
+                <span class="block w-1.5 h-1.5 bg-white rounded-full animate-[bounce_2s_ease-in-out_infinite]"></span>
+            </div>
+        </div>
+
+        <style>
+            @keyframes bounce {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(6px); }
+            }
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.85; }
+            }
+        </style>
     </section>
 
-    {/* Features Section */}
-    <section class="bg-white py-12 mobile:py-16 tablet:py-20">
-        <div class="container mx-auto px-3 mobile:px-4 tablet:px-6">
-            <h2 class="text-xl mobile:text-2xl tablet:text-3xl font-bold text-center text-slate-800 mb-8 mobile:mb-12">
-                Kenapa Memilih BJS Racing Store?
-            </h2>
-            
-            <div class="grid grid-cols-1 mobile:grid-cols-2 tablet:grid-cols-3 gap-6 mobile:gap-8">
-                <div class="text-center p-6 bg-slate-50 rounded-lg">
-                    <div class="text-orange-500 text-3xl mb-4">🚀</div>
-                    <h3 class="font-semibold text-slate-800 mb-2">Produk Berkualitas</h3>
-                    <p class="text-slate-600 text-sm">Spray paint dan onderdil motor kualitas terbaik</p>
-                </div>
-                
-                <div class="text-center p-6 bg-slate-50 rounded-lg">
-                    <div class="text-orange-500 text-3xl mb-4">⚡</div>
-                    <h3 class="font-semibold text-slate-800 mb-2">Pengiriman Cepat</h3>
-                    <p class="text-slate-600 text-sm">Dikirim cepat ke seluruh Indonesia</p>
-                </div>
-                
-                <div class="text-center p-6 bg-slate-50 rounded-lg">
-                    <div class="text-orange-500 text-3xl mb-4">🛡️</div>
-                    <h3 class="font-semibold text-slate-800 mb-2">Garansi Terjamin</h3>
-                    <p class="text-slate-600 text-sm">Garansi resmi untuk semua produk</p>
-                </div>
-            </div>
-        </div>
-    </section>
+    {/* VideoShowcase Section */}
+    <VideoShowcase client:visible />
+
+    {/* BrandMarquee Section */}
+    <BrandMarquee client:visible />
+
+    {/* FeaturedProducts Section */}
+    <FeaturedProducts client:visible />
+
+    {/* FlashSale Section */}
+    <FlashSaleSection client:visible />
+
+    {/* Why Choose Us Section */}
+    <WhyChooseUs client:visible />
+
+    {/* Testimonial Section */}
+    <TestimonialSection client:visible />
 
     {/* Categories Preview */}
-    <section class="bg-slate-100 py-12 mobile:py-16 tablet:py-20">
-        <div class="container mx-auto px-3 mobile:px-4 tablet:px-6">
-            <h2 class="text-xl mobile:text-2xl tablet:text-3xl font-bold text-center text-slate-800 mb-8 mobile:mb-12">
-                Kategori Produk
-            </h2>
-            
-            <div class="grid grid-cols-2 mobile:grid-cols-3 tablet:grid-cols-4 gap-4 mobile:gap-6">
-                <a href="/pilok" class="bg-white p-4 rounded-lg text-center hover:shadow-md transition-shadow">
-                    <div class="text-orange-500 text-2xl mb-2">🎨</div>
-                    <p class="text-sm font-semibold">Pilok</p>
-                </a>
-                
-                <a href="/spray-paint" class="bg-white p-4 rounded-lg text-center hover:shadow-md transition-shadow">
-                    <div class="text-orange-500 text-2xl mb-2">💨</div>
-                    <p class="text-sm font-semibold">Spray Paint</p>
-                </a>
-                
-                <a href="/onderdil" class="bg-white p-4 rounded-lg text-center hover:shadow-md transition-shadow">
-                    <div class="text-orange-500 text-2xl mb-2">⚙️</div>
-                    <p class="text-sm font-semibold">Onderdil</p>
-                </a>
-                
-                <a href="/aksesoris" class="bg-white p-4 rounded-lg text-center hover:shadow-md transition-shadow">
-                    <div class="text-orange-500 text-2xl mb-2">🔧</div>
-                    <p class="text-sm font-semibold">Aksesoris</p>
-                </a>
-            </div>
-            
-            <div class="text-center mt-8 mobile:mt-12">
-                <a href="/categories" class="inline-block bg-orange-500 text-white px-6 mobile:px-8 py-3 rounded-lg font-semibold hover:bg-orange-600 transition-colors text-sm mobile:text-base">
-                    Lihat Semua Kategori
-                </a>
-            </div>
-        </div>
-    </section>
+    <CategoriesPreview client:visible />
+
+    {/* Trust Badges */}
+    <TrustBadges client:visible />
+
+    {/* Newsletter Banner */}
+    <NewsletterBanner client:visible />
 </MainLayout>
