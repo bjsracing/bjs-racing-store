@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useAppStore } from "../lib/store.ts";
 import type { CartItem, Address } from "../lib/store.ts";
+import { getOsrmRoute, formatDistance, formatDuration } from "@/lib/osrm";
 
 declare global {
   interface Window {
@@ -59,6 +60,12 @@ export default function CheckoutView() {
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
     null,
   );
+  const [distanceInfo, setDistanceInfo] = useState<{
+    distance: string;
+    duration: string;
+    fallback: boolean;
+  } | null>(null);
+  const [isLoadingDistance, setIsLoadingDistance] = useState(false);
   const [selectedCourier, setSelectedCourier] = useState<string>("");
   const [shippingServices, setShippingServices] = useState<ShippingService[]>(
     [],
@@ -143,6 +150,45 @@ export default function CheckoutView() {
   useEffect(() => {
     fetchAddresses();
   }, [fetchAddresses]);
+
+  useEffect(() => {
+    const selectedAddress = addresses.find(
+      (addr) => addr.id === selectedAddressId,
+    );
+    const originLat = Number(import.meta.env.BITESHIP_ORIGIN_LAT || -6.5244682);
+    const originLng = Number(import.meta.env.BITESHIP_ORIGIN_LNG || 110.7674915);
+    const destLat =
+      typeof selectedAddress?.latitude === "number" &&
+      Number.isFinite(selectedAddress.latitude as any)
+        ? (selectedAddress.latitude as number)
+        : null;
+    const destLng =
+      typeof selectedAddress?.longitude === "number" &&
+      Number.isFinite(selectedAddress.longitude as any)
+        ? (selectedAddress.longitude as number)
+        : null;
+
+    if (!destLat || !destLng) {
+      setDistanceInfo(null);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoadingDistance(true);
+    getOsrmRoute([originLng, originLat], [destLng, destLat]).then((route) => {
+      if (cancelled) return;
+      setDistanceInfo({
+        distance: formatDistance(route.distanceMeters),
+        duration: formatDuration(route.durationSeconds),
+        fallback: route.fallback,
+      });
+      setIsLoadingDistance(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedAddressId, addresses]);
 
   const fetchMyVouchers = useCallback(async () => {
     try {
@@ -723,6 +769,17 @@ export default function CheckoutView() {
                 {selectedShipping ? formatRupiah(selectedShipping.cost) : "-"}
               </p>
             </div>
+            {distanceInfo && (
+              <div className="flex justify-between text-xs text-slate-500">
+                <p>Estimasi Jarak</p>
+                <p className="font-medium">
+                  {distanceInfo.distance} • {distanceInfo.duration}
+                  {distanceInfo.fallback ? (
+                    <span className="text-orange-600 ml-1">(garis lurus)</span>
+                  ) : null}
+                </p>
+              </div>
+            )}
             <div className="flex justify-between">
               <p className="text-gray-600">Biaya Layanan Transaksi</p>
               <p className="font-medium">{formatRupiah(PAYMENT_GATEWAY_FEE)}</p>

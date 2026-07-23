@@ -72,15 +72,20 @@ const durationText = formatDuration(route.durationSeconds);
 
 ## Status Implementasi
 
-### ✅ Siap Digunakan
-- `src/lib/osrm.ts` — utility OSRM + fallback + format helper
+### ✅ Sudah Diterapkan
+1. **Map Picker** — `MapPicker.tsx` + reverse geocode API + integrasi `AddressForm.tsx`
+2. **Store Location Map** — `StoreLocationMap.tsx` + halaman `/lokasi-toko` + deep link Google/Apple Maps
+3. **Delivery Coverage Map** — `DeliveryCoverageMap.tsx` + halaman `/jangkauan-pengiriman` + zona internal ~8 km
+4. **Order Tracking Map** — `OrderTrackingMap.tsx` dengan Leaflet + OSRM route + fallback garis lurus
+5. **Distance Estimation** — integrasi OSRM di `CheckoutView.tsx` menampilkan jarak & estimasi waktu
 
-### Menunggu Integrasi
-1. **Map Picker** — integrasi ke `AddressForm.tsx`
-2. **Order Tracking Map** — render polyline dari `getOsrmRoute()`
-3. **Distance Estimation** — tampilkan jarak di checkout
-4. **Store Location Map** — halaman statis
-5. **Delivery Coverage Map** — visualisasi zona dengan GeoJSON
+### File Terkait
+- `src/components/MapPicker.tsx`
+- `src/components/StoreLocationMap.tsx`
+- `src/components/DeliveryCoverageMap.tsx`
+- `src/components/OrderTrackingMap.tsx`
+- `src/pages/api/maps/reverse-geocode.ts`
+- `src/lib/osrm.ts`
 
 ---
 

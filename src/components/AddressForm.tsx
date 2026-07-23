@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useAppStore } from "@/lib/store";
 import type { Address, FormDataState } from "@/lib/store";
+import MapPicker, { type MapPickerResult } from "./MapPicker";
 
 // --- Tipe Data ---
 interface RajaOngkirResult {
@@ -169,7 +170,7 @@ export default function AddressForm({
         }));
       } else {
         setErrorMessage(
-          "Koordinat otomatis tidak ditemukan. Isi manual latitude/longitude.",
+          "Koordinat otomatis tidak ditemukan. Isi manual latitude/longitude atau pilih di map.",
         );
       }
     } catch {
@@ -177,6 +178,16 @@ export default function AddressForm({
     } finally {
       setIsGeocoding(false);
     }
+  };
+
+  const handleMapSelect = (result: MapPickerResult) => {
+    setFormData((prev) => ({
+      ...prev,
+      latitude: String(result.lat),
+      longitude: String(result.lng),
+      full_address: result.full_address || prev.full_address,
+      destination_text: prev.destination_text || result.full_address,
+    }));
   };
 
   /**
@@ -376,6 +387,20 @@ export default function AddressForm({
                   onChange={handleChange}
                   readOnly
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-gray-100 focus:ring-orange-500 focus:border-orange-500"
+                />
+              </div>
+              {/* Map Picker */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Pilih Lokasi di Map
+                </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Klik atau seret marker untuk menentukan koordinat alamat.
+                </p>
+                <MapPicker
+                  latitude={formData.latitude}
+                  longitude={formData.longitude}
+                  onSelect={handleMapSelect}
                 />
               </div>
               {/* Field: Koordinat (untuk kurir GoSend/Biteship) */}

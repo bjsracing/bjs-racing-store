@@ -1,0 +1,15 @@
+---
+// File: src/pages/jangkauan-pengiriman.astro
+import MainLayout from '../layouts/MainLayout.astro';
+import DeliveryCoverageMap from '../components/DeliveryCoverageMap.tsx';
+---
+
+<MainLayout title="Jangkauan Pengiriman - BJS Racing Store">
+  <div class="max-w-5xl mx-auto py-8">
+    <h1 class="text-3xl font-bold mb-2">Jangkauan Pengiriman</h1>
+    <p class="text-slate-500 mb-6">Cek apakah alamat Anda terjangkau oleh kurir internal BJS Racing Store.</p>
+    <div class="bg-white p-4 rounded-xl shadow-md">
+      <DeliveryCoverageMap height={480} />
+    </div>
+  </div>
+</MainLayout>
