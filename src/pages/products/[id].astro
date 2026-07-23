@@ -19,7 +19,7 @@ if (productError || !product) {
 }
 
 // --- PERBAIKAN UTAMA DIMULAI DI SINI ---
-let allProducts = []; // Deklarasikan variabel untuk menampung varian
+let allProducts: any[] = [];
 
 // 2. Gunakan logika yang berbeda untuk mengambil varian berdasarkan kategori
 if (product.kategori === 'Pilok') {
@@ -31,7 +31,7 @@ if (product.kategori === 'Pilok') {
         .eq('merek', product.merek)
         .eq('lini_produk', product.lini_produk)
         .order('ukuran', { ascending: true });
-    allProducts = variants;
+    allProducts = variants || [];
 } else {
     // Jika produk BUKAN Pilok, gunakan LOGIKA BARU (berdasarkan group_id)
     const { data: variants } = await supabaseAdmin
@@ -39,7 +39,7 @@ if (product.kategori === 'Pilok') {
         .select('*')
         .eq('group_id', product.group_id)
         .order('nama', { ascending: true });
-    allProducts = variants;
+    allProducts = variants || [];
 }
 // --- AKHIR DARI PERBAIKAN ---
 

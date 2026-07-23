@@ -51,6 +51,7 @@ const navLinks = [
     // Script tetap sama
     function handleHeaderScroll() {
         const header = document.querySelector('header');
+        if (!header) return;
         if (window.scrollY > 10) {
             header.classList.add('bg-white/80', 'backdrop-blur-md', 'shadow-sm');
         } else {
@@ -58,9 +59,9 @@ const navLinks = [
         }
     }
     
-    function debounce(func, wait) {
-        let timeout;
-        return function executedFunction(...args) {
+    function debounce(func: (...args: any[]) => void, wait: number) {
+        let timeout: ReturnType<typeof setTimeout> | undefined;
+        return function executedFunction(...args: any[]) {
             const later = () => {
                 clearTimeout(timeout);
                 func(...args);
@@ -71,6 +72,8 @@ const navLinks = [
     }
     
     document.addEventListener('DOMContentLoaded', () => {
+        const header = document.getElementById('main-header');
+        if (!header) return;
         const debouncedScroll = debounce(handleHeaderScroll, 25);
         window.addEventListener('scroll', debouncedScroll);
         handleHeaderScroll();

@@ -102,7 +102,7 @@ export interface CreateBiteshipOrderParams {
   courierCompany: string;
   courierType: string;
   deliveryType?: "now" | "scheduled" | "later";
-  items: { name: string; description: string; quantity: number; weight: number; value: number };
+  items: { name: string; description: string; quantity: number; weight: number; value: number }[];
 }
 
 export interface BiteshipOrderResult {

@@ -14,7 +14,7 @@ if (!customer) {
   return Astro.redirect('/akun/lengkapi-profil');
 }
 
-const { data: orders, error } = await supabaseAdmin
+const { data: orders } = await supabaseAdmin
   .from('orders')
   .select('*')
   .eq('customer_id', customer.id)

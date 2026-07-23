@@ -15,16 +15,16 @@ import MainLayout from '@/layouts/MainLayout.astro';
     async function loadWishlist() {
       const res = await fetch('/api/wishlist');
       if (!res.ok) {
-        document.getElementById('wishlist-container').innerHTML = '<p class=\"text-red-500 col-span-full text-center py-10\">Gagal memuat wishlist.</p>';
+        document.getElementById('wishlist-container')!.innerHTML = '<p class=\"text-red-500 col-span-full text-center py-10\">Gagal memuat wishlist.</p>';
         return;
       }
-      const items = await res.json();
-      const container = document.getElementById('wishlist-container');
+      const items: any[] = await res.json();
+      const container = document.getElementById('wishlist-container')!;
       if (!items.length) {
         container.innerHTML = '<p class=\"text-slate-500 col-span-full text-center py-10\">Wishlist Anda masih kosong.</p>';
         return;
       }
-      container.innerHTML = items.map(item => {
+      container.innerHTML = items.map((item: any) => {
         const p = item.products || {};
         return `
           <div class=\"bg-white rounded-xl shadow-md overflow-hidden border border-slate-200 flex flex-col h-full\">
@@ -39,14 +39,15 @@ import MainLayout from '@/layouts/MainLayout.astro';
               </div>
             </a>
             <div class=\"p-3 pt-0\">
-              <button onclick=\"removeFromWishlist('${p.id}')\" class=\"w-full bg-red-50 text-red-600 border border-red-200 font-semibold py-2 rounded-lg text-sm hover:bg-red-100\">Hapus</button>
+              <button onclick=\"_removeFromWishlist('${p.id}')\" class=\"w-full bg-red-50 text-red-600 border border-red-200 font-semibold py-2 rounded-lg text-sm hover:bg-red-100\">Hapus</button>
             </div>
           </div>
         `;
       }).join('');
     }
 
-    async function removeFromWishlist(productId) {
+    // @ts-ignore
+    async function _removeFromWishlist(productId: string) {
       const res = await fetch('/api/wishlist', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },

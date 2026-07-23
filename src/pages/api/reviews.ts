@@ -3,7 +3,7 @@ import type { APIRoute } from "astro";
 import { supabaseAdmin } from "@/lib/supabaseServer.ts";
 
 export const GET: APIRoute = async ({ url, locals }) => {
-  const { session } = locals;
+  const { session: _session } = locals;
   const productId = url.searchParams.get("product_id");
   if (!productId) {
     return new Response(JSON.stringify({ message: "product_id wajib diisi." }), {

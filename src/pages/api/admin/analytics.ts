@@ -40,7 +40,7 @@ export const GET: APIRoute = async (context) => {
       return acc;
     }, {});
 
-    const paymentMethods = orders.reduce<Record<string, number>>((acc, order) => {
+    const paymentMethods = orders.reduce<Record<string, number>>((acc, _order) => {
       const gateway = "midtrans";
       acc[gateway] = (acc[gateway] || 0) + 1;
       return acc;

@@ -71,7 +71,7 @@ if (!session) {
 
     } catch (error) {
       console.error('Gagal membuat profil:', error);
-      errorMsg.textContent = error.message;
+      errorMsg.textContent = (error as Error).message;
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Simpan Profil & Lanjutkan';

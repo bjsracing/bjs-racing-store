@@ -59,25 +59,25 @@ if (!admin.ok) {
       }
       const data = await res.json();
 
-      const formatRupiah = (number) =>
+      const formatRupiah = (number: number) =>
         new Intl.NumberFormat('id-ID', {
           style: 'currency',
           currency: 'IDR',
           minimumFractionDigits: 0,
         }).format(number || 0);
 
-      document.getElementById('total-revenue').textContent = formatRupiah(data.summary.totalRevenue);
-      document.getElementById('total-orders').textContent = data.summary.totalOrders;
-      document.getElementById('avg-order').textContent = formatRupiah(data.summary.avgOrderValue);
-      document.getElementById('shipping-fee').textContent = formatRupiah(data.summary.shippingTotal + data.summary.gatewayFeeTotal);
+      document.getElementById('total-revenue')!.textContent = formatRupiah(data.summary.totalRevenue);
+      document.getElementById('total-orders')!.textContent = String(data.summary.totalOrders);
+      document.getElementById('avg-order')!.textContent = formatRupiah(data.summary.avgOrderValue);
+      document.getElementById('shipping-fee')!.textContent = formatRupiah(data.summary.shippingTotal + data.summary.gatewayFeeTotal);
 
       const dailyEntries = Object.entries(data.dailyRevenue || {}).sort((a, b) => a[0].localeCompare(b[0]));
       const dailyContainer = document.getElementById('daily-chart');
       if (dailyContainer) {
         dailyContainer.innerHTML = '';
-        const max = Math.max(...dailyEntries.map(([, v]) => v), 1);
+        const max = Math.max(...dailyEntries.map(([, v]) => Number(v) || 0), 1);
         dailyEntries.forEach(([date, value]) => {
-          const heightPct = (value / max) * 100;
+          const heightPct = ((Number(value) || 0) / max) * 100;
           const bar = document.createElement('div');
           bar.className = 'flex flex-col items-center gap-1 min-w-[40px]';
           bar.innerHTML = `
@@ -92,9 +92,10 @@ if (!admin.ok) {
       if (statusContainer) {
         statusContainer.innerHTML = '';
         const entries = Object.entries(data.statusCounts || {});
-        const maxCount = Math.max(...entries.map(([, v]) => v), 1);
+        const maxCount = Math.max(...entries.map(([, v]) => Number(v) || 0), 1);
         entries.forEach(([status, count]) => {
-          const widthPct = (count / maxCount) * 100;
+          const countNum = Number(count) || 0;
+          const widthPct = (countNum / maxCount) * 100;
           const row = document.createElement('div');
           row.className = 'flex items-center gap-3';
           row.innerHTML = `
@@ -115,7 +116,7 @@ if (!admin.ok) {
         if (!products.length) {
           topContainer.innerHTML = '<p class="text-sm text-slate-500">Belum ada data penjualan.</p>';
         }
-        products.forEach((product, idx) => {
+        products.forEach((product: any, idx: number) => {
           const row = document.createElement('div');
           row.className = 'flex items-center justify-between py-2 border-b last:border-b-0';
           row.innerHTML = `

@@ -50,7 +50,7 @@ export const GET: APIRoute = async ({ locals, params }) => {
       });
     }
 
-    const formatRupiah = (number) =>
+    const formatRupiah = (number: number) =>
       new Intl.NumberFormat("id-ID", {
         style: "currency",
         currency: "IDR",
@@ -58,7 +58,7 @@ export const GET: APIRoute = async ({ locals, params }) => {
       }).format(number || 0);
 
     const items = (order.order_items || [])
-      .map((item) => {
+      .map((item: any) => {
         const name = item.products?.nama || item.product_name || "Produk";
         return {
           name,
@@ -68,7 +68,7 @@ export const GET: APIRoute = async ({ locals, params }) => {
         };
       });
 
-    const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+    const subtotal = items.reduce((sum: number, item: any) => sum + item.subtotal, 0);
     const shippingCost = order.shipping_cost || 0;
     const discount = order.discount_amount || 0;
     const total = order.total_amount || subtotal + shippingCost - discount;
@@ -128,7 +128,7 @@ export const GET: APIRoute = async ({ locals, params }) => {
             <tbody>
               ${items
                 .map(
-                  (item) => `
+                  (item: any) => `
                 <tr>
                   <td>${item.name}</td>
                   <td class="text-right">${item.qty}</td>

@@ -70,9 +70,9 @@ const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
     {/* PWA Registration Script */}
     <script>
 // ✅ DEBOUNCE FUNCTION UNTUK PERFORMANCE
-function debounce(func, wait) {
-  let timeout;
-  return function executedFunction(...args) {
+function debounce(func: (...args: any[]) => void, wait: number) {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  return function executedFunction(...args: any[]) {
     const later = () => {
       clearTimeout(timeout);
       func(...args);
@@ -195,7 +195,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  let deferredPrompt;
+  let deferredPrompt: any;
   const installButton = document.createElement('button');
   
   window.addEventListener('beforeinstallprompt', (e) => {

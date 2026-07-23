@@ -11,7 +11,7 @@ const SLOT_CONFIG = [
   { key: "image_url_3", label: "Gambar 3", accept: "image/jpeg, image/png, image/webp", suffix: "3" },
 ];
 
-const ImageUploader = ({ productId, onUploadComplete }) => {
+const ImageUploader = ({ productId, onUploadComplete = () => {} }) => {
   const [files, setFiles] = useState({});
   const [previews, setPreviews] = useState({});
   const [isUploading, setIsUploading] = useState(false);
