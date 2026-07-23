@@ -2,7 +2,6 @@
 import { defineConfig } from 'astro/config';
 import vercel from '@astrojs/vercel/serverless';
 import react from '@astrojs/react';
-import tailwind from '@astrojs/tailwind';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
@@ -14,7 +13,7 @@ export default defineConfig({
       sizes: [300, 600, 1080],
     },
   }),
-  integrations: [react(), tailwind()],
+  integrations: [react()],
   vite: {
     plugins: [
       VitePWA({
