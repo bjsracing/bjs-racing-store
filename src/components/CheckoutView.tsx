@@ -1,5 +1,5 @@
 // File: src/components/CheckoutView.tsx
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useAppStore } from "../lib/store.ts";
 import type { CartItem, Address } from "../lib/store.ts";
 
@@ -91,6 +91,9 @@ export default function CheckoutView() {
     order_id: string;
   } | null>(null);
   const [isPolling, setIsPolling] = useState(false);
+  const [shippingCacheKey, setShippingCacheKey] = useState<string>("");
+  const [shippingCache, setShippingCache] = useState<any>(null);
+  const [isRateCheckCooldown, setIsRateCheckCooldown] = useState(false);
 
   const PAYMENT_GATEWAY_FEE = 4500;
 
@@ -163,114 +166,130 @@ export default function CheckoutView() {
     }
   }, [addresses, selectedAddressId]);
 
-  useEffect(() => {
-    const fetchShippingCosts = async () => {
-      setShippingServices([]);
-      setSelectedShipping(null);
-      setError("");
-      if (!selectedAddressId || totalWeight === 0) return;
-      const selectedAddress = addresses.find(
-        (addr: Address) => addr.id === selectedAddressId,
+  const fetchShippingCosts = useCallback(async () => {
+    const cacheKey = `${selectedAddressId}-${totalWeight}`;
+    if (shippingCacheKey === cacheKey && shippingCache) {
+      setShippingServices(shippingCache.services);
+      setSelectedShipping(shippingCache.selected);
+      return;
+    }
+
+    setShippingServices([]);
+    setSelectedShipping(null);
+    setError("");
+    if (!selectedAddressId || totalWeight === 0) return;
+    const selectedAddress = addresses.find(
+      (addr: Address) => addr.id === selectedAddressId,
+    );
+    if (!selectedAddress) return;
+
+    setIsLoadingCosts(true);
+    try {
+      const checkInternalResponse = await fetch(
+        `/api/shipping/check-local-availability?destination_id=${selectedAddress.destination}`,
       );
-      if (!selectedAddress) return;
+      const checkInternalResult = await checkInternalResponse.json();
+      const services: any[] = [];
 
-      setIsLoadingCosts(true);
-      try {
-        const checkInternalResponse = await fetch(
-          `/api/shipping/check-local-availability?destination_id=${selectedAddress.destination}`,
-        );
-        const checkInternalResult = await checkInternalResponse.json();
-        const services: any[] = [];
-
-        if (checkInternalResult.available) {
-          services.push({
-            service: checkInternalResult.service,
-            code: checkInternalResult.code,
-            name: checkInternalResult.name,
-            cost: checkInternalResult.cost,
-            etd: checkInternalResult.etd,
-            description: checkInternalResult.description,
-          });
-        }
-
-        const rajaongkirDestination =
-          selectedAddress.city_id || selectedAddress.destination;
-        const rajaongkirResponse = await fetch(
-          "/api/shipping/rajaongkir/rates",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                destination: rajaongkirDestination,
-                weight: totalWeight,
-                couriers: ["pos", "jne", "sicepat"],
-              }),
-          },
-        );
-        const rajaongkirResult = await rajaongkirResponse.json();
-        if (rajaongkirResponse.ok) {
-          const mapped = (rajaongkirResult || [])
-            .filter((o: any) => {
-              if (o.code === "pos") {
-                const service = String(o.service || "").toUpperCase();
-                return (
-                  service !== "PAKETPOS DANGEROUS GOODS" &&
-                  service !== "PAKETPOS VALUABLE GOODS"
-                );
-              }
-              if (o.code === "jne") {
-                const service = String(o.service || "").toUpperCase();
-                return (
-                  service !== "JTR" &&
-                  service !== "JTR<130" &&
-                  service !== "JTR>130" &&
-                  service !== "JTR>200"
-                );
-              }
-              return true;
-            })
-            .map((o: any) => ({
-              service: o.service,
-              code: o.code,
-              name: o.name,
-              cost: o.cost,
-              etd: o.etd,
-              description: o.description,
-            }));
-          services.push(...mapped);
-        }
-
-        if (services.length === 0) {
-          throw new Error("Tidak ada layanan pengiriman tersedia.");
-        }
-
-        services.sort((a, b) => {
-          const parseEtd = (etd?: string) => {
-            if (!etd) return Number.POSITIVE_INFINITY;
-            const match = etd.match(/(\d+)/);
-            return match ? Number(match[1]) : Number.POSITIVE_INFINITY;
-          };
-          const aEtd = parseEtd(a.etd);
-          const bEtd = parseEtd(b.etd);
-          if (aEtd !== bEtd) return aEtd - bEtd;
-          return (a.cost || 0) - (b.cost || 0);
+      if (checkInternalResult.available) {
+        services.push({
+          service: checkInternalResult.service,
+          code: checkInternalResult.code,
+          name: checkInternalResult.name,
+          cost: checkInternalResult.cost,
+          etd: checkInternalResult.etd,
+          description: checkInternalResult.description,
         });
-
-        setShippingServices(services);
-        setSelectedShipping({
-          service: services[0].service,
-          cost: services[0].cost,
-          etd: services[0].etd,
-        });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Terjadi kesalahan.");
-        setShippingServices([]);
-      } finally {
-        setIsLoadingCosts(false);
       }
-    };
+
+      const rajaongkirDestination =
+        selectedAddress.city_id || selectedAddress.destination;
+      const rajaongkirResponse = await fetch(
+        "/api/shipping/rajaongkir/rates",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            destination: rajaongkirDestination,
+            weight: totalWeight,
+            couriers: ["pos", "jne", "sicepat"],
+          }),
+        },
+      );
+      const rajaongkirResult = await rajaongkirResponse.json();
+      if (rajaongkirResponse.ok) {
+        const mapped = (rajaongkirResult || [])
+          .filter((o: any) => {
+            if (o.code === "pos") {
+              const service = String(o.service || "").toUpperCase();
+              return (
+                service !== "PAKETPOS DANGEROUS GOODS" &&
+                service !== "PAKETPOS VALUABLE GOODS"
+              );
+            }
+            if (o.code === "jne") {
+              const service = String(o.service || "").toUpperCase();
+              return (
+                service !== "JTR" &&
+                service !== "JTR<130" &&
+                service !== "JTR>130" &&
+                service !== "JTR>200"
+              );
+            }
+            return true;
+          })
+          .map((o: any) => ({
+            service: o.service,
+            code: o.code,
+            name: o.name,
+            cost: o.cost,
+            etd: o.etd,
+            description: o.description,
+          }));
+        services.push(...mapped);
+      }
+
+      if (services.length === 0) {
+        throw new Error("Tidak ada layanan pengiriman tersedia.");
+      }
+
+      services.sort((a, b) => {
+        const parseEtd = (etd?: string) => {
+          if (!etd) return Number.POSITIVE_INFINITY;
+          const match = etd.match(/(\d+)/);
+          return match ? Number(match[1]) : Number.POSITIVE_INFINITY;
+        };
+        const aEtd = parseEtd(a.etd);
+        const bEtd = parseEtd(b.etd);
+        if (aEtd !== bEtd) return aEtd - bEtd;
+        return (a.cost || 0) - (b.cost || 0);
+      });
+
+      setShippingServices(services);
+      setSelectedShipping({
+        service: services[0].service,
+        cost: services[0].cost,
+        etd: services[0].etd,
+      });
+      setShippingCacheKey(cacheKey);
+      setShippingCache({ services, selected: services[0] });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Terjadi kesalahan.");
+      setShippingServices([]);
+    } finally {
+      setIsLoadingCosts(false);
+    }
+  }, [
+    selectedAddressId,
+    totalWeight,
+    addresses,
+    shippingCacheKey,
+    shippingCache,
+  ]);
+
+  useEffect(() => {
     fetchShippingCosts();
-  }, [selectedAddressId, totalWeight, addresses]);
+  }, [fetchShippingCosts]);
 
   const handleApplyVoucher = async (codeToApply: string) => {
     if (!codeToApply) return;
@@ -475,7 +494,22 @@ export default function CheckoutView() {
 
          {/* --- Blok Metode Pengiriman (Tidak Berubah) --- */}
          <div className="bg-white p-6 rounded-xl shadow-md">
-           <h2 className="text-xl font-bold mb-4">Metode Pengiriman</h2>
+           <div className="flex items-center justify-between mb-4">
+             <h2 className="text-xl font-bold">Metode Pengiriman</h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setShippingCacheKey("");
+                  setShippingCache(null);
+                  setIsRateCheckCooldown(true);
+                  setTimeout(() => setIsRateCheckCooldown(false), 10000);
+                }}
+                className="text-sm font-medium text-blue-600 hover:text-blue-800 disabled:text-gray-400"
+                disabled={isLoadingCosts || isRateCheckCooldown}
+              >
+                {isLoadingCosts ? "Memuat..." : "Cek Ulang Tarif"}
+              </button>
+           </div>
            {isLoadingCosts && (
             <p className="text-sm text-gray-500 mt-4 animate-pulse">
               Menghitung ongkos kirim...
