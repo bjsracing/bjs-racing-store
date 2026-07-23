@@ -327,7 +327,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
             customerName: customer.nama_pelanggan,
             amount: totalAmount,
             storeName: "BJS Racing Store",
-            storePhone: "+6281011669213",
+            storePhone: "+6288101169213",
           },
         }).catch((err: unknown) => console.error("Gagal kirim notifikasi order_created:", err));
 

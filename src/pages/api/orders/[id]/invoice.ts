@@ -97,7 +97,7 @@ export const GET: APIRoute = async ({ locals, params }) => {
           <div>
             <div class="title">BJS Racing Store</div>
             <p>Jl. Wijaya Kusuma No.79, Bangsri, Jepara</p>
-            <p>HP: +6281011669213</p>
+            <p>HP: +6288101169213</p>
           </div>
           <div class="info">
             <h2>INVOICE</h2>
