@@ -13,6 +13,19 @@ import TrustBadges from '../components/TrustBadges.jsx';
 import WhyChooseUs from '../components/WhyChooseUs.jsx';
 import TestimonialSection from '../components/TestimonialSection.jsx';
 import NewsletterBanner from '../components/NewsletterBanner.jsx';
+import { supabaseAdmin } from '../lib/supabaseServer';
+
+// Ambil data statistik dari database
+const { count: totalProduk } = await supabaseAdmin
+  .from('products')
+  .select('*', { count: 'exact', head: true })
+  .eq('status', 'Aktif');
+
+const { data: terjualData } = await supabaseAdmin
+  .from('products')
+  .select('total_terjual');
+
+const totalTerjual = terjualData?.reduce((sum, p) => sum + (p.total_terjual || 0), 0) ?? 0;
 ---
 
 <MainLayout title="BJS RACING STORE - Home">
@@ -67,9 +80,9 @@ import NewsletterBanner from '../components/NewsletterBanner.jsx';
 
                 {/* Right: Stats Counters */}
                 <div class="grid grid-cols-3 gap-3 mobile:gap-4">
-                    <StatsCounter client:load endValue={500} suffix="+" label="Produk" icon="package" duration={2000} />
-                    <StatsCounter client:load endValue={1000} suffix="+" label="Terjual" icon="users" duration={2200} />
-                    <StatsCounter client:load endValue={4.8} suffix="" label="Rating" icon="star" duration={1800} />
+                    <StatsCounter client:load endValue={totalProduk ?? 0} suffix="+" label="Produk" icon="package" duration={2000} />
+                    <StatsCounter client:load endValue={totalTerjual} suffix="+" label="Terjual" icon="users" duration={2200} />
+                    <StatsCounter client:load endValue={5} suffix="" label="Rating" icon="star" duration={1800} />
                 </div>
             </div>
         </div>
