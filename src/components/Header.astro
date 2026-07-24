@@ -20,11 +20,14 @@ const navLinks = [
 <header class="bg-white text-slate-800 shadow-sm sticky top-0 z-50">
     <div class="container mx-auto px-3 mobile:px-4 tablet:px-6 flex justify-between items-center py-3 mobile:py-4">
         {/* Logo */}
-        <a href="/" class="text-lg mobile:text-xl tablet:text-2xl font-bold text-slate-900"> 
-            BJS RACING <span class="text-orange-500">STORE</span> 
+        <a href="/" class="flex items-center gap-2">
+            <img src="/icons/bjs-racing.png" alt="BJS Racing Store" class="w-8 h-8 mobile:w-9 mobile:h-9 object-contain" />
+            <span class="text-lg mobile:text-xl tablet:text-2xl font-bold text-slate-900">
+                BJS RACING <span class="text-orange-500">STORE</span>
+            </span>
         </a>
         
-        {/* ✅ PERBAIKAN: Kembali ke md: breakpoint */}
+        {/* Desktop nav links */}
         <nav class="hidden md:flex items-center space-x-4 mobile:space-x-6 tablet:space-x-8">
             {navLinks.map(link => ( 
                 <a href={link.path} class="font-semibold text-slate-600 hover:text-orange-500 transition-colors text-sm mobile:text-base">
@@ -33,15 +36,17 @@ const navLinks = [
             ))} 
         </nav>
         
-        {/* ✅ PERBAIKAN: Kembali ke md: breakpoint */}
+        {/* Desktop action icons */}
         <div class="hidden md:flex items-center gap-4 mobile:gap-5 tablet:gap-6">
             <WishlistIcon client:visible />
             <CartIcon client:visible />
             <AuthMenu client:load />
         </div>
         
-        {/* ✅ PERBAIKAN: Kembali ke md: breakpoint */}
-        <div class="md:hidden">
+        {/* Mobile action icons + hamburger */}
+        <div class="md:hidden flex items-center gap-3">
+            <WishlistIcon client:visible />
+            <CartIcon client:visible />
             <MobileMenuButton client:load />
         </div>
     </div>
@@ -50,7 +55,6 @@ const navLinks = [
 <MobileMenu client:load />
 
 <script>
-    // Script tetap sama
     function handleHeaderScroll() {
         const header = document.querySelector('header');
         if (!header) return;
