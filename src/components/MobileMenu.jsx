@@ -25,7 +25,8 @@ const MobileMenu = () => {
         { name: "Katalog Pilok", path: "/katalog-warna" },
         { name: "Garasi Virtual", path: "/simulator" },
         { name: "Scan Warna", path: "/scan-warna" },
-        { name: id.nav.federal_part, path: "/federal-part" },
+        { name: "Onderdil", path: "/onderdil" },
+        { name: "Wishlist", path: "/akun/wishlist" },
     ];
 
     if (!isMobileMenuOpen) return null;

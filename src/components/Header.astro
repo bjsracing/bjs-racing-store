@@ -1,6 +1,7 @@
 ---
 // src/components/Header.astro
 import CartIcon from './CartIcon.jsx';
+import WishlistIcon from './WishlistIcon.jsx';
 import AuthMenu from './AuthMenu.jsx';
 import MobileMenu from './MobileMenu.jsx';
 import MobileMenuButton from './MobileMenuButton.jsx';
@@ -34,6 +35,7 @@ const navLinks = [
         
         {/* ✅ PERBAIKAN: Kembali ke md: breakpoint */}
         <div class="hidden md:flex items-center gap-4 mobile:gap-5 tablet:gap-6">
+            <WishlistIcon client:visible />
             <CartIcon client:visible />
             <AuthMenu client:load />
         </div>

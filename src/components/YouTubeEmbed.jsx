@@ -44,7 +44,11 @@ const YouTubeEmbed = ({ videoId, title, product, showInfo = true }) => {
               decoding="async"
               className="w-full h-full object-cover"
               onError={(e) => {
-                e.target.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                if (e.target.src.includes("maxresdefault")) {
+                  e.target.src = `https://img.youtube.com/vi/${videoId}/sddefault.jpg`;
+                } else if (e.target.src.includes("sddefault")) {
+                  e.target.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                }
               }}
             />
             <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors duration-200" />

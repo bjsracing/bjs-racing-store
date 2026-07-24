@@ -2,7 +2,7 @@
 
 import React from "react";
 import WishlistButton from "./WishlistButton.jsx";
-import CompareButton from "./CompareButton.jsx";
+
 
 const ColorSwatchCard = ({ product }) => {
     return (
@@ -30,7 +30,6 @@ const ColorSwatchCard = ({ product }) => {
             </a>
             <div className="flex justify-center gap-2 mt-2">
                 <WishlistButton productId={product.id} />
-                <CompareButton productId={product.id} />
             </div>
         </div>
     );
