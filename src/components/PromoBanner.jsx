@@ -102,10 +102,11 @@ const PromoBanner = ({ slides: dbSlides = [] }) => {
 
   const current = slides[index];
   const total = slides.length;
+  const hasImage = !!current.image_url;
 
   return (
     <section
-      className="relative w-full aspect-video text-white overflow-hidden"
+      className="w-full bg-white"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onFocus={() => setIsPaused(true)}
@@ -114,78 +115,129 @@ const PromoBanner = ({ slides: dbSlides = [] }) => {
       aria-label="Promo banner carousel"
       aria-roledescription="carousel"
     >
-      {/* Slides */}
-      <div className="absolute inset-0">
+      {/* Image Area */}
+      <div className="relative w-full aspect-video overflow-hidden bg-slate-100">
         {slides.map((slide, idx) => (
           <div
             key={slide.id}
-            className={`absolute inset-0 bg-gradient-to-r ${slide.bg_gradient || "from-slate-900 via-slate-800 to-slate-900"} transition-all duration-500 ease-in-out ${
+            className={`absolute inset-0 transition-all duration-500 ease-in-out ${
+              slide.image_url
+                ? ""
+                : `bg-gradient-to-r ${slide.bg_gradient || "from-slate-900 via-slate-800 to-slate-900"}`
+            } ${
               idx === index
-                ? "opacity-100 translate-x-0"
+                ? "opacity-100 translate-x-0 z-10"
                 : idx < index
-                  ? "opacity-0 -translate-x-full"
-                  : "opacity-0 translate-x-full"
+                  ? "opacity-0 -translate-x-full z-0"
+                  : "opacity-0 translate-x-full z-0"
             }`}
           >
-            {/* Background Image */}
-            {slide.image_url && (
-              <div
-                className="absolute inset-0 bg-cover bg-center"
-                style={{ backgroundImage: `url(${slide.image_url})` }}
+            {slide.image_url ? (
+              <img
+                src={slide.image_url}
+                alt={slide.title}
+                className="absolute inset-0 w-full h-full object-cover"
               />
+            ) : (
+              <>
+                <RacingPattern />
+                <div className="absolute inset-0 bg-black/10" />
+              </>
             )}
-            <RacingPattern />
-            <div className="absolute inset-0 bg-black/20" />
           </div>
         ))}
+
+        {/* Arrow Navigation */}
+        {slides.length > 1 && (
+          <>
+            <button
+              onClick={goPrev}
+              className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-11 md:h-11 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors duration-200 cursor-pointer shadow-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+              aria-label="Slide sebelumnya"
+            >
+              <FiChevronLeft className="w-5 h-5 text-slate-700" />
+            </button>
+            <button
+              onClick={goNext}
+              className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-11 md:h-11 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors duration-200 cursor-pointer shadow-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+              aria-label="Slide berikutnya"
+            >
+              <FiChevronRight className="w-5 h-5 text-slate-700" />
+            </button>
+          </>
+        )}
+
+        {/* Dots on image (fallback slides only — when no text below) */}
+        {!hasImage && slides.length > 1 && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
+            {slides.map((slide, idx) => (
+              <button
+                key={slide.id}
+                onClick={() => goTo(idx)}
+                className={`rounded-full transition-all duration-200 cursor-pointer ${
+                  idx === index
+                    ? "bg-white w-6 h-2"
+                    : "bg-white/50 hover:bg-white/80 w-2 h-2"
+                }`}
+                aria-label={`Slide ${idx + 1}`}
+                aria-current={idx === index ? "true" : undefined}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Dots on image (image slides — also show here for visual cue) */}
+        {hasImage && slides.length > 1 && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
+            {slides.map((slide, idx) => (
+              <button
+                key={slide.id}
+                onClick={() => goTo(idx)}
+                className={`rounded-full transition-all duration-200 cursor-pointer ${
+                  idx === index
+                    ? "bg-white w-6 h-2"
+                    : "bg-white/50 hover:bg-white/80 w-2 h-2"
+                }`}
+                aria-label={`Slide ${idx + 1}`}
+                aria-current={idx === index ? "true" : undefined}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 max-w-6xl mx-auto px-14 sm:px-20 md:px-24 h-full flex items-center">
-        <div
-          key={index}
-          className="max-w-xl animate-[fadeInUp_0.5s_ease-out]"
-        >
-          <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-2 drop-shadow-lg">
-            {current.title}
-          </h2>
-          <p className="text-sm sm:text-base md:text-lg text-white/90 mb-4 md:mb-6 drop-shadow">
-            {current.subtitle}
-          </p>
-          <a
-            href={current.cta_href || "/"}
-            className="inline-block bg-white text-slate-900 font-semibold px-5 py-2.5 md:px-6 md:py-3 rounded-lg hover:bg-slate-100 transition-colors duration-200 cursor-pointer shadow-lg"
+      {/* Content Area — below image */}
+      <div className="w-full bg-white">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-6">
+          <div
+            key={index}
+            className="animate-[fadeInUp_0.4s_ease-out]"
           >
-            {current.cta_text || "Selengkapnya"}
-          </a>
+            <h2 className="text-xl md:text-2xl font-bold text-slate-900 mb-1.5">
+              {current.title}
+            </h2>
+            <p className="text-sm md:text-base text-slate-500 mb-4">
+              {current.subtitle}
+            </p>
+            <div className="flex items-center justify-between">
+              <a
+                href={current.cta_href || "/"}
+                className="inline-block bg-orange-500 text-white font-semibold px-5 py-2.5 md:px-6 md:py-3 rounded-lg hover:bg-orange-600 transition-colors duration-200 cursor-pointer shadow-sm text-sm md:text-base"
+              >
+                {current.cta_text || "Selengkapnya"}
+              </a>
+              {slides.length > 1 && (
+                <span className="text-xs font-medium text-slate-400 tabular-nums">
+                  {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Arrow Navigation */}
-      {slides.length > 1 && (
-        <>
-          <button
-            onClick={goPrev}
-            className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-30 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/40 transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-transparent"
-            aria-label="Slide sebelumnya"
-          >
-            <FiChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-white" />
-          </button>
-          <button
-            onClick={goNext}
-            className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-30 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/40 transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-transparent"
-            aria-label="Slide berikutnya"
-          >
-            <FiChevronRight className="w-5 h-5 md:w-6 md:h-6 text-white" />
-          </button>
-        </>
-      )}
-
-      {/* Bottom Bar: Progress + Numbered Indicator */}
-      {slides.length > 1 && (
-        <div className="absolute bottom-0 left-0 right-0 z-20">
-          {/* Progress Bar */}
-          <div className="w-full h-1 bg-white/20">
+        {/* Progress Bar */}
+        {slides.length > 1 && (
+          <div className="w-full h-1 bg-slate-100">
             <div
               key={progressKey}
               className="h-full bg-orange-500"
@@ -194,30 +246,8 @@ const PromoBanner = ({ slides: dbSlides = [] }) => {
               }}
             />
           </div>
-
-          {/* Numbered Indicator */}
-          <div className="bg-black/30 backdrop-blur-sm px-4 sm:px-6 py-2 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {slides.map((slide, idx) => (
-                <button
-                  key={slide.id}
-                  onClick={() => goTo(idx)}
-                  className={`w-2 h-2 rounded-full transition-all duration-200 cursor-pointer ${
-                    idx === index
-                      ? "bg-orange-500 w-6"
-                      : "bg-white/50 hover:bg-white/80"
-                  }`}
-                  aria-label={`Slide ${idx + 1}`}
-                  aria-current={idx === index ? "true" : undefined}
-                />
-              ))}
-            </div>
-            <span className="text-sm font-medium text-white/90 tabular-nums">
-              {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
-            </span>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <style>{`
         @keyframes progressFill {
@@ -227,7 +257,7 @@ const PromoBanner = ({ slides: dbSlides = [] }) => {
         @keyframes fadeInUp {
           from {
             opacity: 0;
-            transform: translateY(12px);
+            transform: translateY(8px);
           }
           to {
             opacity: 1;
