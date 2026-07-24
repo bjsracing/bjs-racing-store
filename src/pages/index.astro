@@ -43,6 +43,13 @@ const activePromos = promos?.filter(p => {
   const until = p.valid_until ? new Date(p.valid_until) : null;
   return (!from || from <= now) && (!until || until >= now);
 }) ?? [];
+
+// Ambil data brand aktif dari database
+const { data: brands } = await supabaseAdmin
+  .from('brands')
+  .select('id, name, logo_url')
+  .eq('is_active', true)
+  .order('sort_order', { ascending: true });
 ---
 
 <MainLayout title="BJS RACING STORE - Home">
@@ -127,7 +134,7 @@ const activePromos = promos?.filter(p => {
     <VideoShowcase client:visible />
 
     {/* BrandMarquee Section */}
-    <BrandMarquee client:visible />
+    <BrandMarquee client:visible brands={brands ?? []} />
 
     {/* FeaturedProducts Section */}
     <FeaturedProducts client:visible />

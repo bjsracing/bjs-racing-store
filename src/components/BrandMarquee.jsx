@@ -1,39 +1,47 @@
 // src/components/BrandMarquee.jsx
 import React, { useRef, useState, useEffect, useCallback } from "react";
 
-const BRANDS = [
-  { name: "Yoshimura", id: "yoshimura" },
-  { name: "AP Racing", id: "ap-racing" },
-  { name: "Brembo", id: "brembo" },
-  { name: "Federal Part", id: "federal-part" },
-  { name: "KTC", id: "ktc" },
-  { name: "Kawahara", id: "kawahara" },
-  { name: "MTRT", id: "mtrt" },
-  { name: "RCB", id: "rcb" },
-  { name: "Ohlins", id: "ohlins" },
-  { name: "Showa", id: "showa" },
+const FALLBACK_BRANDS = [
+  { id: "yoshimura", name: "Yoshimura", logo_url: null },
+  { id: "ap-racing", name: "AP Racing", logo_url: null },
+  { id: "brembo", name: "Brembo", logo_url: null },
+  { id: "federal-part", name: "Federal Part", logo_url: null },
+  { id: "ktc", name: "KTC", logo_url: null },
+  { id: "kawahara", name: "Kawahara", logo_url: null },
+  { id: "mtrt", name: "MTRT", logo_url: null },
+  { id: "rcb", name: "RCB", logo_url: null },
+  { id: "ohlins", name: "Ohlins", logo_url: null },
+  { id: "showa", name: "Showa", logo_url: null },
 ];
 
-const DURATION = 30;
+const DURATION = 18;
 
 const BrandLogo = ({ brand }) => (
-  <div className="flex-none px-6 mobile:px-8 flex items-center justify-center select-none">
-    <span className="text-lg mobile:text-xl tablet:text-2xl font-bold text-slate-400 hover:text-orange-500 transition-colors duration-200 whitespace-nowrap tracking-tight">
+  <div className="flex-none px-6 mobile:px-8 flex flex-col items-center justify-center select-none gap-1.5">
+    {brand.logo_url ? (
+      <img
+        src={brand.logo_url}
+        alt={brand.name}
+        className="h-10 mobile:h-12 tablet:h-14 object-contain"
+        loading="lazy"
+        decoding="async"
+      />
+    ) : null}
+    <span className="text-sm mobile:text-base tablet:text-lg font-bold text-slate-400 hover:text-orange-500 transition-colors duration-200 whitespace-nowrap tracking-tight">
       {brand.name}
     </span>
   </div>
 );
 
-const BrandMarquee = () => {
+const BrandMarquee = ({ brands: dbBrands = [] }) => {
+  const brands = dbBrands.length > 0 ? dbBrands : FALLBACK_BRANDS;
   const [isPaused, setIsPaused] = useState(false);
   const prefersReduced = useRef(false);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     prefersReduced.current = mq.matches;
-    const handler = (e) => {
-      prefersReduced.current = e.matches;
-    };
+    const handler = (e) => { prefersReduced.current = e.matches; };
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, []);
@@ -42,11 +50,9 @@ const BrandMarquee = () => {
     if (!prefersReduced.current) setIsPaused(true);
   }, []);
 
-  const handleMouseLeave = useCallback(() => {
-    setIsPaused(false);
-  }, []);
+  const handleMouseLeave = useCallback(() => { setIsPaused(false); }, []);
 
-  const items = [...BRANDS, ...BRANDS, ...BRANDS];
+  const items = [...brands, ...brands, ...brands];
 
   return (
     <section
@@ -59,11 +65,8 @@ const BrandMarquee = () => {
       aria-label="Brand partner logos"
     >
       <div className="relative">
-        {/* Gradient fade edges */}
         <div className="absolute left-0 top-0 bottom-0 w-12 mobile:w-20 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none" />
         <div className="absolute right-0 top-0 bottom-0 w-12 mobile:w-20 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
-
-        {/* Scrolling track */}
         <div
           className="flex items-center"
           style={{
@@ -82,17 +85,11 @@ const BrandMarquee = () => {
 
       <style>{`
         @keyframes marquee {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-33.333%);
-          }
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-33.333%); }
         }
         @media (prefers-reduced-motion: reduce) {
-          .marquee {
-            animation: none !important;
-          }
+          .marquee { animation: none !important; }
         }
       `}</style>
     </section>
