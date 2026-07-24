@@ -1,31 +1,34 @@
-// src/components/PromoBanner.jsx (Enhanced - v2)
+// src/components/PromoBanner.jsx
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
-const SLIDES = [
+const FALLBACK_SLIDES = [
   {
-    id: 1,
+    id: "fallback-1",
     title: "Promo Spesial Racing Gear",
     subtitle: "Diskon hingga 30% untuk helm dan jaket racing",
-    cta: "Belanja Sekarang",
-    href: "/katalog-warna",
-    bg: "from-slate-900 via-slate-800 to-slate-900",
+    cta_text: "Belanja Sekarang",
+    cta_href: "/katalog-warna",
+    bg_gradient: "from-slate-900 via-slate-800 to-slate-900",
+    image_url: null,
   },
   {
-    id: 2,
+    id: "fallback-2",
     title: "Ongkir Gratis Area Lokal",
     subtitle: "Gratis ongkir untuk area internal BJS Racing",
-    cta: "Lihat Syarat",
-    href: "/",
-    bg: "from-orange-600 via-orange-500 to-orange-600",
+    cta_text: "Lihat Syarat",
+    cta_href: "/",
+    bg_gradient: "from-orange-600 via-orange-500 to-orange-600",
+    image_url: null,
   },
   {
-    id: 3,
+    id: "fallback-3",
     title: "New Arrival: Lift Kit & Onderdil",
     subtitle: "Perangkat underbone terbaru sudah tersedia",
-    cta: "Lihat Katalog",
-    href: "/onderdil",
-    bg: "from-blue-700 via-blue-600 to-blue-700",
+    cta_text: "Lihat Katalog",
+    cta_href: "/onderdil",
+    bg_gradient: "from-blue-700 via-blue-600 to-blue-700",
+    image_url: null,
   },
 ];
 
@@ -57,7 +60,8 @@ const RacingPattern = () => (
   </svg>
 );
 
-const PromoBanner = () => {
+const PromoBanner = ({ slides: dbSlides = [] }) => {
+  const slides = dbSlides.length > 0 ? dbSlides : FALLBACK_SLIDES;
   const [index, setIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [progressKey, setProgressKey] = useState(0);
@@ -66,38 +70,38 @@ const PromoBanner = () => {
   const goTo = useCallback(
     (next) => {
       setIndex((prev) => {
-        const nextIndex = typeof next === "number" ? next : (prev + 1) % SLIDES.length;
+        const nextIndex = typeof next === "number" ? next : (prev + 1) % slides.length;
         return nextIndex;
       });
       setProgressKey((k) => k + 1);
     },
-    [],
+    [slides.length],
   );
 
   const goPrev = useCallback(() => {
-    setIndex((prev) => (prev - 1 + SLIDES.length) % SLIDES.length);
+    setIndex((prev) => (prev - 1 + slides.length) % slides.length);
     setProgressKey((k) => k + 1);
-  }, []);
+  }, [slides.length]);
 
   const goNext = useCallback(() => {
-    setIndex((prev) => (prev + 1) % SLIDES.length);
+    setIndex((prev) => (prev + 1) % slides.length);
     setProgressKey((k) => k + 1);
-  }, []);
+  }, [slides.length]);
 
   useEffect(() => {
-    if (isPaused) {
+    if (isPaused || slides.length <= 1) {
       clearInterval(timerRef.current);
       return;
     }
     timerRef.current = setInterval(() => {
-      setIndex((prev) => (prev + 1) % SLIDES.length);
+      setIndex((prev) => (prev + 1) % slides.length);
       setProgressKey((k) => k + 1);
     }, SLIDE_DURATION);
     return () => clearInterval(timerRef.current);
-  }, [isPaused, progressKey]);
+  }, [isPaused, progressKey, slides.length]);
 
-  const current = SLIDES[index];
-  const total = SLIDES.length;
+  const current = slides[index];
+  const total = slides.length;
 
   return (
     <section
@@ -112,10 +116,10 @@ const PromoBanner = () => {
     >
       {/* Slides */}
       <div className="absolute inset-0">
-        {SLIDES.map((slide, idx) => (
+        {slides.map((slide, idx) => (
           <div
             key={slide.id}
-            className={`absolute inset-0 bg-gradient-to-r ${slide.bg} transition-all duration-500 ease-in-out ${
+            className={`absolute inset-0 bg-gradient-to-r ${slide.bg_gradient || "from-slate-900 via-slate-800 to-slate-900"} transition-all duration-500 ease-in-out ${
               idx === index
                 ? "opacity-100 translate-x-0"
                 : idx < index
@@ -123,6 +127,13 @@ const PromoBanner = () => {
                   : "opacity-0 translate-x-full"
             }`}
           >
+            {/* Background Image */}
+            {slide.image_url && (
+              <div
+                className="absolute inset-0 bg-cover bg-center"
+                style={{ backgroundImage: `url(${slide.image_url})` }}
+              />
+            )}
             <RacingPattern />
             <div className="absolute inset-0 bg-black/20" />
           </div>
@@ -142,65 +153,71 @@ const PromoBanner = () => {
             {current.subtitle}
           </p>
           <a
-            href={current.href}
+            href={current.cta_href || "/"}
             className="inline-block bg-white text-slate-900 font-semibold px-5 py-2.5 md:px-6 md:py-3 rounded-lg hover:bg-slate-100 transition-colors duration-200 cursor-pointer shadow-lg"
           >
-            {current.cta}
+            {current.cta_text || "Selengkapnya"}
           </a>
         </div>
       </div>
 
       {/* Arrow Navigation */}
-      <button
-        onClick={goPrev}
-        className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-30 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/40 transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-transparent"
-        aria-label="Slide sebelumnya"
-      >
-        <FiChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-white" />
-      </button>
-      <button
-        onClick={goNext}
-        className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-30 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/40 transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-transparent"
-        aria-label="Slide berikutnya"
-      >
-        <FiChevronRight className="w-5 h-5 md:w-6 md:h-6 text-white" />
-      </button>
+      {slides.length > 1 && (
+        <>
+          <button
+            onClick={goPrev}
+            className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-30 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/40 transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-transparent"
+            aria-label="Slide sebelumnya"
+          >
+            <FiChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-white" />
+          </button>
+          <button
+            onClick={goNext}
+            className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-30 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/40 transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-transparent"
+            aria-label="Slide berikutnya"
+          >
+            <FiChevronRight className="w-5 h-5 md:w-6 md:h-6 text-white" />
+          </button>
+        </>
+      )}
 
       {/* Bottom Bar: Progress + Numbered Indicator */}
-      <div className="absolute bottom-0 left-0 right-0 z-20">
-        {/* Progress Bar */}
-        <div className="w-full h-1 bg-white/20">
-          <div
-            key={progressKey}
-            className="h-full bg-orange-500"
-            style={{
-              animation: `progressFill ${SLIDE_DURATION}ms linear forwards`,
-            }}
-          />
-        </div>
-
-        {/* Numbered Indicator */}
-        <div className="bg-black/30 backdrop-blur-sm px-4 sm:px-6 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {SLIDES.map((slide, idx) => (
-              <button
-                key={slide.id}
-                onClick={() => goTo(idx)}
-                className={`w-2 h-2 rounded-full transition-all duration-200 cursor-pointer ${
-                  idx === index
-                    ? "bg-orange-500 w-6"
-                    : "bg-white/50 hover:bg-white/80"
-                }`}
-                aria-label={`Slide ${idx + 1}`}
-                aria-current={idx === index ? "true" : undefined}
-              />
-            ))}
+      {slides.length > 1 && (
+        <div className="absolute bottom-0 left-0 right-0 z-20">
+          {/* Progress Bar */}
+          <div className="w-full h-1 bg-white/20">
+            <div
+              key={progressKey}
+              className="h-full bg-orange-500"
+              style={{
+                animation: `progressFill ${SLIDE_DURATION}ms linear forwards`,
+              }}
+            />
           </div>
-          <span className="text-sm font-medium text-white/90 tabular-nums">
-            {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
-          </span>
+
+          {/* Numbered Indicator */}
+          <div className="bg-black/30 backdrop-blur-sm px-4 sm:px-6 py-2 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {slides.map((slide, idx) => (
+                <button
+                  key={slide.id}
+                  onClick={() => goTo(idx)}
+                  className={`w-2 h-2 rounded-full transition-all duration-200 cursor-pointer ${
+                    idx === index
+                      ? "bg-orange-500 w-6"
+                      : "bg-white/50 hover:bg-white/80"
+                  }`}
+                  aria-label={`Slide ${idx + 1}`}
+                  aria-current={idx === index ? "true" : undefined}
+                />
+              ))}
+            </div>
+            <span className="text-sm font-medium text-white/90 tabular-nums">
+              {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       <style>{`
         @keyframes progressFill {

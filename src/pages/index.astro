@@ -26,10 +26,21 @@ const { data: terjualData } = await supabaseAdmin
   .select('total_terjual');
 
 const totalTerjual = terjualData?.reduce((sum, p) => sum + (p.total_terjual || 0), 0) ?? 0;
+
+// Ambil data promo aktif dari database (auto-hide jika sudah kedaluwarsa)
+const now = new Date().toISOString();
+const { data: promos } = await supabaseAdmin
+  .from('promos')
+  .select('id, title, subtitle, cta_text, cta_href, image_url, bg_gradient, sort_order')
+  .eq('is_active', true)
+  .or(`valid_until.is.null,valid_until.gte.${now}`)
+  .or(`valid_from.is.null,valid_from.lte.${now}`)
+  .order('sort_order', { ascending: true })
+  .limit(7);
 ---
 
 <MainLayout title="BJS RACING STORE - Home">
-    <PromoBanner client:load />
+    <PromoBanner client:load slides={promos ?? []} />
 
     {/* Hero Section - Split Layout */}
     <section class="relative bg-gradient-to-br from-orange-600 via-orange-500 to-orange-600 text-white overflow-hidden">
