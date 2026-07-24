@@ -105,7 +105,7 @@ const PromoBanner = ({ slides: dbSlides = [] }) => {
 
   return (
     <section
-      className="relative w-full h-64 md:h-96 text-white overflow-hidden"
+      className="relative w-full aspect-video text-white overflow-hidden"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onFocus={() => setIsPaused(true)}
